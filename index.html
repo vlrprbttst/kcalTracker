@@ -799,7 +799,7 @@
           {notAllowed && (
             <div className="modal-overlay">
               <div className="modal">
-                <img src="no.gif" alt="" style={{ width: 313, height: 240, borderRadius: 8, marginBottom: 12 }} />
+                <img src="no.gif" alt="" style={{ width: 313, maxWidth: "100%", height: "auto", borderRadius: 8, marginBottom: 12 }} />
                 <div className="modal-title">Accesso negato</div>
                 <div className="modal-text">Non puoi loggarti a meno che tu non sia il creatore dell'app!</div>
                 <button className="modal-btn" onClick={() => setNotAllowed(false)}>Ok, capito</button>
