@@ -659,6 +659,11 @@
             return;
           }
           setUser(u);
+          if (!u) {
+            setCounts({});
+            setExtras([]);
+            return;
+          }
           if (u) {
             try {
               const snap = await db.collection("users").doc(u.uid).collection("days").doc(TODAY()).get();
