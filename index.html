@@ -155,7 +155,7 @@
       margin-bottom: 6px;
       transition: border-color .15s;
     }
-    .category-card.has-checked { border-color: #3f3f50; }
+    .category-card.has-checked { border-color: #a78bfa; box-shadow: 0 0 0 1px #a78bfa; }
 
     .category-btn {
       width: 100%;
@@ -204,10 +204,7 @@
     .items-table tr + tr td { border-top: 1px solid #27272a; }
 
     .item-row { transition: opacity .2s; }
-    .item-row.checked { opacity: 0.45; }
     .item-name { padding-right: 8px !important; }
-    .item-name span { text-decoration: none; }
-    .item-row.checked .item-name span { text-decoration: line-through; }
     .item-portion { color: #71717a; padding: 10px 8px !important; }
     .item-kcal-cell { text-align: right; white-space: nowrap; }
 
@@ -797,7 +794,7 @@
           {notAllowed && (
             <div className="modal-overlay">
               <div className="modal">
-                <div className="modal-icon">🔒</div>
+                <img src="no.gif" alt="" style={{ width: 313, height: 240, borderRadius: 8, marginBottom: 12 }} />
                 <div className="modal-title">Accesso negato</div>
                 <div className="modal-text">Non puoi loggarti a meno che tu non sia il creatore dell'app!</div>
                 <button className="modal-btn" onClick={() => setNotAllowed(false)}>Ok, capito</button>
