@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kcalTracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      background: #111113;
+      color: #e4e4e7;
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+    button { font-family: inherit; cursor: pointer; }
+    input { font-family: inherit; }
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #111113;
+      border-bottom: 1px solid #2e2e38;
+      padding: 16px 16px 12px;
+    }
+    .header-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .app-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .reset-btn {
+      font-size: 12px;
+      font-weight: 500;
+      color: #a1a1aa;
+      background: transparent;
+      border: 1px solid #2e2e38;
+      border-radius: 6px;
+      padding: 4px 10px;
+      transition: color .15s, border-color .15s;
+    }
+    .reset-btn:hover { color: #f87171; border-color: #f87171; }
+
+    .kcal-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .kcal-consumed {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .kcal-sep { font-size: 16px; color: #52525b; }
+    .kcal-target-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .kcal-target {
+      font-size: 14px;
+      color: #a1a1aa;
+      cursor: pointer;
+      border-bottom: 1px dashed #52525b;
+      padding-bottom: 1px;
+    }
+    .kcal-target-input {
+      font-size: 14px;
+      width: 60px;
+      background: #1c1c22;
+      border: 1px solid #a78bfa;
+      border-radius: 4px;
+      color: #e4e4e7;
+      padding: 1px 4px;
+      outline: none;
+    }
+    .kcal-label { font-size: 12px; color: #71717a; }
+    .kcal-remaining { font-size: 12px; color: #71717a; margin-left: auto; }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: #27272a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width .4s ease, background .4s ease;
+    }
+
+    .content { max-width: 520px; margin: 0 auto; padding: 16px 12px 0; }
+
+    .category-card {
+      background: #1c1c22;
+      border-radius: 10px;
+      border: 1px solid #2e2e38;
+      overflow: hidden;
+      margin-bottom: 6px;
+      transition: border-color .15s;
+    }
+    .category-card.has-checked { border-color: #3f3f50; }
+
+    .category-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border: none;
+      background: transparent;
+      color: #e4e4e7;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: left;
+    }
+    .category-btn:hover { background: #26262e; }
+    .cat-icon { font-size: 18px; line-height: 1; }
+    .cat-name { flex: 1; }
+    .cat-meta { font-size: 12px; color: #a1a1aa; font-weight: 400; }
+    .cat-kcal-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: #a78bfa;
+      background: #2e2a45;
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+    .cat-arrow {
+      font-size: 10px;
+      color: #52525b;
+      transition: transform .2s;
+    }
+    .cat-arrow.open { transform: rotate(180deg); }
+
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      padding: 0 14px 12px;
+      display: block;
+    }
+    .items-table thead tr {
+      color: #71717a;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .items-table th {
+      padding: 2px 0 8px;
+      font-weight: 500;
+      text-align: left;
+    }
+    .items-table th:last-child { text-align: right; }
+    .items-table td { padding: 10px 0; vertical-align: middle; }
+    .items-table tr + tr td { border-top: 1px solid #27272a; }
+
+    .item-row { transition: opacity .2s; }
+    .item-row.checked { opacity: 0.45; }
+
+    .item-name { padding-right: 8px !important; }
+    .item-name span { text-decoration: none; }
+    .item-row.checked .item-name span { text-decoration: line-through; }
+    .item-portion { color: #71717a; padding: 10px 8px !important; }
+    .item-kcal-cell { text-align: right; white-space: nowrap; }
+
+    .counter {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+    .counter-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      border: 1px solid #3f3f46;
+      background: #27272a;
+      color: #e4e4e7;
+      font-size: 14px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .12s, border-color .12s;
+      padding: 0;
+    }
+    .counter-btn:hover { background: #3f3f46; border-color: #52525b; }
+    .counter-btn.plus { border-color: #a78bfa; color: #a78bfa; }
+    .counter-btn.plus:hover { background: #2e2a45; }
+    .counter-num {
+      font-size: 13px;
+      font-weight: 700;
+      color: #a78bfa;
+      min-width: 14px;
+      text-align: center;
+    }
+    .item-kcal { font-weight: 600; }
+
+    .bar-mini {
+      width: 100%;
+      height: 3px;
+      background: #27272a;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .bar-mini-fill {
+      height: 100%;
+      border-radius: 2px;
+    }
+
+    .legend {
+      max-width: 520px;
+      margin: 12px auto 0;
+      padding: 0 12px;
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      font-size: 11px;
+      color: #71717a;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const dietData = [
+      {
+        category: "Carboidrati", icon: "🍞",
+        items: [
+          { name: "Rosetta", portion: "120g", kcal: 340 },
+          { name: "Basmati cotto", portion: "150g", kcal: 200 },
+          { name: "Basmati cotto", portion: "200g", kcal: 270 },
+          { name: "Taralli", portion: "1 pacchetto", kcal: 280 },
+          { name: "Gnocchi", portion: "200g", kcal: 300 },
+        ],
+      },
+      {
+        category: "Carne", icon: "🍗",
+        items: [
+          { name: "Pollo", portion: "150g", kcal: 165 },
+          { name: "Cotoletta pollo Aia", portion: "1 pezzo", kcal: 200 },
+        ],
+      },
+      {
+        category: "Pesce", icon: "🐟",
+        items: [
+          { name: "Gratinato alle erbe", portion: "½ vaschetta", kcal: 400 },
+          { name: "Gratinato ai ceci", portion: "½ vaschetta", kcal: 350 },
+          { name: "Gratinato patate/rosmarino", portion: "½ vaschetta", kcal: 240 },
+          { name: "Tonno non sgocciolato", portion: "1 scatola", kcal: 200 },
+        ],
+      },
+      {
+        category: "Uova", icon: "🥚",
+        items: [{ name: "Uova strapazzate", portion: "2 uova", kcal: 230 }],
+      },
+      {
+        category: "Secondi vegetali", icon: "🥬",
+        items: [
+          { name: "Dischetti spinaci/zuccarota", portion: "3 pezzi", kcal: 250 },
+          { name: "Cotoletta vegetale", portion: "1 pezzo", kcal: 220 },
+          { name: "Straccetti al sugo", portion: "1 porzione", kcal: 390 },
+          { name: "Tofu al naturale", portion: "1 porzione", kcal: 190 },
+        ],
+      },
+      {
+        category: "Legumi", icon: "🍲",
+        items: [{ name: "Borlotti", portion: "1 lattina", kcal: 120 }],
+      },
+      {
+        category: "Contorni", icon: "🥦",
+        items: [
+          { name: "Contorno leggerezza / Tris broccoli", portion: "200g", kcal: 115 },
+          { name: "Patatine fritte", portion: "200g", kcal: 280 },
+        ],
+      },
+      {
+        category: "Formaggi", icon: "🧀",
+        items: [
+          { name: "Mozzarella", portion: "1 pezzo", kcal: 300 },
+          { name: "Parmigiano", portion: "10g", kcal: 40 },
+        ],
+      },
+      {
+        category: "Condimenti", icon: "🍅",
+        items: [
+          { name: "Passata", portion: "300g", kcal: 90 },
+          { name: "Curry sauce", portion: "1 porzione", kcal: 300 },
+          { name: "Tikka masala sauce", portion: "1 porzione", kcal: 200 },
+          { name: "Olio", portion: "10g", kcal: 90 },
+        ],
+      },
+      {
+        category: "Merende", icon: "🥄",
+        items: [
+          { name: "Yogurt bianco", portion: "1 vasetto", kcal: 50 },
+          { name: "Mele gialle", portion: "3 medio-piccole", kcal: 200 },
+        ],
+      },
+      {
+        category: "Altro", icon: "🥟",
+        items: [{ name: "Bao", portion: "2 pezzi", kcal: 750 }],
+      },
+      {
+        category: "Alcol", icon: "🍺",
+        items: [
+          { name: "Tennent's grande + 2 piccole", portion: "1×44cl + 2×35.5cl", kcal: 800 },
+        ],
+      },
+    ];
+
+    const TODAY = () => new Date().toISOString().slice(0, 10);
+
+    function loadCounts() {
+      try {
+        const raw = localStorage.getItem("kcal_data");
+        if (!raw) return {};
+        const data = JSON.parse(raw);
+        if (data.date !== TODAY()) return {};
+        return data.counts || {};
+      } catch { return {}; }
+    }
+
+    function loadTarget() {
+      return parseInt(localStorage.getItem("kcal_target") || "1800", 10);
+    }
+
+    function KcalBar({ kcal, max }) {
+      const pct = Math.min((kcal / max) * 100, 100);
+      const color = kcal > 400 ? "#f87171" : kcal > 250 ? "#fbbf24" : "#4ade80";
+      return (
+        <div className="bar-mini">
+          <div className="bar-mini-fill" style={{ width: `${pct}%`, background: color }} />
+        </div>
+      );
+    }
+
+    function App() {
+      const [counts, setCounts] = useState(loadCounts);
+      const [target, setTarget] = useState(loadTarget);
+      const [openIdx, setOpenIdx] = useState(null);
+      const [editingTarget, setEditingTarget] = useState(false);
+      const [targetDraft, setTargetDraft] = useState("");
+      const targetInputRef = useRef(null);
+
+      useEffect(() => {
+        localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts }));
+      }, [counts]);
+
+      useEffect(() => {
+        localStorage.setItem("kcal_target", String(target));
+      }, [target]);
+
+      useEffect(() => {
+        if (editingTarget && targetInputRef.current) targetInputRef.current.focus();
+      }, [editingTarget]);
+
+      const getCount = (ci, ii) => counts[`${ci}_${ii}`] || 0;
+
+      const inc = (ci, ii, e) => {
+        e.stopPropagation();
+        const key = `${ci}_${ii}`;
+        setCounts(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
+      };
+
+      const dec = (ci, ii, e) => {
+        e.stopPropagation();
+        const key = `${ci}_${ii}`;
+        setCounts(prev => {
+          const next = (prev[key] || 0) - 1;
+          if (next <= 0) { const { [key]: _, ...rest } = prev; return rest; }
+          return { ...prev, [key]: next };
+        });
+      };
+
+      const totalKcal = Object.entries(counts).reduce((sum, [key, qty]) => {
+        const [ci, ii] = key.split("_").map(Number);
+        return sum + (dietData[ci]?.items[ii]?.kcal || 0) * qty;
+      }, 0);
+
+      const pct = Math.min((totalKcal / target) * 100, 100);
+      const remaining = target - totalKcal;
+      const barColor = pct >= 100 ? "#f87171" : pct >= 80 ? "#fbbf24" : "#4ade80";
+
+      const handleReset = () => {
+        if (window.confirm("Resettare le calorie di oggi?")) setCounts({});
+      };
+
+      const startEditTarget = () => {
+        setTargetDraft(String(target));
+        setEditingTarget(true);
+      };
+
+      const commitTarget = () => {
+        const v = parseInt(targetDraft, 10);
+        if (v > 0) setTarget(v);
+        setEditingTarget(false);
+      };
+
+      const catKcal = (ci) =>
+        dietData[ci].items.reduce((s, item, ii) => s + item.kcal * getCount(ci, ii), 0);
+
+      return (
+        <>
+          <div className="header">
+            <div style={{ maxWidth: 520, margin: "0 auto" }}>
+              <div className="header-top">
+                <span className="app-title">kcalTracker</span>
+                <button className="reset-btn" onClick={handleReset}>Reset giorno</button>
+              </div>
+
+              <div className="kcal-row">
+                <span className="kcal-consumed" style={{ color: barColor }}>{totalKcal}</span>
+                <span className="kcal-sep">/</span>
+                <span className="kcal-target-wrap">
+                  {editingTarget ? (
+                    <input
+                      ref={targetInputRef}
+                      className="kcal-target-input"
+                      value={targetDraft}
+                      onChange={e => setTargetDraft(e.target.value)}
+                      onBlur={commitTarget}
+                      onKeyDown={e => { if (e.key === "Enter") commitTarget(); if (e.key === "Escape") setEditingTarget(false); }}
+                      type="number"
+                    />
+                  ) : (
+                    <span className="kcal-target" onClick={startEditTarget} title="Clicca per modificare">{target}</span>
+                  )}
+                  <span className="kcal-label">kcal</span>
+                </span>
+                <span className="kcal-remaining">
+                  {remaining >= 0 ? `${remaining} rimanenti` : `${Math.abs(remaining)} in eccesso`}
+                </span>
+              </div>
+
+              <div className="progress-track">
+                <div className="progress-bar" style={{ width: `${pct}%`, background: barColor }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="content">
+            {dietData.map((cat, ci) => {
+              const isOpen = openIdx === ci;
+              const kcalCat = catKcal(ci);
+              const hasAny = kcalCat > 0;
+
+              return (
+                <div key={ci} className={`category-card${hasAny ? " has-checked" : ""}`}>
+                  <button className="category-btn" onClick={() => setOpenIdx(isOpen ? null : ci)}>
+                    <span className="cat-icon">{cat.icon}</span>
+                    <span className="cat-name">{cat.category}</span>
+                    {hasAny && <span className="cat-kcal-badge">+{kcalCat} kcal</span>}
+                    <span className="cat-meta">{cat.items.length} {cat.items.length === 1 ? "alimento" : "alimenti"}</span>
+                    <span className={`cat-arrow${isOpen ? " open" : ""}`}>▼</span>
+                  </button>
+
+                  {isOpen && (
+                    <table className="items-table">
+                      <thead>
+                        <tr>
+                          <th>Alimento</th>
+                          <th style={{ color: "#71717a" }}>Porzione</th>
+                          <th style={{ textAlign: "right" }}>Kcal</th>
+                          <th style={{ textAlign: "right", width: 80 }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cat.items.map((item, ii) => {
+                          const qty = getCount(ci, ii);
+                          const isActive = qty > 0;
+                          return (
+                            <tr key={ii} className={`item-row${isActive ? " checked" : ""}`}>
+                              <td className="item-name"><span>{item.name}</span></td>
+                              <td className="item-portion">{item.portion}</td>
+                              <td className="item-kcal-cell">
+                                <span className="item-kcal">
+                                  {isActive ? item.kcal * qty : item.kcal}
+                                  {isActive && qty > 1 && <span style={{ fontSize: 10, color: "#71717a", marginLeft: 3 }}>×{qty}</span>}
+                                </span>
+                                <KcalBar kcal={item.kcal} max={800} />
+                              </td>
+                              <td style={{ textAlign: "right", paddingLeft: 8 }}>
+                                <div className="counter" onClick={e => e.stopPropagation()}>
+                                  {isActive && (
+                                    <button className="counter-btn" onClick={e => dec(ci, ii, e)}>−</button>
+                                  )}
+                                  {isActive && <span className="counter-num">{qty}</span>}
+                                  <button className="counter-btn plus" onClick={e => inc(ci, ii, e)}>+</button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              );
+            })}
+
+            <div className="legend">
+              <span>🟢 &lt;250 kcal</span>
+              <span>🟡 250–400 kcal</span>
+              <span>🔴 &gt;400 kcal</span>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
