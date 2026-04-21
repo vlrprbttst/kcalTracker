@@ -54,11 +54,8 @@ const dietData = [
     category: "Contorni",
     icon: "🥦",
     items: [
-      {
-        name: "Contorno leggerezza / Tris broccoli",
-        portion: "200g",
-        kcal: 115,
-      },
+      { name: "Contorno leggerezza", portion: "225g", kcal: 60 },
+      { name: "Contorno tricolore", portion: "225g", kcal: 55 },
     ],
   },
   {
