@@ -27,6 +27,7 @@ const dietData = [
       { name: "Gratinato ai ceci", portion: "½ vaschetta", kcal: 350 },
       { name: "Gratinato patate/rosmarino", portion: "½ vaschetta", kcal: 240 },
       { name: "Tonno non sgocciolato", portion: "1 scatola", kcal: 200 },
+      { name: "Tonno filo d'olio", portion: "1 scatola", kcal: 150 },
     ],
   },
   {
