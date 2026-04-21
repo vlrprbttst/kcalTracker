@@ -324,6 +324,28 @@
     .history-items { font-size: 12px; color: #71717a; line-height: 1.6; }
     .history-empty { text-align: center; color: #52525b; padding: 40px 0; font-size: 14px; line-height: 1.8; }
 
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%  { transform: translateX(-5px); }
+      40%  { transform: translateX(5px); }
+      60%  { transform: translateX(-5px); }
+      80%  { transform: translateX(5px); }
+    }
+    .shake { animation: shake 0.4s ease; }
+
+    .close-all-btn {
+      font-size: 11px;
+      color: #52525b;
+      background: transparent;
+      border: none;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .close-all-btn:hover { color: #a1a1aa; }
+
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -546,8 +568,10 @@
       const [activeTab, setActiveTab] = useState("oggi");
       const [history, setHistory] = useState([]);
       const [historyLoading, setHistoryLoading] = useState(false);
+      const [shakeTarget, setShakeTarget] = useState(false);
       const targetInputRef = useRef(null);
       const saveDebounceRef = useRef(null);
+      const prevOverTarget = useRef(false);
 
       // Auth listener
       useEffect(() => {
@@ -597,6 +621,16 @@
         localStorage.setItem("kcal_target", String(target));
       }, [target]);
 
+      // Shake quando si supera il target per la prima volta
+      useEffect(() => {
+        const over = totalKcal > target;
+        if (over && !prevOverTarget.current) {
+          setShakeTarget(true);
+          setTimeout(() => setShakeTarget(false), 400);
+        }
+        prevOverTarget.current = over;
+      }, [totalKcal, target]);
+
       useEffect(() => {
         if (editingTarget && targetInputRef.current) targetInputRef.current.focus();
       }, [editingTarget]);
@@ -629,8 +663,11 @@
 
       const getCount = (ci, ii) => counts[`${ci}_${ii}`] || 0;
 
+      const vibrate = () => { try { navigator.vibrate && navigator.vibrate(30); } catch {} };
+
       const inc = (ci, ii, e) => {
         e.stopPropagation();
+        vibrate();
         const key = `${ci}_${ii}`;
         setCounts(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
       };
@@ -666,6 +703,7 @@
       const addExtra = () => {
         const v = parseInt(extraInput, 10);
         if (v > 0) {
+          vibrate();
           setExtras(prev => [...prev, { name: extraName.trim() || "Extra", kcal: v }]);
           setExtraName("");
           setExtraInput("");
@@ -708,7 +746,7 @@
               </div>
 
               <div className="kcal-row">
-                <span className="kcal-consumed" style={{ color: barColor }}>{totalKcal}</span>
+                <span className={`kcal-consumed${shakeTarget ? " shake" : ""}`} style={{ color: barColor }}>{totalKcal}</span>
                 <span className="kcal-sep">/</span>
                 <span className="kcal-target-wrap">
                   {editingTarget ? (
@@ -749,6 +787,9 @@
           <div className="content">
             {(!user || activeTab === "oggi") && (
               <>
+                {openIdx !== null && (
+                  <button className="close-all-btn" onClick={() => setOpenIdx(null)}>chiudi tutto</button>
+                )}
                 {dietData.map((cat, ci) => {
                   const isOpen = openIdx === ci;
                   const kcalCat = catKcal(ci);
