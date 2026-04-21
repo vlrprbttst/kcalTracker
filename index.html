@@ -234,6 +234,60 @@
       font-size: 11px;
       color: #71717a;
     }
+
+    .extra-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px 12px;
+      align-items: center;
+    }
+    .extra-kcal-input {
+      flex: 1;
+      background: #27272a;
+      border: 1px solid #3f3f46;
+      border-radius: 6px;
+      color: #e4e4e7;
+      padding: 7px 10px;
+      font-size: 14px;
+      outline: none;
+    }
+    .extra-kcal-input::placeholder { color: #52525b; }
+    .extra-kcal-input:focus { border-color: #a78bfa; }
+    .extra-add-btn {
+      background: #2e2a45;
+      border: 1px solid #a78bfa;
+      border-radius: 6px;
+      color: #a78bfa;
+      font-size: 18px;
+      font-weight: 600;
+      padding: 7px 12px;
+      transition: background .12s;
+      white-space: nowrap;
+      line-height: 1;
+    }
+    .extra-add-btn:hover { background: #3d3460; }
+    .extra-list { padding: 0 14px 12px; }
+    .extra-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-top: 1px solid #27272a;
+      font-size: 13px;
+    }
+    .extra-item-label { color: #a1a1aa; }
+    .extra-item-right { display: flex; align-items: center; gap: 10px; }
+    .extra-item-kcal { font-weight: 600; }
+    .extra-remove-btn {
+      background: transparent;
+      border: none;
+      color: #52525b;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0 2px;
+      transition: color .12s;
+    }
+    .extra-remove-btn:hover { color: #f87171; }
   </style>
 </head>
 <body>
@@ -340,6 +394,16 @@
       } catch { return {}; }
     }
 
+    function loadExtras() {
+      try {
+        const raw = localStorage.getItem("kcal_data");
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        if (data.date !== TODAY()) return [];
+        return data.extras || [];
+      } catch { return []; }
+    }
+
     function loadTarget() {
       return parseInt(localStorage.getItem("kcal_target") || "1800", 10);
     }
@@ -356,6 +420,9 @@
 
     function App() {
       const [counts, setCounts] = useState(loadCounts);
+      const [extras, setExtras] = useState(loadExtras);
+      const [extraName, setExtraName] = useState("");
+      const [extraInput, setExtraInput] = useState("");
       const [target, setTarget] = useState(loadTarget);
       const [openIdx, setOpenIdx] = useState(null);
       const [editingTarget, setEditingTarget] = useState(false);
@@ -363,8 +430,8 @@
       const targetInputRef = useRef(null);
 
       useEffect(() => {
-        localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts }));
-      }, [counts]);
+        localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts, extras }));
+      }, [counts, extras]);
 
       useEffect(() => {
         localStorage.setItem("kcal_target", String(target));
@@ -395,14 +462,27 @@
       const totalKcal = Object.entries(counts).reduce((sum, [key, qty]) => {
         const [ci, ii] = key.split("_").map(Number);
         return sum + (dietData[ci]?.items[ii]?.kcal || 0) * qty;
-      }, 0);
+      }, 0) + extras.reduce((s, e) => s + e.kcal, 0);
 
       const pct = Math.min((totalKcal / target) * 100, 100);
       const remaining = target - totalKcal;
       const barColor = pct >= 100 ? "#f87171" : pct >= 80 ? "#fbbf24" : "#4ade80";
 
       const handleReset = () => {
-        if (window.confirm("Resettare le calorie di oggi?")) setCounts({});
+        if (window.confirm("Resettare le calorie di oggi?")) { setCounts({}); setExtras([]); }
+      };
+
+      const addExtra = () => {
+        const v = parseInt(extraInput, 10);
+        if (v > 0) {
+          setExtras(prev => [...prev, { name: extraName.trim() || "Extra", kcal: v }]);
+          setExtraName("");
+          setExtraInput("");
+        }
+      };
+
+      const removeExtra = (i) => {
+        setExtras(prev => prev.filter((_, idx) => idx !== i));
       };
 
       const startEditTarget = () => {
@@ -517,6 +597,57 @@
                 </div>
               );
             })}
+
+            {/* Extra card */}
+            {(() => {
+              const extrasKcal = extras.reduce((s, e) => s + e.kcal, 0);
+              const hasExtras = extras.length > 0;
+              return (
+                <div className={`category-card${hasExtras ? " has-checked" : ""}`} style={{ marginTop: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px 0", fontWeight: 600, fontSize: 14 }}>
+                    <span className="cat-icon">🧾</span>
+                    <span className="cat-name">Extra</span>
+                    {hasExtras && <span className="cat-kcal-badge">+{extrasKcal} kcal</span>}
+                    <span style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 400 }}>calorie libere</span>
+                  </div>
+                  <div className="extra-input-row">
+                    <input
+                      className="extra-kcal-input"
+                      type="text"
+                      placeholder="cosa hai mangiato…"
+                      value={extraName}
+                      onChange={e => setExtraName(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") addExtra(); }}
+                      style={{ flex: 2 }}
+                    />
+                    <input
+                      className="extra-kcal-input"
+                      type="number"
+                      placeholder="kcal"
+                      value={extraInput}
+                      onChange={e => setExtraInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") addExtra(); }}
+                      min="1"
+                      style={{ flex: 1, minWidth: 0 }}
+                    />
+                    <button className="extra-add-btn" onClick={addExtra}>+</button>
+                  </div>
+                  {hasExtras && (
+                    <div className="extra-list">
+                      {extras.map((item, i) => (
+                        <div key={i} className="extra-item">
+                          <span className="extra-item-label">{item.name}</span>
+                          <div className="extra-item-right">
+                            <span className="extra-item-kcal">{item.kcal} kcal</span>
+                            <button className="extra-remove-btn" onClick={() => removeExtra(i)}>×</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="legend">
               <span>🟢 &lt;250 kcal</span>
