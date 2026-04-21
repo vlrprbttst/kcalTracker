@@ -90,7 +90,10 @@ const dietData = [
   {
     category: "Altro",
     icon: "🥟",
-    items: [{ name: "Bao", portion: "1 pezzo", kcal: 375 }],
+    items: [
+      { name: "Bao", portion: "1 pezzo", kcal: 375 },
+      { name: "Ravioli vapore arancioni", portion: "1 pezzo", kcal: 36 },
+    ],
   },
   {
     category: "Fritti",

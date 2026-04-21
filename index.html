@@ -324,6 +324,49 @@
     .history-items { font-size: 12px; color: #71717a; line-height: 1.6; }
     .history-empty { text-align: center; color: #52525b; padding: 40px 0; font-size: 14px; line-height: 1.8; }
 
+    .week-card {
+      background: #1c1c22;
+      border: 1px solid #2e2e38;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .week-header {
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #27272a;
+    }
+    .week-summary {
+      padding: 12px 16px;
+      border-top: 1px solid #27272a;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .week-summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #a1a1aa;
+    }
+    .week-summary-row span:last-child { font-weight: 600; color: #e4e4e7; }
+    .week-balance {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 1px solid #27272a;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .deficit { color: #4ade80; }
+    .surplus { color: #f87171; }
+
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       20%  { transform: translateX(-5px); }
@@ -474,7 +517,10 @@
       },
       {
         category: "Altro", icon: "🥟",
-        items: [{ name: "Bao", portion: "1 pezzo", kcal: 375 }],
+        items: [
+          { name: "Bao", portion: "1 pezzo", kcal: 375 },
+          { name: "Ravioli vapore arancioni", portion: "1 pezzo", kcal: 36 },
+        ],
       },
       {
         category: "Fritti", icon: "🍟",
@@ -537,6 +583,38 @@
       });
       extras.forEach(e => items.push(`${e.name} (extra, ${e.kcal} kcal)`));
       return items;
+    }
+
+    function getWeekStart(dateStr) {
+      const d = new Date(dateStr + "T12:00:00");
+      const daysSinceFriday = (d.getDay() + 2) % 7; // Fri=0, Sat=1, Sun=2, ..., Thu=6
+      const friday = new Date(d);
+      friday.setDate(d.getDate() - daysSinceFriday);
+      return friday.toISOString().slice(0, 10);
+    }
+
+    function formatShortDate(dateStr) {
+      const d = new Date(dateStr + "T12:00:00");
+      return d.toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+    }
+
+    function groupByWeek(history) {
+      const weeks = {};
+      history.forEach(day => {
+        const ws = getWeekStart(day.date);
+        if (!weeks[ws]) weeks[ws] = [];
+        weeks[ws].push(day);
+      });
+      return Object.entries(weeks)
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([weekStart, days]) => {
+          const weekEnd = new Date(weekStart + "T12:00:00");
+          weekEnd.setDate(weekEnd.getDate() + 6);
+          const weekEndStr = weekEnd.toISOString().slice(0, 10);
+          const totalConsumed = days.reduce((s, d) => s + (d.totalKcal || 0), 0);
+          const balance = totalConsumed - 14000;
+          return { weekStart, weekEndStr, days: days.sort((a, b) => b.date.localeCompare(a.date)), totalConsumed, balance };
+        });
     }
 
     function formatDate(dateStr) {
@@ -711,10 +789,6 @@
       };
 
       const removeExtra = (i) => setExtras(prev => prev.filter((_, idx) => idx !== i));
-
-      const avg7 = history.length > 0
-        ? Math.round(history.slice(0, 7).reduce((s, d) => s + (d.totalKcal || 0), 0) / Math.min(history.length, 7))
-        : null;
 
       return (
         <>
@@ -915,25 +989,47 @@
                   </div>
                 ) : (
                   <>
-                    {avg7 !== null && (
-                      <div className="history-avg">
-                        <span style={{ color: "#a1a1aa", fontSize: 12 }}>
-                          Media ultimi {Math.min(history.length, 7)} giorni
-                        </span>
-                        <span style={{ fontWeight: 700, fontSize: 18, color: "#a78bfa" }}>{avg7} kcal</span>
-                      </div>
-                    )}
-                    {history.map((day, i) => (
-                      <div key={i} className="history-day">
-                        <div className="history-day-header">
-                          <span className="history-day-date">{formatDate(day.date)}</span>
-                          <span className="history-day-kcal" style={{ color: day.totalKcal > day.target ? "#f87171" : "#4ade80" }}>
-                            {day.totalKcal} kcal
-                          </span>
+                    {groupByWeek(history).map((week, i) => (
+                      <div key={i} className="week-card">
+                        <div className="week-header">
+                          {formatShortDate(week.weekStart)} → {formatShortDate(week.weekEndStr)}
                         </div>
-                        {day.items && day.items.length > 0 && (
-                          <div className="history-items">{day.items.join(" · ")}</div>
-                        )}
+                        {week.days.map((day, j) => (
+                          <div key={j} className="history-day" style={{ borderRadius: 0, border: "none", borderBottom: "1px solid #27272a" }}>
+                            <div className="history-day-header">
+                              <span className="history-day-date">{formatDate(day.date)}</span>
+                              <span className="history-day-kcal" style={{ color: day.totalKcal > day.target ? "#f87171" : "#4ade80" }}>
+                                {day.totalKcal} kcal
+                              </span>
+                            </div>
+                            {day.items && day.items.length > 0 && (
+                              <div className="history-items">{day.items.join(" · ")}</div>
+                            )}
+                          </div>
+                        ))}
+                        <div className="week-summary">
+                          <div className="week-summary-row">
+                            <span>Obiettivo settimana</span>
+                            <span>14.000 kcal</span>
+                          </div>
+                          <div className="week-summary-row">
+                            <span>Calorie ingerite</span>
+                            <span>{week.totalConsumed.toLocaleString("it-IT")} kcal</span>
+                          </div>
+                          <div className="week-balance">
+                            {week.balance <= 0 ? (
+                              <>
+                                <span>✅ Sei in deficit</span>
+                                <span className="deficit">−{Math.abs(week.balance).toLocaleString("it-IT")} kcal</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>⚠️ Sei in surplus</span>
+                                <span className="surplus">+{week.balance.toLocaleString("it-IT")} kcal</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </>
