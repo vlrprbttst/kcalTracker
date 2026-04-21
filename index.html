@@ -436,6 +436,8 @@
       },
     ];
 
+    const ALLOWED_UID = "f1rMJWrezfORvihvxM5EspY3FsA3";
+
     const TODAY = () => new Date().toISOString().slice(0, 10);
 
     function loadCounts() {
@@ -514,6 +516,10 @@
       // Auth listener
       useEffect(() => {
         return auth.onAuthStateChanged(async (u) => {
+          if (u && u.uid !== ALLOWED_UID) {
+            auth.signOut();
+            return;
+          }
           setUser(u);
           if (u) {
             try {
