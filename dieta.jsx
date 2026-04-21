@@ -41,6 +41,7 @@ const dietData = [
     items: [
       { name: "Dischetti spinaci/zuccarota", portion: "1 pezzo", kcal: 83 },
       { name: "Cotoletta vegetale", portion: "1 pezzo", kcal: 220 },
+      { name: "Sofficino alla pizzaiola", portion: "1 pezzo", kcal: 144 },
       { name: "Straccetti al sugo", portion: "1 porzione", kcal: 390 },
       { name: "Tofu al naturale", portion: "1 porzione", kcal: 190 },
     ],
