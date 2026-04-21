@@ -8,6 +8,9 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; }
@@ -31,10 +34,11 @@
     }
     .header-top {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
       margin-bottom: 10px;
     }
+    .header-top-right { display: flex; gap: 8px; align-items: center; }
     .app-title {
       font-size: 20px;
       font-weight: 700;
@@ -52,6 +56,23 @@
     }
     .reset-btn:hover { color: #f87171; border-color: #f87171; }
 
+    .auth-btn {
+      font-size: 12px;
+      font-weight: 500;
+      color: #a1a1aa;
+      background: transparent;
+      border: 1px solid #2e2e38;
+      border-radius: 6px;
+      padding: 4px 10px;
+      transition: color .15s, border-color .15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .auth-btn:hover { color: #a78bfa; border-color: #a78bfa; }
+    .auth-btn.logged:hover { color: #f87171; border-color: #f87171; }
+    .auth-avatar { width: 18px; height: 18px; border-radius: 50%; }
+
     .kcal-row {
       display: flex;
       align-items: baseline;
@@ -65,11 +86,7 @@
       line-height: 1;
     }
     .kcal-sep { font-size: 16px; color: #52525b; }
-    .kcal-target-wrap {
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
-    }
+    .kcal-target-wrap { display: flex; align-items: baseline; gap: 4px; }
     .kcal-target {
       font-size: 14px;
       color: #a1a1aa;
@@ -102,6 +119,26 @@
       border-radius: 3px;
       transition: width .4s ease, background .4s ease;
     }
+
+    .tabs-bar {
+      background: #111113;
+      border-bottom: 1px solid #2e2e38;
+      padding: 0 16px;
+    }
+    .tabs-inner { max-width: 520px; margin: 0 auto; display: flex; }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #71717a;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 16px;
+      margin-bottom: -1px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn:hover { color: #e4e4e7; }
+    .tab-btn.active { color: #a78bfa; border-bottom-color: #a78bfa; }
 
     .content { max-width: 520px; margin: 0 auto; padding: 16px 12px 0; }
 
@@ -140,11 +177,7 @@
       border-radius: 4px;
       padding: 2px 6px;
     }
-    .cat-arrow {
-      font-size: 10px;
-      color: #52525b;
-      transition: transform .2s;
-    }
+    .cat-arrow { font-size: 10px; color: #52525b; transition: transform .2s; }
     .cat-arrow.open { transform: rotate(180deg); }
 
     .items-table {
@@ -160,30 +193,20 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
-    .items-table th {
-      padding: 2px 0 8px;
-      font-weight: 500;
-      text-align: left;
-    }
+    .items-table th { padding: 2px 0 8px; font-weight: 500; text-align: left; }
     .items-table th:last-child { text-align: right; }
     .items-table td { padding: 10px 0; vertical-align: middle; }
     .items-table tr + tr td { border-top: 1px solid #27272a; }
 
     .item-row { transition: opacity .2s; }
     .item-row.checked { opacity: 0.45; }
-
     .item-name { padding-right: 8px !important; }
     .item-name span { text-decoration: none; }
     .item-row.checked .item-name span { text-decoration: line-through; }
     .item-portion { color: #71717a; padding: 10px 8px !important; }
     .item-kcal-cell { text-align: right; white-space: nowrap; }
 
-    .counter {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      justify-content: flex-end;
-    }
+    .counter { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
     .counter-btn {
       width: 22px;
       height: 22px;
@@ -202,45 +225,13 @@
     .counter-btn:hover { background: #3f3f46; border-color: #52525b; }
     .counter-btn.plus { border-color: #a78bfa; color: #a78bfa; }
     .counter-btn.plus:hover { background: #2e2a45; }
-    .counter-num {
-      font-size: 13px;
-      font-weight: 700;
-      color: #a78bfa;
-      min-width: 14px;
-      text-align: center;
-    }
+    .counter-num { font-size: 13px; font-weight: 700; color: #a78bfa; min-width: 14px; text-align: center; }
     .item-kcal { font-weight: 600; }
 
-    .bar-mini {
-      width: 100%;
-      height: 3px;
-      background: #27272a;
-      border-radius: 2px;
-      overflow: hidden;
-      margin-top: 4px;
-    }
-    .bar-mini-fill {
-      height: 100%;
-      border-radius: 2px;
-    }
+    .bar-mini { width: 100%; height: 3px; background: #27272a; border-radius: 2px; overflow: hidden; margin-top: 4px; }
+    .bar-mini-fill { height: 100%; border-radius: 2px; }
 
-    .legend {
-      max-width: 520px;
-      margin: 12px auto 0;
-      padding: 0 12px;
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      font-size: 11px;
-      color: #71717a;
-    }
-
-    .extra-input-row {
-      display: flex;
-      gap: 8px;
-      padding: 10px 14px 12px;
-      align-items: center;
-    }
+    .extra-input-row { display: flex; gap: 8px; padding: 10px 14px 12px; align-items: center; }
     .extra-kcal-input {
       flex: 1;
       background: #27272a;
@@ -288,6 +279,45 @@
       transition: color .12s;
     }
     .extra-remove-btn:hover { color: #f87171; }
+
+    .legend {
+      max-width: 520px;
+      margin: 12px auto 0;
+      padding: 0 12px;
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      font-size: 11px;
+      color: #71717a;
+    }
+
+    .history-avg {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1c1c22;
+      border: 1px solid #2e2e38;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+    }
+    .history-day {
+      background: #1c1c22;
+      border: 1px solid #2e2e38;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 6px;
+    }
+    .history-day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+    .history-day-date { font-size: 14px; font-weight: 600; text-transform: capitalize; }
+    .history-day-kcal { font-size: 16px; font-weight: 700; }
+    .history-items { font-size: 12px; color: #71717a; line-height: 1.6; }
+    .history-empty { text-align: center; color: #52525b; padding: 40px 0; font-size: 14px; line-height: 1.8; }
   </style>
 </head>
 <body>
@@ -295,6 +325,18 @@
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBCY1ONerEeZ6Ysa34222hZ-JzJ_rIjcZI",
+      authDomain: "kcaltracker-5dd56.firebaseapp.com",
+      projectId: "kcaltracker-5dd56",
+      storageBucket: "kcaltracker-5dd56.firebasestorage.app",
+      messagingSenderId: "857152386346",
+      appId: "1:857152386346:web:d28c844e6291c315471a53",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
     const dietData = [
       {
@@ -409,6 +451,29 @@
       return parseInt(localStorage.getItem("kcal_target") || "1800", 10);
     }
 
+    function computeTotal(counts, extras) {
+      return Object.entries(counts).reduce((sum, [key, qty]) => {
+        const [ci, ii] = key.split("_").map(Number);
+        return sum + (dietData[ci]?.items[ii]?.kcal || 0) * qty;
+      }, 0) + extras.reduce((s, e) => s + e.kcal, 0);
+    }
+
+    function buildItemsList(counts, extras) {
+      const items = [];
+      Object.entries(counts).forEach(([key, qty]) => {
+        const [ci, ii] = key.split("_").map(Number);
+        const item = dietData[ci]?.items[ii];
+        if (item && qty > 0) items.push(qty > 1 ? `${item.name} ×${qty}` : item.name);
+      });
+      extras.forEach(e => items.push(`${e.name} (extra, ${e.kcal} kcal)`));
+      return items;
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr + "T12:00:00");
+      return d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+    }
+
     function KcalBar({ kcal, max }) {
       const pct = Math.min((kcal / max) * 100, 100);
       const color = kcal > 400 ? "#f87171" : kcal > 250 ? "#fbbf24" : "#4ade80";
@@ -420,6 +485,7 @@
     }
 
     function App() {
+      const [user, setUser] = useState(undefined); // undefined=inizializzando, null=non loggato
       const [counts, setCounts] = useState(loadCounts);
       const [extras, setExtras] = useState(loadExtras);
       const [extraName, setExtraName] = useState("");
@@ -428,12 +494,51 @@
       const [openIdx, setOpenIdx] = useState(null);
       const [editingTarget, setEditingTarget] = useState(false);
       const [targetDraft, setTargetDraft] = useState("");
+      const [activeTab, setActiveTab] = useState("oggi");
+      const [history, setHistory] = useState([]);
+      const [historyLoading, setHistoryLoading] = useState(false);
       const targetInputRef = useRef(null);
+      const saveDebounceRef = useRef(null);
 
+      // Auth listener
       useEffect(() => {
-        localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts, extras }));
-      }, [counts, extras]);
+        return auth.onAuthStateChanged(async (u) => {
+          setUser(u);
+          if (u) {
+            try {
+              const snap = await db.collection("users").doc(u.uid).collection("days").doc(TODAY()).get();
+              if (snap.exists) {
+                const data = snap.data();
+                setCounts(data.counts || {});
+                setExtras(data.extras || []);
+                if (data.target) setTarget(data.target);
+              }
+            } catch (e) { console.error(e); }
+          }
+        });
+      }, []);
 
+      // Salva su localStorage (utente non loggato)
+      useEffect(() => {
+        if (user === undefined || user) return;
+        localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts, extras }));
+      }, [counts, extras, user]);
+
+      // Salva su Firestore (utente loggato, debounced 1.5s)
+      useEffect(() => {
+        if (!user) return;
+        clearTimeout(saveDebounceRef.current);
+        saveDebounceRef.current = setTimeout(() => {
+          const totalKcal = computeTotal(counts, extras);
+          const items = buildItemsList(counts, extras);
+          db.collection("users").doc(user.uid).collection("days").doc(TODAY()).set({
+            counts, extras, target, totalKcal, items, date: TODAY(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        }, 1500);
+      }, [counts, extras, target, user]);
+
+      // Salva target su localStorage sempre
       useEffect(() => {
         localStorage.setItem("kcal_target", String(target));
       }, [target]);
@@ -441,6 +546,32 @@
       useEffect(() => {
         if (editingTarget && targetInputRef.current) targetInputRef.current.focus();
       }, [editingTarget]);
+
+      // Carica storico quando si apre il tab
+      useEffect(() => {
+        if (activeTab !== "storico" || !user) return;
+        setHistoryLoading(true);
+        db.collection("users").doc(user.uid).collection("days")
+          .get()
+          .then(snap => {
+            const docs = snap.docs
+              .map(d => d.data())
+              .filter(d => d.date !== TODAY())
+              .sort((a, b) => b.date.localeCompare(a.date));
+            setHistory(docs);
+            setHistoryLoading(false);
+          })
+          .catch(() => setHistoryLoading(false));
+      }, [activeTab, user]);
+
+      const login = () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(console.error);
+      };
+
+      const logout = () => {
+        if (window.confirm("Esci dall'account?")) auth.signOut();
+      };
 
       const getCount = (ci, ii) => counts[`${ci}_${ii}`] || 0;
 
@@ -460,11 +591,7 @@
         });
       };
 
-      const totalKcal = Object.entries(counts).reduce((sum, [key, qty]) => {
-        const [ci, ii] = key.split("_").map(Number);
-        return sum + (dietData[ci]?.items[ii]?.kcal || 0) * qty;
-      }, 0) + extras.reduce((s, e) => s + e.kcal, 0);
-
+      const totalKcal = computeTotal(counts, extras);
       const pct = Math.min((totalKcal / target) * 100, 100);
       const remaining = target - totalKcal;
       const barColor = pct >= 100 ? "#f87171" : pct >= 80 ? "#fbbf24" : "#4ade80";
@@ -472,6 +599,15 @@
       const handleReset = () => {
         if (window.confirm("Resettare le calorie di oggi?")) { setCounts({}); setExtras([]); }
       };
+
+      const startEditTarget = () => { setTargetDraft(String(target)); setEditingTarget(true); };
+      const commitTarget = () => {
+        const v = parseInt(targetDraft, 10);
+        if (v > 0) setTarget(v);
+        setEditingTarget(false);
+      };
+
+      const catKcal = (ci) => dietData[ci].items.reduce((s, item, ii) => s + item.kcal * getCount(ci, ii), 0);
 
       const addExtra = () => {
         const v = parseInt(extraInput, 10);
@@ -482,23 +618,11 @@
         }
       };
 
-      const removeExtra = (i) => {
-        setExtras(prev => prev.filter((_, idx) => idx !== i));
-      };
+      const removeExtra = (i) => setExtras(prev => prev.filter((_, idx) => idx !== i));
 
-      const startEditTarget = () => {
-        setTargetDraft(String(target));
-        setEditingTarget(true);
-      };
-
-      const commitTarget = () => {
-        const v = parseInt(targetDraft, 10);
-        if (v > 0) setTarget(v);
-        setEditingTarget(false);
-      };
-
-      const catKcal = (ci) =>
-        dietData[ci].items.reduce((s, item, ii) => s + item.kcal * getCount(ci, ii), 0);
+      const avg7 = history.length > 0
+        ? Math.round(history.slice(0, 7).reduce((s, d) => s + (d.totalKcal || 0), 0) / Math.min(history.length, 7))
+        : null;
 
       return (
         <>
@@ -506,7 +630,17 @@
             <div style={{ maxWidth: 520, margin: "0 auto" }}>
               <div className="header-top">
                 <span className="app-title">kcalTracker</span>
-                <button className="reset-btn" onClick={handleReset}>Reset giorno</button>
+                <div className="header-top-right">
+                  <button className="reset-btn" onClick={handleReset}>Reset</button>
+                  {user === undefined ? null : user ? (
+                    <button className="auth-btn logged" onClick={logout}>
+                      {user.photoURL && <img src={user.photoURL} className="auth-avatar" />}
+                      Esci
+                    </button>
+                  ) : (
+                    <button className="auth-btn" onClick={login}>Accedi</button>
+                  )}
+                </div>
               </div>
 
               <div className="kcal-row">
@@ -539,122 +673,168 @@
             </div>
           </div>
 
-          <div className="content">
-            {dietData.map((cat, ci) => {
-              const isOpen = openIdx === ci;
-              const kcalCat = catKcal(ci);
-              const hasAny = kcalCat > 0;
-
-              return (
-                <div key={ci} className={`category-card${hasAny ? " has-checked" : ""}`}>
-                  <button className="category-btn" onClick={() => setOpenIdx(isOpen ? null : ci)}>
-                    <span className="cat-icon">{cat.icon}</span>
-                    <span className="cat-name">{cat.category}</span>
-                    {hasAny && <span className="cat-kcal-badge">+{kcalCat} kcal</span>}
-                    <span className="cat-meta">{cat.items.length} {cat.items.length === 1 ? "alimento" : "alimenti"}</span>
-                    <span className={`cat-arrow${isOpen ? " open" : ""}`}>▼</span>
-                  </button>
-
-                  {isOpen && (
-                    <table className="items-table">
-                      <thead>
-                        <tr>
-                          <th>Alimento</th>
-                          <th style={{ color: "#71717a" }}>Porzione</th>
-                          <th style={{ textAlign: "right" }}>Kcal</th>
-                          <th style={{ textAlign: "right", width: 80 }}></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cat.items.map((item, ii) => {
-                          const qty = getCount(ci, ii);
-                          const isActive = qty > 0;
-                          return (
-                            <tr key={ii} className={`item-row${isActive ? " checked" : ""}`}>
-                              <td className="item-name"><span>{item.name}</span></td>
-                              <td className="item-portion">{item.portion}</td>
-                              <td className="item-kcal-cell">
-                                <span className="item-kcal">
-                                  {isActive ? item.kcal * qty : item.kcal}
-                                  {isActive && qty > 1 && <span style={{ fontSize: 10, color: "#71717a", marginLeft: 3 }}>×{qty}</span>}
-                                </span>
-                                <KcalBar kcal={item.kcal} max={800} />
-                              </td>
-                              <td style={{ textAlign: "right", paddingLeft: 8 }}>
-                                <div className="counter" onClick={e => e.stopPropagation()}>
-                                  {isActive && (
-                                    <button className="counter-btn" onClick={e => dec(ci, ii, e)}>−</button>
-                                  )}
-                                  {isActive && <span className="counter-num">{qty}</span>}
-                                  <button className="counter-btn plus" onClick={e => inc(ci, ii, e)}>+</button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Extra card */}
-            {(() => {
-              const extrasKcal = extras.reduce((s, e) => s + e.kcal, 0);
-              const hasExtras = extras.length > 0;
-              return (
-                <div className={`category-card${hasExtras ? " has-checked" : ""}`} style={{ marginTop: 6 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px 0", fontWeight: 600, fontSize: 14 }}>
-                    <span className="cat-icon">🧾</span>
-                    <span className="cat-name">Extra</span>
-                    {hasExtras && <span className="cat-kcal-badge">+{extrasKcal} kcal</span>}
-                    <span style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 400 }}>calorie libere</span>
-                  </div>
-                  <div className="extra-input-row">
-                    <input
-                      className="extra-kcal-input"
-                      type="text"
-                      placeholder="cosa hai mangiato…"
-                      value={extraName}
-                      onChange={e => setExtraName(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") addExtra(); }}
-                      style={{ flex: 2 }}
-                    />
-                    <input
-                      className="extra-kcal-input"
-                      type="number"
-                      placeholder="kcal"
-                      value={extraInput}
-                      onChange={e => setExtraInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") addExtra(); }}
-                      min="1"
-                      style={{ flex: 1, minWidth: 0 }}
-                    />
-                    <button className="extra-add-btn" onClick={addExtra}>+</button>
-                  </div>
-                  {hasExtras && (
-                    <div className="extra-list">
-                      {extras.map((item, i) => (
-                        <div key={i} className="extra-item">
-                          <span className="extra-item-label">{item.name}</span>
-                          <div className="extra-item-right">
-                            <span className="extra-item-kcal">{item.kcal} kcal</span>
-                            <button className="extra-remove-btn" onClick={() => removeExtra(i)}>×</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            <div className="legend">
-              <span>🟢 &lt;250 kcal</span>
-              <span>🟡 250–400 kcal</span>
-              <span>🔴 &gt;400 kcal</span>
+          {user && (
+            <div className="tabs-bar">
+              <div className="tabs-inner">
+                <button className={`tab-btn${activeTab === "oggi" ? " active" : ""}`} onClick={() => setActiveTab("oggi")}>Oggi</button>
+                <button className={`tab-btn${activeTab === "storico" ? " active" : ""}`} onClick={() => setActiveTab("storico")}>Storico</button>
+              </div>
             </div>
+          )}
+
+          <div className="content">
+            {(!user || activeTab === "oggi") && (
+              <>
+                {dietData.map((cat, ci) => {
+                  const isOpen = openIdx === ci;
+                  const kcalCat = catKcal(ci);
+                  const hasAny = kcalCat > 0;
+                  return (
+                    <div key={ci} className={`category-card${hasAny ? " has-checked" : ""}`}>
+                      <button className="category-btn" onClick={() => setOpenIdx(isOpen ? null : ci)}>
+                        <span className="cat-icon">{cat.icon}</span>
+                        <span className="cat-name">{cat.category}</span>
+                        {hasAny && <span className="cat-kcal-badge">+{kcalCat} kcal</span>}
+                        <span className="cat-meta">{cat.items.length} {cat.items.length === 1 ? "alimento" : "alimenti"}</span>
+                        <span className={`cat-arrow${isOpen ? " open" : ""}`}>▼</span>
+                      </button>
+                      {isOpen && (
+                        <table className="items-table">
+                          <thead>
+                            <tr>
+                              <th>Alimento</th>
+                              <th style={{ color: "#71717a" }}>Porzione</th>
+                              <th style={{ textAlign: "right" }}>Kcal</th>
+                              <th style={{ textAlign: "right", width: 80 }}></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {cat.items.map((item, ii) => {
+                              const qty = getCount(ci, ii);
+                              const isActive = qty > 0;
+                              return (
+                                <tr key={ii} className={`item-row${isActive ? " checked" : ""}`}>
+                                  <td className="item-name"><span>{item.name}</span></td>
+                                  <td className="item-portion">{item.portion}</td>
+                                  <td className="item-kcal-cell">
+                                    <span className="item-kcal">
+                                      {isActive ? item.kcal * qty : item.kcal}
+                                      {isActive && qty > 1 && <span style={{ fontSize: 10, color: "#71717a", marginLeft: 3 }}>×{qty}</span>}
+                                    </span>
+                                    <KcalBar kcal={item.kcal} max={800} />
+                                  </td>
+                                  <td style={{ textAlign: "right", paddingLeft: 8 }}>
+                                    <div className="counter" onClick={e => e.stopPropagation()}>
+                                      {isActive && <button className="counter-btn" onClick={e => dec(ci, ii, e)}>−</button>}
+                                      {isActive && <span className="counter-num">{qty}</span>}
+                                      <button className="counter-btn plus" onClick={e => inc(ci, ii, e)}>+</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Extra card */}
+                {(() => {
+                  const extrasKcal = extras.reduce((s, e) => s + e.kcal, 0);
+                  const hasExtras = extras.length > 0;
+                  return (
+                    <div className={`category-card${hasExtras ? " has-checked" : ""}`} style={{ marginTop: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px 0", fontWeight: 600, fontSize: 14 }}>
+                        <span className="cat-icon">🧾</span>
+                        <span className="cat-name">Extra</span>
+                        {hasExtras && <span className="cat-kcal-badge">+{extrasKcal} kcal</span>}
+                        <span style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 400 }}>calorie libere</span>
+                      </div>
+                      <div className="extra-input-row">
+                        <input
+                          className="extra-kcal-input"
+                          type="text"
+                          placeholder="cosa hai mangiato…"
+                          value={extraName}
+                          onChange={e => setExtraName(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") addExtra(); }}
+                          style={{ flex: 2 }}
+                        />
+                        <input
+                          className="extra-kcal-input"
+                          type="number"
+                          placeholder="kcal"
+                          value={extraInput}
+                          onChange={e => setExtraInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") addExtra(); }}
+                          min="1"
+                          style={{ flex: 1, minWidth: 0 }}
+                        />
+                        <button className="extra-add-btn" onClick={addExtra}>+</button>
+                      </div>
+                      {hasExtras && (
+                        <div className="extra-list">
+                          {extras.map((item, i) => (
+                            <div key={i} className="extra-item">
+                              <span className="extra-item-label">{item.name}</span>
+                              <div className="extra-item-right">
+                                <span className="extra-item-kcal">{item.kcal} kcal</span>
+                                <button className="extra-remove-btn" onClick={() => removeExtra(i)}>×</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <div className="legend">
+                  <span>🟢 &lt;250 kcal</span>
+                  <span>🟡 250–400 kcal</span>
+                  <span>🔴 &gt;400 kcal</span>
+                </div>
+              </>
+            )}
+
+            {user && activeTab === "storico" && (
+              <>
+                {historyLoading ? (
+                  <div className="history-empty">Caricamento...</div>
+                ) : history.length === 0 ? (
+                  <div className="history-empty">
+                    Nessun dato storico ancora.<br />
+                    I tuoi pasti verranno salvati automaticamente.
+                  </div>
+                ) : (
+                  <>
+                    {avg7 !== null && (
+                      <div className="history-avg">
+                        <span style={{ color: "#a1a1aa", fontSize: 12 }}>
+                          Media ultimi {Math.min(history.length, 7)} giorni
+                        </span>
+                        <span style={{ fontWeight: 700, fontSize: 18, color: "#a78bfa" }}>{avg7} kcal</span>
+                      </div>
+                    )}
+                    {history.map((day, i) => (
+                      <div key={i} className="history-day">
+                        <div className="history-day-header">
+                          <span className="history-day-date">{formatDate(day.date)}</span>
+                          <span className="history-day-kcal" style={{ color: day.totalKcal > day.target ? "#f87171" : "#4ade80" }}>
+                            {day.totalKcal} kcal
+                          </span>
+                        </div>
+                        {day.items && day.items.length > 0 && (
+                          <div className="history-items">{day.items.join(" · ")}</div>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
           </div>
         </>
       );
