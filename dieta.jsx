@@ -17,7 +17,6 @@ const dietData = [
     icon: "🍗",
     items: [
       { name: "Pollo", portion: "150g", kcal: 165 },
-      { name: "Cotoletta pollo Aia", portion: "1 pezzo", kcal: 200 },
     ],
   },
   {
@@ -41,8 +40,7 @@ const dietData = [
     items: [
       { name: "Dischetti spinaci/zuccarota", portion: "1 pezzo", kcal: 83 },
       { name: "Cotoletta vegetale", portion: "1 pezzo", kcal: 220 },
-      { name: "Sofficino alla pizzaiola", portion: "1 pezzo", kcal: 144 },
-      { name: "Straccetti al sugo", portion: "1 porzione", kcal: 390 },
+      { name: "Straccetti di soia al sugo", portion: "1 porzione", kcal: 390 },
       { name: "Tofu al naturale", portion: "1 porzione", kcal: 190 },
     ],
   },
@@ -60,7 +58,6 @@ const dietData = [
         portion: "200g",
         kcal: 115,
       },
-      { name: "Patatine fritte", portion: "200g", kcal: 280 },
     ],
   },
   {
@@ -93,6 +90,15 @@ const dietData = [
     category: "Altro",
     icon: "🥟",
     items: [{ name: "Bao", portion: "1 pezzo", kcal: 375 }],
+  },
+  {
+    category: "Fritti",
+    icon: "🍟",
+    items: [
+      { name: "Cotoletta pollo Aia", portion: "1 pezzo", kcal: 200 },
+      { name: "Patatine fritte", portion: "200g", kcal: 280 },
+      { name: "Sofficino alla pizzaiola", portion: "1 pezzo", kcal: 144 },
+    ],
   },
   {
     category: "Alcol",
