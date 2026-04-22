@@ -1189,7 +1189,7 @@
                               {isOpen && (
                                 <>
                                   {week.days.map((day, j) => (
-                                    <div key={j} className="history-day" style={{ borderRadius: 0, border: "none", borderBottom: "1px solid var(--border)" }}>
+                                    <div key={j} className="history-day" style={{ borderRadius: 0, border: "none", borderTop: j > 0 ? "1px solid var(--border)" : "none" }}>
                                       <div className="history-day-header">
                                         <span className="history-day-date">{formatDate(day.date)}</span>
                                         <span className="history-day-kcal" style={{ color: day.totalKcal > day.target ? "var(--color-negative)" : "var(--color-positive)" }}>
