@@ -247,6 +247,7 @@
     .counter-btn:hover { background: var(--border-mid); border-color: var(--text-dimmest); }
     .counter-btn.plus { border-color: var(--accent); color: var(--accent); }
     .counter-btn.plus:hover { background: var(--accent-bg); }
+    .counter-btn.minus-disabled { opacity: 0.75; cursor: default; pointer-events: none; }
     .counter-num { font-size: 13px; font-weight: 700; color: var(--accent); min-width: 14px; text-align: center; }
     .item-kcal { font-weight: 600; }
 
@@ -1061,8 +1062,8 @@
                                   </td>
                                   <td style={{ textAlign: "right", paddingLeft: 8 }}>
                                     <div className="counter" onClick={e => e.stopPropagation()}>
-                                      {isActive && <button className="counter-btn" onClick={e => dec(ci, ii, e)}>−</button>}
-                                      {isActive && <span className="counter-num">{qty}</span>}
+                                      <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(ci, ii, e)}>−</button>
+                                      <span className="counter-num">{qty}</span>
                                       <button className="counter-btn plus" onClick={e => inc(ci, ii, e)}>+</button>
                                     </div>
                                   </td>
