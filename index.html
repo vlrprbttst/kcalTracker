@@ -34,6 +34,8 @@
       --accent: #a78bfa;
       --accent-bg: #2e2a45;
       --accent-hover: #3d3460;
+      --color-positive: #4ade80;
+      --color-negative: #f87171;
       background: var(--bg);
       color: var(--text);
       font-family: 'DM Sans', 'Segoe UI', sans-serif;
@@ -55,6 +57,8 @@
       --accent: #7c3aed;
       --accent-bg: #ede9fe;
       --accent-hover: #ddd6fe;
+      --color-positive: #16a34a;
+      --color-negative: #dc2626;
     }
 
     button { font-family: inherit; cursor: pointer; }
@@ -350,8 +354,8 @@
       font-size: 13px;
       font-weight: 600;
     }
-    .deficit { color: #4ade80; }
-    .surplus { color: #f87171; }
+    .deficit { color: var(--color-positive); }
+    .surplus { color: var(--color-negative); }
 
     .bimester-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .bimester-label { font-size: 14px; font-weight: 600; color: var(--text); }
@@ -723,7 +727,7 @@
 
     function KcalBar({ kcal, max }) {
       const pct = Math.min((kcal / max) * 100, 100);
-      const color = kcal > 400 ? "#f87171" : kcal > 250 ? "#fbbf24" : "#4ade80";
+      const color = kcal > 400 ? "var(--color-negative)" : kcal > 250 ? "#fbbf24" : "var(--color-positive)";
       return (
         <div className="bar-mini">
           <div className="bar-mini-fill" style={{ width: `${pct}%`, background: color }} />
@@ -882,7 +886,7 @@
       const totalKcal = computeTotal(counts, extras);
       const pct = Math.min((totalKcal / target) * 100, 100);
       const remaining = target - totalKcal;
-      const barColor = pct >= 100 ? "#f87171" : pct >= 80 ? "#fbbf24" : "#4ade80";
+      const barColor = pct >= 100 ? "var(--color-negative)" : pct >= 80 ? "#fbbf24" : "var(--color-positive)";
 
       const handleReset = () => {
         if (window.confirm("Resettare le calorie di oggi?")) { setCounts({}); setExtras([]); }
@@ -1185,10 +1189,10 @@
                               {isOpen && (
                                 <>
                                   {week.days.map((day, j) => (
-                                    <div key={j} className="history-day" style={{ borderRadius: 0, border: "none", borderBottom: "1px solid #27272a" }}>
+                                    <div key={j} className="history-day" style={{ borderRadius: 0, border: "none", borderBottom: "1px solid var(--border)" }}>
                                       <div className="history-day-header">
                                         <span className="history-day-date">{formatDate(day.date)}</span>
-                                        <span className="history-day-kcal" style={{ color: day.totalKcal > day.target ? "#f87171" : "#4ade80" }}>
+                                        <span className="history-day-kcal" style={{ color: day.totalKcal > day.target ? "var(--color-negative)" : "var(--color-positive)" }}>
                                           {day.totalKcal} kcal
                                         </span>
                                       </div>
