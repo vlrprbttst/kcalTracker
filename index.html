@@ -689,6 +689,8 @@
       return d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
     }
 
+    const maxItemKcal = Math.max(...dietData.flatMap(c => c.items.map(i => i.kcal)));
+
     function KcalBar({ kcal, max }) {
       const pct = Math.min((kcal / max) * 100, 100);
       const color = kcal > 400 ? "#f87171" : kcal > 250 ? "#fbbf24" : "#4ade80";
@@ -989,7 +991,7 @@
                                       {isActive ? item.kcal * qty : item.kcal}
                                       {isActive && qty > 1 && <span style={{ fontSize: 10, color: "#71717a", marginLeft: 3 }}>×{qty}</span>}
                                     </span>
-                                    <KcalBar kcal={item.kcal} max={800} />
+                                    <KcalBar kcal={item.kcal} max={maxItemKcal} />
                                   </td>
                                   <td style={{ textAlign: "right", paddingLeft: 8 }}>
                                     <div className="counter" onClick={e => e.stopPropagation()}>
