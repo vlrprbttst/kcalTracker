@@ -413,6 +413,39 @@
     }
     .shake { animation: shake 0.4s ease; }
 
+    .search-wrap {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .search-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 9px 36px 9px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .search-input::placeholder { color: var(--text-dimmest); }
+    .search-input:focus { border-color: var(--accent); }
+    .search-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: var(--text-dimmest);
+      font-size: 16px;
+      line-height: 1;
+      padding: 2px;
+      transition: color .12s;
+    }
+    .search-clear:hover { color: var(--text); }
+    .search-highlight { background: var(--accent-bg); color: var(--accent); border-radius: 2px; }
+
     .close-all-btn {
       font-size: 11px;
       color: var(--text-dimmest);
@@ -706,6 +739,7 @@
       const [notAllowed, setNotAllowed] = useState(false); // undefined=inizializzando, null=non loggato
       const [counts, setCounts] = useState(loadCounts);
       const [extras, setExtras] = useState(loadExtras);
+      const [searchQuery, setSearchQuery] = useState("");
       const [extraName, setExtraName] = useState("");
       const [extraInput, setExtraInput] = useState("");
       const [target, setTarget] = useState(loadTarget);
@@ -937,6 +971,21 @@
               <div className="progress-track">
                 <div className="progress-bar" style={{ width: `${pct}%`, background: barColor }} />
               </div>
+
+              {(!user || activeTab === "oggi") && (
+                <div className="search-wrap" style={{ marginTop: 10, marginBottom: 0 }}>
+                  <input
+                    className="search-input"
+                    type="text"
+                    placeholder="Cerca alimento…"
+                    value={searchQuery}
+                    onChange={e => { setSearchQuery(e.target.value); setOpenIdx(null); }}
+                  />
+                  {searchQuery && (
+                    <button className="search-clear" onClick={() => setSearchQuery("")}>×</button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -952,44 +1001,61 @@
           <div className="content">
             {(!user || activeTab === "oggi") && (
               <>
-                {openIdx !== null && (
+                {!searchQuery && openIdx !== null && (
                   <button className="close-all-btn" onClick={() => setOpenIdx(null)}>chiudi tutto</button>
                 )}
-                {dietData.map((cat, ci) => {
-                  const isOpen = openIdx === ci;
+
+                {(() => {
+                  const query = searchQuery.trim().toLowerCase();
+                  const visibleCats = dietData.map((cat, ci) => ({
+                    cat, ci,
+                    items: query
+                      ? cat.items.map((item, ii) => ({ item, ii })).filter(({ item }) => item.name.toLowerCase().includes(query))
+                      : cat.items.map((item, ii) => ({ item, ii })),
+                  })).filter(({ items }) => !query || items.length > 0);
+
+                  const highlightName = (name) => {
+                    if (!query) return name;
+                    const idx = name.toLowerCase().indexOf(query);
+                    if (idx === -1) return name;
+                    return <>{name.slice(0, idx)}<span className="search-highlight">{name.slice(idx, idx + query.length)}</span>{name.slice(idx + query.length)}</>;
+                  };
+
+                  return visibleCats.map(({ cat, ci, items }) => {
+                  const isOpen = query ? true : openIdx === ci;
                   const kcalCat = catKcal(ci);
                   const hasAny = kcalCat > 0;
                   return (
                     <div key={ci} className={`category-card${hasAny ? " has-checked" : ""}`}>
-                      <button className="category-btn" onClick={() => setOpenIdx(isOpen ? null : ci)}>
+                      <button className="category-btn" onClick={() => !query && setOpenIdx(isOpen ? null : ci)}>
                         <span className="cat-icon">{cat.icon}</span>
                         <span className="cat-name">{cat.category}</span>
                         {hasAny && <span className="cat-kcal-badge">+{kcalCat} kcal</span>}
-                        <span className="cat-meta">{cat.items.length} {cat.items.length === 1 ? "alimento" : "alimenti"}</span>
-                        <span className={`cat-arrow${isOpen ? " open" : ""}`}>▼</span>
+                        {!query && <span className="cat-meta">{cat.items.length} {cat.items.length === 1 ? "alimento" : "alimenti"}</span>}
+                        {!query && <span className={`cat-arrow${isOpen ? " open" : ""}`}>▼</span>}
                       </button>
                       {isOpen && (
                         <table className="items-table">
                           <thead>
                             <tr>
                               <th>Alimento</th>
-                              <th style={{ color: "#71717a" }}>Porzione</th>
+                              <th style={{ color: "var(--text-dimmer)" }}>Porzione</th>
                               <th style={{ textAlign: "right" }}>Kcal</th>
                               <th style={{ textAlign: "right", width: 80 }}></th>
                             </tr>
                           </thead>
                           <tbody>
-                            {cat.items.map((item, ii) => {
+                            {items.map(({ item, ii }) => {
                               const qty = getCount(ci, ii);
                               const isActive = qty > 0;
                               return (
                                 <tr key={ii} className={`item-row${isActive ? " checked" : ""}`}>
-                                  <td className="item-name"><span>{item.name}</span></td>
+                                  <td className="item-name"><span>{highlightName(item.name)}</span></td>
                                   <td className="item-portion">{item.portion}</td>
                                   <td className="item-kcal-cell">
                                     <span className="item-kcal">
                                       {isActive ? item.kcal * qty : item.kcal}
-                                      {isActive && qty > 1 && <span style={{ fontSize: 10, color: "#71717a", marginLeft: 3 }}>×{qty}</span>}
+                                      {isActive && qty > 1 && <span style={{ fontSize: 10, color: "var(--text-dimmer)", marginLeft: 3 }}>×{qty}</span>}
                                     </span>
                                     <KcalBar kcal={item.kcal} max={maxItemKcal} />
                                   </td>
@@ -1008,7 +1074,8 @@
                       )}
                     </div>
                   );
-                })}
+                });
+                })()}
 
                 {/* Extra card */}
                 {(() => {
