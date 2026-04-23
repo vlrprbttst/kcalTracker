@@ -77,10 +77,10 @@ const dietData = [
   {
     category: "Condimenti", icon: "🍅",
     items: [
-      { id: "q9r4k3", name: "Passata", portion: "300g", kcal: 90 },
+      { id: "q9r4k3", name: "Passata", portion: "g", kcal: 0, variable: true, kcalPerG: 0.3 },
       { id: "k5t7m2", name: "Curry sauce", portion: "1 porzione", kcal: 300 },
-      { id: "x8j3c9", name: "Tikka masala sauce", portion: "1 porzione", kcal: 200 },
-      { id: "c1v6p4", name: "Olio", portion: "10g", kcal: 90 },
+      { id: "x8j3c9", name: "Tikka masala sauce", portion: "g", kcal: 0, variable: true, kcalPerG: 1.32 },
+      { id: "c1v6p4", name: "Olio", portion: "g", kcal: 0, variable: true, kcalPerG: 9 },
     ],
   },
   {
@@ -594,8 +594,8 @@ function App() {
                             return (
                               <React.Fragment key={ii}>
                                 {idx > 0 && <div className="items-grid-sep" />}
-                                <div className="item-name"><span>{highlightName(item.name)}</span></div>
-                                <div className="item-portion" style={{ padding: 0 }}>
+                                <div className={`item-name${isActive ? " item-cell-active" : ""}`}><span>{highlightName(item.name)}</span></div>
+                                <div className={`item-portion${isActive ? " item-cell-active" : ""}`}>
                                   <input
                                     type="number"
                                     className="grams-input"
@@ -613,14 +613,14 @@ function App() {
                                     min="0"
                                   />
                                 </div>
-                                <div className="item-kcal-cell">
+                                <div className={`item-kcal-cell${isActive ? " item-cell-active" : ""}`}>
                                   <span className="item-kcal">
                                     {g > 0 ? (isActive ? totalVar : portionKcal) : "–"}
                                     {g > 0 && isActive && qty > 1 && <span style={{ fontSize: 10, color: "var(--text-dimmer)", marginLeft: 3 }}>×{qty}</span>}
                                   </span>
                                   <KcalBar kcal={portionKcal} max={maxItemKcal} />
                                 </div>
-                                <div style={{ padding: "10px 0", display: "flex", justifyContent: "flex-end" }}>
+                                <div className={isActive ? "item-cell-active" : ""} style={{ minHeight: 44, padding: "0 14px 0 0", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
                                   <div className="counter" onClick={e => e.stopPropagation()}>
                                     <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(item.id, e)}>−</button>
                                     <span className="counter-num">{qty}</span>
@@ -633,16 +633,16 @@ function App() {
                           return (
                             <React.Fragment key={ii}>
                               {idx > 0 && <div className="items-grid-sep" />}
-                              <div className="item-name"><span>{highlightName(item.name)}</span></div>
-                              <div className="item-portion">{item.portion}</div>
-                              <div className="item-kcal-cell">
+                              <div className={`item-name${isActive ? " item-cell-active" : ""}`}><span>{highlightName(item.name)}</span></div>
+                              <div className={`item-portion${isActive ? " item-cell-active" : ""}`}>{item.portion}</div>
+                              <div className={`item-kcal-cell${isActive ? " item-cell-active" : ""}`}>
                                 <span className="item-kcal">
                                   {isActive ? item.kcal * qty : item.kcal}
                                   {isActive && qty > 1 && <span style={{ fontSize: 10, color: "var(--text-dimmer)", marginLeft: 3 }}>×{qty}</span>}
                                 </span>
                                 <KcalBar kcal={item.kcal} max={maxItemKcal} />
                               </div>
-                              <div style={{ padding: "10px 0", display: "flex", justifyContent: "flex-end" }}>
+                              <div className={isActive ? "item-cell-active" : ""} style={{ minHeight: 44, padding: "0 14px 0 0", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
                                 <div className="counter" onClick={e => e.stopPropagation()}>
                                   <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(item.id, e)}>−</button>
                                   <span className="counter-num">{qty}</span>
