@@ -289,6 +289,7 @@ function App() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => getBimesterOf(TODAY()));
   const [openWeeks, setOpenWeeks] = useState(new Set());
+  const [dataReady, setDataReady] = useState(false);
   const [shakeTarget, setShakeTarget] = useState(false);
   const [lightTheme, setLightTheme] = useState(() => localStorage.getItem("kcal_theme") === "light");
 
@@ -319,6 +320,7 @@ function App() {
         setCounts({});
         setExtras([]);
         setVarGrams({});
+        setDataReady(false);
         return;
       }
       if (u) {
@@ -336,6 +338,7 @@ function App() {
             }
           }
         } catch (e) { console.error(e); }
+        setDataReady(true);
       }
     });
   }, []);
@@ -346,7 +349,7 @@ function App() {
   }, [counts, extras, varGrams, user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataReady) return;
     clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
       const totalKcal = computeTotal(counts, extras, varGrams);
@@ -356,7 +359,7 @@ function App() {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
     }, 1500);
-  }, [counts, extras, varGrams, target, user]);
+  }, [counts, extras, varGrams, target, user, dataReady]);
 
   useEffect(() => {
     localStorage.setItem("kcal_target", String(target));
