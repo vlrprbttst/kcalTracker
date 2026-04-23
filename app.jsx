@@ -55,7 +55,7 @@ const dietData = [
   },
   {
     category: "Legumi", icon: "🍲",
-    items: [{ name: "Borlotti", portion: "1 lattina", kcal: 120 }],
+    items: [{ name: "Borlotti", portion: "1 lattina", kcal: 120 }, { name: "Fagioli cannellini", portion: "1 lattina", kcal: 109 }],
   },
   {
     category: "Contorni", icon: "🥦",
