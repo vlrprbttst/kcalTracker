@@ -5,8 +5,8 @@ App personale per tracciare le calorie giornaliere. Pubblicata su GitHub Pages. 
 
 **Live:** https://vlrprbttst.github.io/kcalTracker  
 **Repo:** https://github.com/vlrprbttst/kcalTracker  
-**File principale:** `index.html` (tutto il codice sta qui — React via CDN, no build step)  
-**File di riferimento alimenti:** la lista alimenti è direttamente in `index.html` nel array `dietData`. Il file `dieta.jsx` è stato eliminato.
+**File principali:** `index.html` (scheletro HTML), `style.css` (tutto il CSS), `app.jsx` (tutto il JS/JSX React)  
+**File di riferimento alimenti:** la lista alimenti è in `app.jsx` nell'array `dietData`. Il file `dieta.jsx` è stato eliminato.
 
 ---
 
@@ -130,9 +130,12 @@ Le categorie sono ordinate per indice `ci` (0→12), gli alimenti per indice `ii
 ---
 
 ## File nella repo
-- `index.html` — l'intera app
+- `index.html` — scheletro HTML (head, root div, link a CSS e JSX)
+- `style.css` — tutto il CSS dell'app
+- `app.jsx` — tutto il JS/JSX React (logica, componenti, dietData)
 - `manifest.json` — PWA manifest (icona 1024×1024, maskable)
-- `logo.png` — icona app (1024×1024, sfondo scuro #111113)
+- `logo.png` — icona app PWA (1024×1024, sfondo scuro #111113)
+- `logo2.png` — logo testuale nell'header
 - `no.gif` — gif mostrata quando un utente non autorizzato prova a loggarsi
 - `.gitignore` — esclude `.claude/`
 - `CONTEXT.md` — questo file
@@ -148,8 +151,9 @@ Le categorie sono ordinate per indice `ci` (0→12), gli alimenti per indice `ii
 ---
 
 ## Come lavorare su questo progetto
-1. Modifiche al codice → sempre in `index.html`
-2. Aggiunta alimenti → sempre in fondo alla categoria (`dieta.jsx` è stato eliminato, tutto è in `index.html`)
+1. Modifiche al CSS → `style.css`
+2. Modifiche alla logica/UI → `app.jsx`
+3. Aggiunta alimenti → sempre in fondo alla categoria in `app.jsx` nell'array `dietData`
 3. Push → `git add . && git commit -m "..." && git push` — solo quando Valerio lo chiede
 4. GitHub Pages → si aggiorna in 1-2 minuti dal push
 5. Per testare in locale → live server su `127.0.0.1:5500` (VS Code) o `localhost`
