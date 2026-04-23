@@ -399,6 +399,12 @@
       transition: background .15s;
     }
     .week-accordion-header:hover { background: var(--surface-hover); }
+    .week-accordion-header.incomplete { background: #2a2410; border-bottom: 1px solid #78580a; }
+    .week-accordion-header.incomplete:hover { background: #332b12; }
+    body.light .week-accordion-header.incomplete { background: #fefce8; border-bottom: 1px solid #fde047; }
+    body.light .week-accordion-header.incomplete:hover { background: #fef9c3; }
+    .week-incomplete-note { font-size: 11px; color: #a16207; margin-top: 8px; }
+    body:not(.light) .week-incomplete-note { color: #ca8a04; }
     .week-acc-left { display: flex; flex-direction: column; gap: 3px; }
     .week-acc-dates { font-size: 13px; font-weight: 600; color: var(--text); }
     .week-acc-balance { font-size: 12px; }
@@ -1173,19 +1179,25 @@
                                 <div className="week-current-header">
                                   Settimana in corso · {formatShortDate(week.weekStart)} → {formatShortDate(week.weekEndStr)}
                                 </div>
-                              ) : (
-                                <div className="week-accordion-header" onClick={() => toggleWeek(week.weekStart)}>
-                                  <div className="week-acc-left">
-                                    <span className="week-acc-dates">{formatShortDate(week.weekStart)} → {formatShortDate(week.weekEndStr)}</span>
-                                    <span className={`week-acc-balance ${week.balance <= 0 ? "deficit" : "surplus"}`}>
-                                      {week.balance <= 0
-                                        ? `✅ Deficit ${Math.abs(week.balance).toLocaleString("it-IT")} kcal`
-                                        : `⚠️ Surplus ${week.balance.toLocaleString("it-IT")} kcal`}
-                                    </span>
+                              ) : (() => {
+                                const incomplete = week.days.length < 7;
+                                return (
+                                  <div className={`week-accordion-header${incomplete ? " incomplete" : ""}`} onClick={() => toggleWeek(week.weekStart)}>
+                                    <div className="week-acc-left">
+                                      <span className="week-acc-dates">
+                                        {incomplete && "⚠️ "}{formatShortDate(week.weekStart)} → {formatShortDate(week.weekEndStr)}
+                                        <span style={{ fontWeight: 400, color: "var(--text-dimmer)", marginLeft: 6 }}>{week.days.length}/7 giorni</span>
+                                      </span>
+                                      <span className={`week-acc-balance ${week.balance <= 0 ? "deficit" : "surplus"}`}>
+                                        {week.balance <= 0
+                                          ? `✅ Deficit ${Math.abs(week.balance).toLocaleString("it-IT")} kcal`
+                                          : `⚠️ Surplus ${week.balance.toLocaleString("it-IT")} kcal`}
+                                      </span>
+                                    </div>
+                                    <span className={`week-acc-arrow${isOpen ? " open" : ""}`}>▼</span>
                                   </div>
-                                  <span className={`week-acc-arrow${isOpen ? " open" : ""}`}>▼</span>
-                                </div>
-                              )}
+                                );
+                              })()}
                               {isOpen && (
                                 <>
                                   {week.days.map((day, j) => (
@@ -1210,7 +1222,12 @@
                                       <span>Calorie ingerite</span>
                                       <span>{week.totalConsumed.toLocaleString("it-IT")} kcal</span>
                                     </div>
-                                    {(!isCurrentWeek || TODAY() === week.weekEndStr) && (
+                                    {!isCurrentWeek && week.days.length < 7 && (
+                                      <div className="week-incomplete-note">
+                                        ⚠️ Dati parziali — {7 - week.days.length} {7 - week.days.length === 1 ? "giorno non tracciato" : "giorni non tracciati"}. Il balance potrebbe non essere accurato.
+                                      </div>
+                                    )}
+                                    {(!isCurrentWeek || TODAY() === week.weekEndStr) && week.days.length === 7 && (
                                       <div className="week-balance">
                                         {week.balance <= 0 ? (
                                           <>
