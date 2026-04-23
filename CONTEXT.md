@@ -6,7 +6,7 @@ App personale per tracciare le calorie giornaliere. Pubblicata su GitHub Pages. 
 **Live:** https://vlrprbttst.github.io/kcalTracker  
 **Repo:** https://github.com/vlrprbttst/kcalTracker  
 **File principali:** `index.html` (scheletro HTML), `style.css` (tutto il CSS), `app.jsx` (tutto il JS/JSX React)  
-**File di riferimento alimenti:** la lista alimenti è in `app.jsx` nell'array `dietData`. Il file `dieta.jsx` è stato eliminato.
+**File di riferimento alimenti:** la lista alimenti è in `app.jsx` nell'array `dietData`.
 
 ---
 
@@ -47,8 +47,8 @@ users/
   {uid}/
     days/
       2026-04-22: {
-        counts: { "0_1": 2, "3_0": 1, ... },  // indici categoria_alimento: quantità
-        varGrams: { "0_1": 150, "0_3": 200 },  // grammi per gli alimenti variable (Basmati, Gnocchi)
+        counts: { "b4x8q3": 2, "u6r3k8": 1, ... },  // id_alimento: quantità
+        varGrams: { "b4x8q3": 150, "g9j3w7": 200 },  // id_alimento: grammi (solo variable: true)
         extras: [{ name: "kebab", kcal: 650 }],
         target: 1960,
         totalKcal: 1450,
@@ -58,16 +58,25 @@ users/
       }
 ```
 
-I `counts` usano indici numerici `ci_ii` (categoria_alimento). Lo storico usa `totalKcal` e `items` (stringhe leggibili) — non usa `counts`, quindi è immune a cambi di indici futuri.
+Le chiavi di `counts` e `varGrams` sono **ID stabili opachi** (6 caratteri alfanumerici) definiti nell'array `dietData` di `app.jsx`. Lo storico usa solo `totalKcal` e `items` (stringhe leggibili) — non usa `counts`, quindi è immune a qualsiasi modifica futura agli alimenti.
 
-`varGrams` salva i grammi digitati per gli alimenti con `variable: true`. Il calcolo kcal è `Math.round(varGrams[key] * item.kcalPerG) * counts[key]`.
+`varGrams` salva i grammi digitati per gli alimenti con `variable: true`. Il calcolo kcal è `Math.round(varGrams[id] * item.kcalPerG) * counts[id]`.
+
+### Migrazione automatica
+Al primo avvio dopo l'introduzione degli ID stabili, `migrateCountKeys()` converte automaticamente i vecchi documenti con chiavi `"ci_ii"` al nuovo formato con ID. La funzione gira sia su localStorage che su Firestore (solo il documento di oggi).
 
 ---
 
 ## Regole importanti
 
-### CRITICO — Aggiunta alimenti
-**Aggiungere sempre nuovi alimenti IN FONDO alla loro categoria**, mai in mezzo, mai eliminare voci esistenti. I `counts` salvati su Firestore usano indici numerici: spostare o eliminare un alimento corrompe lo storico.
+### Aggiunta/modifica alimenti
+Puoi aggiungere, rimuovere e riordinare alimenti liberamente — gli ID stabili disaccoppiano i dati Firestore dalla posizione nell'array.
+
+**L'unica regola rimasta: non riusare mai un ID già usato per un alimento diverso.** Il nome può cambiare, l'ID è per sempre.
+
+Quando aggiungi un nuovo alimento, Claude genera un ID opaco a 6 caratteri (es. `k3m7p2`). Non ha significato — è intenzionale.
+
+Per gli alimenti a porzione variabile, usa la formula `"aggiungi XXX col sistema di porzione variabile"` e specifica nome + kcal per 100g.
 
 ### Git
 Usare sempre `git add .` quando si committa (non specificare file singoli — potrebbero esserci altri file modificati come `logo.png`).
@@ -83,7 +92,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli — po
 - Lista alimenti divisa in categorie, ognuna è un accordion
 - Layout interno accordion: **CSS Grid** (`1fr auto 56px 84px`) — nome flessibile, porzione auto, kcal e counter fissi
 - Contatore +/− per porzione (supporta stessa voce più volte)
-- **Alimenti a porzione variabile** (`variable: true` in dietData): input "Grammi" nella colonna porzione, kcal si aggiorna live; +/− contano le porzioni come al solito. Attualmente: Basmati cotto (`kcalPerG: 4/3`) e Gnocchi (`kcalPerG: 1.5`).
+- **Alimenti a porzione variabile** (`variable: true` in dietData): input "Grammi" nella colonna porzione, kcal si aggiorna live; +/− contano le porzioni come al solito. Attualmente: Basmati cotto (`kcalPerG: 4/3`), Gnocchi (`kcalPerG: 1.5`), Pasta (`kcalPerG: 3.6`)
 - Bottoni +/− sempre visibili: il − è opaco (75%) e non cliccabile finché qty = 0
 - Totale kcal live con barra di progresso colorata (verde/giallo/rosso)
 - Goal calorico editabile cliccando il numero nell'header (default: 2000 kcal)
@@ -104,7 +113,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli — po
 - Solo l'ALLOWED_UID può loggarsi — chiunque altro vede la gif `no.gif` + messaggio "non puoi loggarti..."
 - Da loggato: sync Firestore in tempo reale (debounced 1.5s)
 - Da non loggato: localStorage, nessuno storico, reset automatico al cambio giorno
-- Al logout: counts e extras si azzerano
+- Al logout: counts, extras e varGrams si azzerano
 
 ### Storico (tab "Storico", solo loggati)
 - **Paginazione bimestrale** (Gen-Feb, Mar-Apr, ecc.) con nav ← prec / succ →
@@ -127,9 +136,9 @@ Usare sempre `git add .` quando si committa (non specificare file singoli — po
 ---
 
 ## Lista alimenti
-La lista completa è in `index.html` nel array `dietData` (circa riga 495).  
-Le categorie sono ordinate per indice `ci` (0→12), gli alimenti per indice `ii` dentro ogni categoria.  
-**Non modificare mai l'ordine o eliminare voci — leggere la sezione "Regole importanti" sopra.**
+La lista completa è in `app.jsx` nell'array `dietData` (circa riga 15).  
+Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.  
+Le categorie e l'ordine degli alimenti sono modificabili liberamente.
 
 ---
 
@@ -147,7 +156,7 @@ Le categorie sono ordinate per indice `ci` (0→12), gli alimenti per indice `ii
 ---
 
 ## Idee discusse ma non implementate
-- **Admin page** per gestire alimenti senza chiedere a Claude — richiede refactor degli indici (da numerici a ID stabili) + migrazione Firestore. Non ancora fatto.
+- **Admin page** per gestire alimenti senza chiedere a Claude — ora fattibile grazie agli ID stabili, ma non prioritaria
 - **Grafico nello storico** — scartato per ora
 - **Nota giornaliera** — scartata per ora
 - **Google Fit integration** — impossibile, API dismessa dal 30/06/2025
@@ -157,10 +166,10 @@ Le categorie sono ordinate per indice `ci` (0→12), gli alimenti per indice `ii
 ## Come lavorare su questo progetto
 1. Modifiche al CSS → `style.css`
 2. Modifiche alla logica/UI → `app.jsx`
-3. Aggiunta alimenti → sempre in fondo alla categoria in `app.jsx` nell'array `dietData`
+3. Aggiunta alimenti → in `app.jsx` nell'array `dietData`, con un nuovo ID opaco unico a 6 caratteri
 4. Push → `git add . && git commit -m "..." && git push` — solo quando Valerio lo chiede
 5. GitHub Pages → si aggiorna in 1-2 minuti dal push
 6. Per testare in locale → live server su `127.0.0.1:5500` (VS Code) o `localhost`
 
 ### Cache PWA mobile
-`app.jsx` è caricato con query string di versione: `<script src="app.jsx?v=N">`. **Ad ogni push che modifica `app.jsx`, incrementare N in `index.html`** altrimenti la PWA mobile serve la versione cachata. `style.css` non ha bisogno del versioning (il browser la ricarica sempre).
+`app.jsx` è caricato con query string di versione: `<script src="app.jsx?v=N">`. Il numero viene **incrementato automaticamente dal pre-commit hook** ogni volta che `app.jsx` è in staging — non serve farlo a mano. `style.css` non ha bisogno del versioning.

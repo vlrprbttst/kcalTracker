@@ -16,140 +16,157 @@ const dietData = [
   {
     category: "Carboidrati", icon: "🍞",
     items: [
-      { name: "Rosetta", portion: "120g", kcal: 340 },
-      { name: "Basmati cotto", portion: "g", kcal: 0, variable: true, kcalPerG: 4/3 },
-      { name: "Taralli", portion: "1 pacchetto", kcal: 280 },
-      { name: "Gnocchi", portion: "g", kcal: 0, variable: true, kcalPerG: 1.5 },
-      { name: "Pasta", portion: "g", kcal: 0, variable: true, kcalPerG: 3.6 },
+      { id: "r7m2k9", name: "Rosetta", portion: "120g", kcal: 340 },
+      { id: "b4x8q3", name: "Basmati cotto", portion: "g", kcal: 0, variable: true, kcalPerG: 4/3 },
+      { id: "t6n5p1", name: "Taralli", portion: "1 pacchetto", kcal: 280 },
+      { id: "g9j3w7", name: "Gnocchi", portion: "g", kcal: 0, variable: true, kcalPerG: 1.5 },
+      { id: "p2c8f6", name: "Pasta", portion: "g", kcal: 0, variable: true, kcalPerG: 3.6 },
     ],
   },
   {
     category: "Carne", icon: "🍗",
     items: [
-      { name: "Pollo", portion: "150g", kcal: 165 },
+      { id: "h5v4r2", name: "Pollo", portion: "150g", kcal: 165 },
     ],
   },
   {
     category: "Pesce", icon: "🐟",
     items: [
-      { name: "Gratinato alle erbe", portion: "½ vaschetta", kcal: 400 },
-      { name: "Gratinato ai ceci", portion: "½ vaschetta", kcal: 350 },
-      { name: "Gratinato patate/rosmarino", portion: "½ vaschetta", kcal: 240 },
-      { name: "Tonno non sgocciolato", portion: "1 scatola", kcal: 200 },
-      { name: "Tonno filo d'olio", portion: "1 scatola", kcal: 150 },
+      { id: "e8k7n4", name: "Gratinato alle erbe", portion: "½ vaschetta", kcal: 400 },
+      { id: "c3p9m6", name: "Gratinato ai ceci", portion: "½ vaschetta", kcal: 350 },
+      { id: "d7q2b5", name: "Gratinato patate/rosmarino", portion: "½ vaschetta", kcal: 240 },
+      { id: "s4w6j8", name: "Tonno non sgocciolato", portion: "1 scatola", kcal: 200 },
+      { id: "f1t9x3", name: "Tonno filo d'olio", portion: "1 scatola", kcal: 150 },
     ],
   },
   {
     category: "Uova", icon: "🥚",
-    items: [{ name: "Uova strapazzate", portion: "2 uova", kcal: 230 }],
+    items: [{ id: "u6r3k8", name: "Uova strapazzate", portion: "2 uova", kcal: 230 }],
   },
   {
     category: "Secondi vegetali", icon: "🥬",
     items: [
-      { name: "Miniburger broccoli zucchine e carote", portion: "1 pezzo", kcal: 89 },
-      { name: "Miniburger spinaci", portion: "1 pezzo", kcal: 95 },
-      { name: "Cotoletta vegetale", portion: "1 pezzo", kcal: 220 },
-      { name: "Straccetti di soia al sugo", portion: "1 porzione", kcal: 390 },
-      { name: "Tofu al naturale", portion: "1 porzione", kcal: 190 },
+      { id: "m7h4v9", name: "Miniburger broccoli zucchine e carote", portion: "1 pezzo", kcal: 89 },
+      { id: "n2f6p1", name: "Miniburger spinaci", portion: "1 pezzo", kcal: 95 },
+      { id: "v5q8k3", name: "Cotoletta vegetale", portion: "1 pezzo", kcal: 220 },
+      { id: "w9j2r6", name: "Straccetti di soia al sugo", portion: "1 porzione", kcal: 390 },
+      { id: "a4b7x5", name: "Tofu al naturale", portion: "1 porzione", kcal: 190 },
     ],
   },
   {
     category: "Legumi", icon: "🍲",
-    items: [{ name: "Borlotti", portion: "1 lattina", kcal: 120 }, { name: "Fagioli cannellini", portion: "1 lattina", kcal: 109 }],
+    items: [
+      { id: "j3x9k2", name: "Borlotti", portion: "1 lattina", kcal: 120 },
+      { id: "o8m5t7", name: "Fagioli cannellini", portion: "1 lattina", kcal: 109 },
+    ],
   },
   {
     category: "Contorni", icon: "🥦",
     items: [
-      { name: "Contorno leggerezza", portion: "225g", kcal: 60 },
-      { name: "Contorno tricolore", portion: "225g", kcal: 55 },
+      { id: "l6v2n9", name: "Contorno leggerezza", portion: "225g", kcal: 60 },
+      { id: "y4p8q1", name: "Contorno tricolore", portion: "225g", kcal: 55 },
     ],
   },
   {
     category: "Formaggi", icon: "🧀",
     items: [
-      { name: "Mozzarella", portion: "1 pezzo", kcal: 300 },
-      { name: "Parmigiano", portion: "10g", kcal: 40 },
+      { id: "z7j5w4", name: "Mozzarella", portion: "1 pezzo", kcal: 300 },
+      { id: "i2n8b6", name: "Parmigiano", portion: "10g", kcal: 40 },
     ],
   },
   {
     category: "Condimenti", icon: "🍅",
     items: [
-      { name: "Passata", portion: "300g", kcal: 90 },
-      { name: "Curry sauce", portion: "1 porzione", kcal: 300 },
-      { name: "Tikka masala sauce", portion: "1 porzione", kcal: 200 },
-      { name: "Olio", portion: "10g", kcal: 90 },
+      { id: "q9r4k3", name: "Passata", portion: "300g", kcal: 90 },
+      { id: "k5t7m2", name: "Curry sauce", portion: "1 porzione", kcal: 300 },
+      { id: "x8j3c9", name: "Tikka masala sauce", portion: "1 porzione", kcal: 200 },
+      { id: "c1v6p4", name: "Olio", portion: "10g", kcal: 90 },
     ],
   },
   {
     category: "Merende", icon: "🥄",
     items: [
-      { name: "Yogurt bianco", portion: "1 vasetto", kcal: 50 },
-      { name: "Mela gialla", portion: "1 medio-piccola", kcal: 67 },
-      { name: "Cono gelato medio", portion: "3 gusti cremosi + panna", kcal: 450 },
+      { id: "r3q9f7", name: "Yogurt bianco", portion: "1 vasetto", kcal: 50 },
+      { id: "m6k2w8", name: "Mela gialla", portion: "1 medio-piccola", kcal: 67 },
+      { id: "g4h7r5", name: "Cono gelato medio", portion: "3 gusti cremosi + panna", kcal: 450 },
     ],
   },
   {
     category: "Altro", icon: "🥟",
     items: [
-      { name: "Bao", portion: "1 pezzo", kcal: 375 },
-      { name: "Ravioli vapore arancioni", portion: "1 pezzo", kcal: 36 },
-      { name: "Pizza margherita grande", portion: "1 pizza", kcal: 1000 },
-      { name: "Kebab", portion: "1 panino/piadina farcita", kcal: 1000 },
+      { id: "b9j4n3", name: "Bao", portion: "1 pezzo", kcal: 375 },
+      { id: "v2b8m6", name: "Ravioli vapore arancioni", portion: "1 pezzo", kcal: 36 },
+      { id: "p5x1k9", name: "Pizza margherita grande", portion: "1 pizza", kcal: 1000 },
+      { id: "e7w4t2", name: "Kebab", portion: "1 panino/piadina farcita", kcal: 1000 },
     ],
   },
   {
     category: "Fritti", icon: "🍟",
     items: [
-      { name: "Cotoletta pollo Aia", portion: "1 pezzo", kcal: 200 },
-      { name: "Patatine fritte", portion: "200g", kcal: 280 },
-      { name: "Sofficino alla pizzaiola", portion: "1 pezzo", kcal: 144 },
-      { name: "Supplì romano", portion: "1 pezzo", kcal: 250 },
+      { id: "a3f9v6", name: "Cotoletta pollo Aia", portion: "1 pezzo", kcal: 200 },
+      { id: "f8n2j4", name: "Patatine fritte", portion: "200g", kcal: 280 },
+      { id: "s1r7b5", name: "Sofficino alla pizzaiola", portion: "1 pezzo", kcal: 144 },
+      { id: "w6q4x8", name: "Supplì romano", portion: "1 pezzo", kcal: 250 },
     ],
   },
   {
     category: "Alcol", icon: "🍺",
     items: [
-      { name: "Tennent's Super grande", portion: "44cl", kcal: 320 },
-      { name: "Tennent's Super piccola", portion: "35.5cl", kcal: 260 },
-      { name: "Ceres Strong Ale piccola", portion: "33cl", kcal: 198 },
-      { name: "Ceres Strong Ale grande", portion: "50cl", kcal: 300 },
-      { name: "Carlsberg Special Brew", portion: "40cl", kcal: 260 },
+      { id: "t3m9k2", name: "Tennent's Super grande", portion: "44cl", kcal: 320 },
+      { id: "p7h5w6", name: "Tennent's Super piccola", portion: "35.5cl", kcal: 260 },
+      { id: "c4j2n8", name: "Ceres Strong Ale piccola", portion: "33cl", kcal: 198 },
+      { id: "r9p6k3", name: "Ceres Strong Ale grande", portion: "50cl", kcal: 300 },
+      { id: "b5v2m7", name: "Carlsberg Special Brew", portion: "40cl", kcal: 260 },
     ],
   },
 ];
+
+const itemById = {};
+dietData.forEach(cat => cat.items.forEach(item => { itemById[item.id] = item; }));
 
 const ALLOWED_UID = "f1rMJWrezfORvihvxM5EspY3FsA3";
 
 const TODAY = () => new Date().toISOString().slice(0, 10);
 
-function loadCounts() {
-  try {
-    const raw = localStorage.getItem("kcal_data");
-    if (!raw) return {};
-    const data = JSON.parse(raw);
-    if (data.date !== TODAY()) return {};
-    return data.counts || {};
-  } catch { return {}; }
+function migrateCountKeys(counts, varGrams) {
+  const isOld = key => /^\d+_\d+$/.test(key);
+  const hasOld = Object.keys(counts).some(isOld) || Object.keys(varGrams).some(isOld);
+  if (!hasOld) return { counts, varGrams, migrated: false };
+  const newCounts = {};
+  Object.entries(counts).forEach(([key, qty]) => {
+    if (isOld(key)) {
+      const [ci, ii] = key.split("_").map(Number);
+      const item = dietData[ci]?.items[ii];
+      if (item) newCounts[item.id] = qty;
+    } else {
+      newCounts[key] = qty;
+    }
+  });
+  const newVarGrams = {};
+  Object.entries(varGrams).forEach(([key, g]) => {
+    if (isOld(key)) {
+      const [ci, ii] = key.split("_").map(Number);
+      const item = dietData[ci]?.items[ii];
+      if (item) newVarGrams[item.id] = g;
+    } else {
+      newVarGrams[key] = g;
+    }
+  });
+  return { counts: newCounts, varGrams: newVarGrams, migrated: true };
 }
 
-function loadExtras() {
+function loadLocalData() {
   try {
     const raw = localStorage.getItem("kcal_data");
-    if (!raw) return [];
+    if (!raw) return { counts: {}, extras: [], varGrams: {} };
     const data = JSON.parse(raw);
-    if (data.date !== TODAY()) return [];
-    return data.extras || [];
-  } catch { return []; }
-}
-
-function loadVarGrams() {
-  try {
-    const raw = localStorage.getItem("kcal_data");
-    if (!raw) return {};
-    const data = JSON.parse(raw);
-    if (data.date !== TODAY()) return {};
-    return data.varGrams || {};
-  } catch { return {}; }
+    if (data.date !== TODAY()) return { counts: {}, extras: [], varGrams: {} };
+    const { counts, varGrams, migrated } = migrateCountKeys(data.counts || {}, data.varGrams || {});
+    if (migrated) {
+      localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts, extras: data.extras || [], varGrams }));
+    }
+    return { counts, extras: data.extras || [], varGrams };
+  } catch { return { counts: {}, extras: [], varGrams: {} }; }
 }
 
 function loadTarget() {
@@ -157,26 +174,23 @@ function loadTarget() {
 }
 
 function computeTotal(counts, extras, varGrams = {}) {
-  return Object.entries(counts).reduce((sum, [key, qty]) => {
-    const [ci, ii] = key.split("_").map(Number);
-    const item = dietData[ci]?.items[ii];
+  return Object.entries(counts).reduce((sum, [id, qty]) => {
+    const item = itemById[id];
     if (!item) return sum;
-    if (item.variable) return sum + Math.round((varGrams[key] || 0) * item.kcalPerG) * qty;
+    if (item.variable) return sum + Math.round((varGrams[id] || 0) * item.kcalPerG) * qty;
     return sum + item.kcal * qty;
   }, 0) + extras.reduce((s, e) => s + e.kcal, 0);
 }
 
 function buildItemsList(counts, extras, varGrams = {}) {
   const items = [];
-  Object.entries(counts).forEach(([key, qty]) => {
-    const [ci, ii] = key.split("_").map(Number);
-    const item = dietData[ci]?.items[ii];
+  Object.entries(counts).forEach(([id, qty]) => {
+    const item = itemById[id];
     if (item && qty > 0) {
       if (item.variable) {
-        const g = varGrams[key] || 0;
+        const g = varGrams[id] || 0;
         const portionKcal = Math.round(g * item.kcalPerG);
-        const label = qty > 1 ? `${item.name} ${g}g ×${qty} (${portionKcal * qty} kcal)` : `${item.name} ${g}g (${portionKcal} kcal)`;
-        items.push(label);
+        items.push(qty > 1 ? `${item.name} ${g}g ×${qty} (${portionKcal * qty} kcal)` : `${item.name} ${g}g (${portionKcal} kcal)`);
       } else {
         items.push(qty > 1 ? `${item.name} ×${qty}` : item.name);
       }
@@ -188,7 +202,7 @@ function buildItemsList(counts, extras, varGrams = {}) {
 
 function getWeekStart(dateStr) {
   const d = new Date(dateStr + "T12:00:00");
-  const daysSinceFriday = (d.getDay() + 2) % 7; // Fri=0, Sat=1, Sun=2, ..., Thu=6
+  const daysSinceFriday = (d.getDay() + 2) % 7;
   const friday = new Date(d);
   friday.setDate(d.getDate() - daysSinceFriday);
   return friday.toISOString().slice(0, 10);
@@ -260,8 +274,9 @@ function KcalBar({ kcal, max }) {
 function App() {
   const [user, setUser] = useState(undefined);
   const [notAllowed, setNotAllowed] = useState(false);
-  const [counts, setCounts] = useState(loadCounts);
-  const [extras, setExtras] = useState(loadExtras);
+  const [counts, setCounts] = useState(() => loadLocalData().counts);
+  const [extras, setExtras] = useState(() => loadLocalData().extras);
+  const [varGrams, setVarGrams] = useState(() => loadLocalData().varGrams);
   const [searchQuery, setSearchQuery] = useState("");
   const [extraName, setExtraName] = useState("");
   const [extraInput, setExtraInput] = useState("");
@@ -274,20 +289,20 @@ function App() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => getBimesterOf(TODAY()));
   const [openWeeks, setOpenWeeks] = useState(new Set());
-  const [varGrams, setVarGrams] = useState(loadVarGrams);
+  const [shakeTarget, setShakeTarget] = useState(false);
+  const [lightTheme, setLightTheme] = useState(() => localStorage.getItem("kcal_theme") === "light");
 
   const toggleWeek = (ws) => setOpenWeeks(prev => {
     const next = new Set(prev);
     next.has(ws) ? next.delete(ws) : next.add(ws);
     return next;
   });
-  const [shakeTarget, setShakeTarget] = useState(false);
-  const [lightTheme, setLightTheme] = useState(() => localStorage.getItem("kcal_theme") === "light");
 
   useEffect(() => {
     document.body.classList.toggle("light", lightTheme);
     localStorage.setItem("kcal_theme", lightTheme ? "light" : "dark");
   }, [lightTheme]);
+
   const targetInputRef = useRef(null);
   const saveDebounceRef = useRef(null);
   const prevOverTarget = useRef(false);
@@ -311,10 +326,14 @@ function App() {
           const snap = await db.collection("users").doc(u.uid).collection("days").doc(TODAY()).get();
           if (snap.exists) {
             const data = snap.data();
-            setCounts(data.counts || {});
+            const { counts: mc, varGrams: mvg, migrated } = migrateCountKeys(data.counts || {}, data.varGrams || {});
+            setCounts(mc);
             setExtras(data.extras || []);
-            setVarGrams(data.varGrams || {});
+            setVarGrams(mvg);
             if (data.target) setTarget(data.target);
+            if (migrated) {
+              db.collection("users").doc(u.uid).collection("days").doc(TODAY()).update({ counts: mc, varGrams: mvg });
+            }
           }
         } catch (e) { console.error(e); }
       }
@@ -381,27 +400,24 @@ function App() {
     if (window.confirm("Esci dall'account?")) auth.signOut();
   };
 
-  const getCount = (ci, ii) => counts[`${ci}_${ii}`] || 0;
+  const getCount = (id) => counts[id] || 0;
 
   const vibrate = () => { try { navigator.vibrate && navigator.vibrate(30); } catch {} };
 
-  const inc = (ci, ii, e) => {
+  const inc = (id, e) => {
     e.stopPropagation();
     vibrate();
-    const key = `${ci}_${ii}`;
-    setCounts(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
+    setCounts(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
   };
 
-  const dec = (ci, ii, e) => {
+  const dec = (id, e) => {
     e.stopPropagation();
-    const key = `${ci}_${ii}`;
     setCounts(prev => {
-      const next = (prev[key] || 0) - 1;
-      if (next <= 0) { const { [key]: _, ...rest } = prev; return rest; }
-      return { ...prev, [key]: next };
+      const next = (prev[id] || 0) - 1;
+      if (next <= 0) { const { [id]: _, ...rest } = prev; return rest; }
+      return { ...prev, [id]: next };
     });
   };
-
 
   const totalKcal = computeTotal(counts, extras, varGrams);
   const pct = Math.min((totalKcal / target) * 100, 100);
@@ -419,10 +435,9 @@ function App() {
     setEditingTarget(false);
   };
 
-  const catKcal = (ci) => dietData[ci].items.reduce((s, item, ii) => {
-    const qty = getCount(ci, ii);
-    const key = `${ci}_${ii}`;
-    if (item.variable) return s + Math.round((varGrams[key] || 0) * item.kcalPerG) * qty;
+  const catKcal = (ci) => dietData[ci].items.reduce((s, item) => {
+    const qty = getCount(item.id);
+    if (item.variable) return s + Math.round((varGrams[item.id] || 0) * item.kcalPerG) * qty;
     return s + item.kcal * qty;
   }, 0);
 
@@ -567,11 +582,10 @@ function App() {
                         <div className="items-grid-label right">Kcal</div>
                         <div className="items-grid-label"></div>
                         {items.map(({ item, ii }, idx) => {
-                          const qty = getCount(ci, ii);
+                          const qty = getCount(item.id);
                           const isActive = qty > 0;
-                          const varKey = `${ci}_${ii}`;
                           if (item.variable) {
-                            const g = varGrams[varKey] || 0;
+                            const g = varGrams[item.id] || 0;
                             const portionKcal = g > 0 ? Math.round(g * item.kcalPerG) : 0;
                             const totalVar = portionKcal * qty;
                             return (
@@ -588,8 +602,8 @@ function App() {
                                       e.stopPropagation();
                                       const val = parseInt(e.target.value, 10);
                                       setVarGrams(prev => {
-                                        if (!val || val <= 0) { const { [varKey]: _, ...rest } = prev; return rest; }
-                                        return { ...prev, [varKey]: val };
+                                        if (!val || val <= 0) { const { [item.id]: _, ...rest } = prev; return rest; }
+                                        return { ...prev, [item.id]: val };
                                       });
                                     }}
                                     onClick={e => e.stopPropagation()}
@@ -605,9 +619,9 @@ function App() {
                                 </div>
                                 <div style={{ padding: "10px 0", display: "flex", justifyContent: "flex-end" }}>
                                   <div className="counter" onClick={e => e.stopPropagation()}>
-                                    <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(ci, ii, e)}>−</button>
+                                    <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(item.id, e)}>−</button>
                                     <span className="counter-num">{qty}</span>
-                                    <button className="counter-btn plus" onClick={e => inc(ci, ii, e)}>+</button>
+                                    <button className="counter-btn plus" onClick={e => inc(item.id, e)}>+</button>
                                   </div>
                                 </div>
                               </React.Fragment>
@@ -627,9 +641,9 @@ function App() {
                               </div>
                               <div style={{ padding: "10px 0", display: "flex", justifyContent: "flex-end" }}>
                                 <div className="counter" onClick={e => e.stopPropagation()}>
-                                  <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(ci, ii, e)}>−</button>
+                                  <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(item.id, e)}>−</button>
                                   <span className="counter-num">{qty}</span>
-                                  <button className="counter-btn plus" onClick={e => inc(ci, ii, e)}>+</button>
+                                  <button className="counter-btn plus" onClick={e => inc(item.id, e)}>+</button>
                                 </div>
                               </div>
                             </React.Fragment>
