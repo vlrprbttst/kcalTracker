@@ -81,6 +81,8 @@
     }
     .header-top-right { display: flex; gap: 8px; align-items: center; }
     .app-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+    .app-logo { height: 28px; }
+    @media (min-width: 768px) { .app-logo { height: 48px; } }
 
     .reset-btn {
       font-size: 12px;
@@ -934,7 +936,7 @@
           <div className="header">
             <div style={{ maxWidth: 520, margin: "0 auto" }}>
               <div className="header-top">
-                <img src="logo2.png" alt="kcalTracker" style={{ height: 48 }} />
+                <img src="logo2.png" alt="kcalTracker" className="app-logo" />
                 <div className="header-top-right">
                   <button className="reset-btn" onClick={handleReset}>Reset</button>
                   <button className="theme-btn" onClick={() => setLightTheme(t => !t)} title="Cambia tema">
