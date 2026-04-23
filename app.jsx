@@ -17,10 +17,9 @@ const dietData = [
     category: "Carboidrati", icon: "🍞",
     items: [
       { name: "Rosetta", portion: "120g", kcal: 340 },
-      { name: "Basmati cotto", portion: "150g", kcal: 200 },
-      { name: "Basmati cotto", portion: "200g", kcal: 270 },
+      { name: "Basmati cotto", portion: "g", kcal: 0, variable: true, kcalPerG: 4/3 },
       { name: "Taralli", portion: "1 pacchetto", kcal: 280 },
-      { name: "Gnocchi", portion: "200g", kcal: 300 },
+      { name: "Gnocchi", portion: "g", kcal: 0, variable: true, kcalPerG: 1.5 },
     ],
   },
   {
@@ -142,23 +141,45 @@ function loadExtras() {
   } catch { return []; }
 }
 
+function loadVarGrams() {
+  try {
+    const raw = localStorage.getItem("kcal_data");
+    if (!raw) return {};
+    const data = JSON.parse(raw);
+    if (data.date !== TODAY()) return {};
+    return data.varGrams || {};
+  } catch { return {}; }
+}
+
 function loadTarget() {
   return parseInt(localStorage.getItem("kcal_target") || "2000", 10);
 }
 
-function computeTotal(counts, extras) {
+function computeTotal(counts, extras, varGrams = {}) {
   return Object.entries(counts).reduce((sum, [key, qty]) => {
     const [ci, ii] = key.split("_").map(Number);
-    return sum + (dietData[ci]?.items[ii]?.kcal || 0) * qty;
+    const item = dietData[ci]?.items[ii];
+    if (!item) return sum;
+    if (item.variable) return sum + Math.round((varGrams[key] || 0) * item.kcalPerG) * qty;
+    return sum + item.kcal * qty;
   }, 0) + extras.reduce((s, e) => s + e.kcal, 0);
 }
 
-function buildItemsList(counts, extras) {
+function buildItemsList(counts, extras, varGrams = {}) {
   const items = [];
   Object.entries(counts).forEach(([key, qty]) => {
     const [ci, ii] = key.split("_").map(Number);
     const item = dietData[ci]?.items[ii];
-    if (item && qty > 0) items.push(qty > 1 ? `${item.name} ×${qty}` : item.name);
+    if (item && qty > 0) {
+      if (item.variable) {
+        const g = varGrams[key] || 0;
+        const portionKcal = Math.round(g * item.kcalPerG);
+        const label = qty > 1 ? `${item.name} ${g}g ×${qty} (${portionKcal * qty} kcal)` : `${item.name} ${g}g (${portionKcal} kcal)`;
+        items.push(label);
+      } else {
+        items.push(qty > 1 ? `${item.name} ×${qty}` : item.name);
+      }
+    }
   });
   extras.forEach(e => items.push(`${e.name} (extra, ${e.kcal} kcal)`));
   return items;
@@ -223,7 +244,7 @@ function formatDate(dateStr) {
   return d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
 }
 
-const maxItemKcal = Math.max(...dietData.flatMap(c => c.items.map(i => i.kcal)));
+const maxItemKcal = Math.max(...dietData.flatMap(c => c.items.filter(i => !i.variable).map(i => i.kcal)));
 
 function KcalBar({ kcal, max }) {
   const pct = Math.min((kcal / max) * 100, 100);
@@ -252,6 +273,7 @@ function App() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => getBimesterOf(TODAY()));
   const [openWeeks, setOpenWeeks] = useState(new Set());
+  const [varGrams, setVarGrams] = useState(loadVarGrams);
 
   const toggleWeek = (ws) => setOpenWeeks(prev => {
     const next = new Set(prev);
@@ -280,6 +302,7 @@ function App() {
       if (!u) {
         setCounts({});
         setExtras([]);
+        setVarGrams({});
         return;
       }
       if (u) {
@@ -289,6 +312,7 @@ function App() {
             const data = snap.data();
             setCounts(data.counts || {});
             setExtras(data.extras || []);
+            setVarGrams(data.varGrams || {});
             if (data.target) setTarget(data.target);
           }
         } catch (e) { console.error(e); }
@@ -298,21 +322,21 @@ function App() {
 
   useEffect(() => {
     if (user === undefined || user) return;
-    localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts, extras }));
-  }, [counts, extras, user]);
+    localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts, extras, varGrams }));
+  }, [counts, extras, varGrams, user]);
 
   useEffect(() => {
     if (!user) return;
     clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
-      const totalKcal = computeTotal(counts, extras);
-      const items = buildItemsList(counts, extras);
+      const totalKcal = computeTotal(counts, extras, varGrams);
+      const items = buildItemsList(counts, extras, varGrams);
       db.collection("users").doc(user.uid).collection("days").doc(TODAY()).set({
-        counts, extras, target, totalKcal, items, date: TODAY(),
+        counts, extras, varGrams, target, totalKcal, items, date: TODAY(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
     }, 1500);
-  }, [counts, extras, target, user]);
+  }, [counts, extras, varGrams, target, user]);
 
   useEffect(() => {
     localStorage.setItem("kcal_target", String(target));
@@ -377,13 +401,14 @@ function App() {
     });
   };
 
-  const totalKcal = computeTotal(counts, extras);
+
+  const totalKcal = computeTotal(counts, extras, varGrams);
   const pct = Math.min((totalKcal / target) * 100, 100);
   const remaining = target - totalKcal;
   const barColor = pct >= 100 ? "var(--color-negative)" : pct >= 80 ? "#fbbf24" : "var(--color-positive)";
 
   const handleReset = () => {
-    if (window.confirm("Resettare le calorie di oggi?")) { setCounts({}); setExtras([]); }
+    if (window.confirm("Resettare le calorie di oggi?")) { setCounts({}); setExtras([]); setVarGrams({}); }
   };
 
   const startEditTarget = () => { setTargetDraft(String(target)); setEditingTarget(true); };
@@ -393,7 +418,12 @@ function App() {
     setEditingTarget(false);
   };
 
-  const catKcal = (ci) => dietData[ci].items.reduce((s, item, ii) => s + item.kcal * getCount(ci, ii), 0);
+  const catKcal = (ci) => dietData[ci].items.reduce((s, item, ii) => {
+    const qty = getCount(ci, ii);
+    const key = `${ci}_${ii}`;
+    if (item.variable) return s + Math.round((varGrams[key] || 0) * item.kcalPerG) * qty;
+    return s + item.kcal * qty;
+  }, 0);
 
   const addExtra = () => {
     const v = parseInt(extraInput, 10);
@@ -538,6 +568,50 @@ function App() {
                         {items.map(({ item, ii }, idx) => {
                           const qty = getCount(ci, ii);
                           const isActive = qty > 0;
+                          const varKey = `${ci}_${ii}`;
+                          if (item.variable) {
+                            const g = varGrams[varKey] || 0;
+                            const portionKcal = g > 0 ? Math.round(g * item.kcalPerG) : 0;
+                            const totalVar = portionKcal * qty;
+                            return (
+                              <React.Fragment key={ii}>
+                                {idx > 0 && <div className="items-grid-sep" />}
+                                <div className="item-name"><span>{highlightName(item.name)}</span></div>
+                                <div className="item-portion" style={{ padding: 0 }}>
+                                  <input
+                                    type="number"
+                                    className="grams-input"
+                                    placeholder="Grammi"
+                                    value={g || ""}
+                                    onChange={e => {
+                                      e.stopPropagation();
+                                      const val = parseInt(e.target.value, 10);
+                                      setVarGrams(prev => {
+                                        if (!val || val <= 0) { const { [varKey]: _, ...rest } = prev; return rest; }
+                                        return { ...prev, [varKey]: val };
+                                      });
+                                    }}
+                                    onClick={e => e.stopPropagation()}
+                                    min="0"
+                                  />
+                                </div>
+                                <div className="item-kcal-cell">
+                                  <span className="item-kcal">
+                                    {g > 0 ? (isActive ? totalVar : portionKcal) : "–"}
+                                    {g > 0 && isActive && qty > 1 && <span style={{ fontSize: 10, color: "var(--text-dimmer)", marginLeft: 3 }}>×{qty}</span>}
+                                  </span>
+                                  <KcalBar kcal={portionKcal} max={maxItemKcal} />
+                                </div>
+                                <div style={{ padding: "10px 0", display: "flex", justifyContent: "flex-end" }}>
+                                  <div className="counter" onClick={e => e.stopPropagation()}>
+                                    <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(ci, ii, e)}>−</button>
+                                    <span className="counter-num">{qty}</span>
+                                    <button className="counter-btn plus" onClick={e => inc(ci, ii, e)}>+</button>
+                                  </div>
+                                </div>
+                              </React.Fragment>
+                            );
+                          }
                           return (
                             <React.Fragment key={ii}>
                               {idx > 0 && <div className="items-grid-sep" />}
