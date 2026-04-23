@@ -81,6 +81,7 @@ const dietData = [
       { id: "k5t7m2", name: "Curry sauce", portion: "1 porzione", kcal: 300 },
       { id: "x8j3c9", name: "Tikka masala sauce", portion: "g", kcal: 0, variable: true, kcalPerG: 1.32 },
       { id: "c1v6p4", name: "Olio", portion: "g", kcal: 0, variable: true, kcalPerG: 9 },
+      { id: "n4k8r2", name: "Zucchero", portion: "1 cucchiaino", kcal: 18 },
     ],
   },
   {
