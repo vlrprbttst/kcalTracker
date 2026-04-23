@@ -1210,19 +1210,21 @@
                                       <span>Calorie ingerite</span>
                                       <span>{week.totalConsumed.toLocaleString("it-IT")} kcal</span>
                                     </div>
-                                    <div className="week-balance">
-                                      {week.balance <= 0 ? (
-                                        <>
-                                          <span>✅ Sei in deficit</span>
-                                          <span className="deficit">−{Math.abs(week.balance).toLocaleString("it-IT")} kcal</span>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <span>⚠️ Sei in surplus</span>
-                                          <span className="surplus">+{week.balance.toLocaleString("it-IT")} kcal</span>
-                                        </>
-                                      )}
-                                    </div>
+                                    {(!isCurrentWeek || TODAY() === week.weekEndStr) && (
+                                      <div className="week-balance">
+                                        {week.balance <= 0 ? (
+                                          <>
+                                            <span>✅ Sei in deficit</span>
+                                            <span className="deficit">−{Math.abs(week.balance).toLocaleString("it-IT")} kcal</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <span>⚠️ Sei in surplus</span>
+                                            <span className="surplus">+{week.balance.toLocaleString("it-IT")} kcal</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 </>
                               )}
