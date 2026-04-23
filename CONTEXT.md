@@ -48,16 +48,19 @@ users/
     days/
       2026-04-22: {
         counts: { "0_1": 2, "3_0": 1, ... },  // indici categoria_alimento: quantità
+        varGrams: { "0_1": 150, "0_3": 200 },  // grammi per gli alimenti variable (Basmati, Gnocchi)
         extras: [{ name: "kebab", kcal: 650 }],
         target: 1960,
         totalKcal: 1450,
-        items: ["Basmati cotto ×2", "Uova strapazzate", "kebab (extra, 650 kcal)"],
+        items: ["Basmati cotto 150g ×2 (400 kcal)", "Uova strapazzate", "kebab (extra, 650 kcal)"],
         date: "2026-04-22",
         updatedAt: timestamp
       }
 ```
 
 I `counts` usano indici numerici `ci_ii` (categoria_alimento). Lo storico usa `totalKcal` e `items` (stringhe leggibili) — non usa `counts`, quindi è immune a cambi di indici futuri.
+
+`varGrams` salva i grammi digitati per gli alimenti con `variable: true`. Il calcolo kcal è `Math.round(varGrams[key] * item.kcalPerG) * counts[key]`.
 
 ---
 
@@ -80,6 +83,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli — po
 - Lista alimenti divisa in categorie, ognuna è un accordion
 - Layout interno accordion: **CSS Grid** (`1fr auto 56px 84px`) — nome flessibile, porzione auto, kcal e counter fissi
 - Contatore +/− per porzione (supporta stessa voce più volte)
+- **Alimenti a porzione variabile** (`variable: true` in dietData): input "Grammi" nella colonna porzione, kcal si aggiorna live; +/− contano le porzioni come al solito. Attualmente: Basmati cotto (`kcalPerG: 4/3`) e Gnocchi (`kcalPerG: 1.5`).
 - Bottoni +/− sempre visibili: il − è opaco (75%) e non cliccabile finché qty = 0
 - Totale kcal live con barra di progresso colorata (verde/giallo/rosso)
 - Goal calorico editabile cliccando il numero nell'header (default: 2000 kcal)
@@ -154,6 +158,9 @@ Le categorie sono ordinate per indice `ci` (0→12), gli alimenti per indice `ii
 1. Modifiche al CSS → `style.css`
 2. Modifiche alla logica/UI → `app.jsx`
 3. Aggiunta alimenti → sempre in fondo alla categoria in `app.jsx` nell'array `dietData`
-3. Push → `git add . && git commit -m "..." && git push` — solo quando Valerio lo chiede
-4. GitHub Pages → si aggiorna in 1-2 minuti dal push
-5. Per testare in locale → live server su `127.0.0.1:5500` (VS Code) o `localhost`
+4. Push → `git add . && git commit -m "..." && git push` — solo quando Valerio lo chiede
+5. GitHub Pages → si aggiorna in 1-2 minuti dal push
+6. Per testare in locale → live server su `127.0.0.1:5500` (VS Code) o `localhost`
+
+### Cache PWA mobile
+`app.jsx` è caricato con query string di versione: `<script src="app.jsx?v=N">`. **Ad ogni push che modifica `app.jsx`, incrementare N in `index.html`** altrimenti la PWA mobile serve la versione cachata. `style.css` non ha bisogno del versioning (il browser la ricarica sempre).

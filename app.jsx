@@ -20,6 +20,7 @@ const dietData = [
       { name: "Basmati cotto", portion: "g", kcal: 0, variable: true, kcalPerG: 4/3 },
       { name: "Taralli", portion: "1 pacchetto", kcal: 280 },
       { name: "Gnocchi", portion: "g", kcal: 0, variable: true, kcalPerG: 1.5 },
+      { name: "Pasta", portion: "g", kcal: 0, variable: true, kcalPerG: 3.6 },
     ],
   },
   {
