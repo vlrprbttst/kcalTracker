@@ -135,12 +135,13 @@ const TODAY = () => new Date().toISOString().slice(0, 10);
 
 const ACTIVE_DAY = () => {
   const now = new Date();
-  if (now.getHours() * 60 + now.getMinutes() < 330) {
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().slice(0, 10);
+  const pad = n => String(n).padStart(2, '0');
+  const m = now.getHours() * 60 + now.getMinutes();
+  if (m < 330) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
-  return now.toISOString().slice(0, 10);
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 };
 
 function migrateCountKeys(counts, varGrams) {
