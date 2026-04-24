@@ -163,7 +163,12 @@ function loadLocalData() {
     if (!raw) return { counts: {}, extras: [], varGrams: {} };
     const data = JSON.parse(raw);
     if (data.date !== TODAY()) return { counts: {}, extras: [], varGrams: {} };
-    const { counts, varGrams, migrated } = migrateCountKeys(data.counts || {}, data.varGrams || {});
+    const { counts: mc, varGrams, migrated } = migrateCountKeys(data.counts || {}, data.varGrams || {});
+    const counts = { ...mc };
+    Object.keys(counts).forEach(id => {
+      const it = itemById[id];
+      if (it?.variable && !varGrams[id]) delete counts[id];
+    });
     if (migrated) {
       localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts, extras: data.extras || [], varGrams }));
     }
@@ -331,7 +336,12 @@ function App() {
           if (snap.exists) {
             const data = snap.data();
             const { counts: mc, varGrams: mvg, migrated } = migrateCountKeys(data.counts || {}, data.varGrams || {});
-            setCounts(mc);
+            const sanitizedCounts = { ...mc };
+            Object.keys(sanitizedCounts).forEach(id => {
+              const it = itemById[id];
+              if (it?.variable && !mvg[id]) delete sanitizedCounts[id];
+            });
+            setCounts(sanitizedCounts);
             setExtras(data.extras || []);
             setVarGrams(mvg);
             if (data.target) setTarget(data.target);
@@ -417,9 +427,13 @@ function App() {
 
   const dec = (id, e) => {
     e.stopPropagation();
+    const item = itemById[id];
     setCounts(prev => {
       const next = (prev[id] || 0) - 1;
-      if (next <= 0) { const { [id]: _, ...rest } = prev; return rest; }
+      if (next <= 0) {
+        if (item?.variable) setVarGrams(vg => { const { [id]: _, ...rest } = vg; return rest; });
+        const { [id]: _, ...rest } = prev; return rest;
+      }
       return { ...prev, [id]: next };
     });
   };
