@@ -173,7 +173,7 @@ input { font-family: inherit; }
   pointer-events: none;
 }
 
-.content { max-width: 520px; margin: 0 auto; padding: 16px 12px 0; }
+.content { max-width: 520px; margin: 0 auto; padding: 16px 12px 0; min-height: calc(100dvh - 180px); }
 
 .category-card {
   background: var(--surface);
