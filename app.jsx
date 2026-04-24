@@ -787,12 +787,14 @@ function App() {
                                     {incomplete && "⚠️ "}{formatShortDate(week.weekStart)} → {formatShortDate(week.weekEndStr)}
                                     <span style={{ fontWeight: 400, color: "var(--text-dimmer)", marginLeft: 6 }}>{week.days.length}/7 giorni</span>
                                   </span>
+                                </div>
+                                {!incomplete && (
                                   <span className={`week-acc-balance ${week.balance <= 0 ? "deficit" : "surplus"}`}>
                                     {week.balance <= 0
                                       ? `✅ Deficit ${Math.abs(week.balance).toLocaleString("it-IT")} kcal`
                                       : `⚠️ Surplus ${week.balance.toLocaleString("it-IT")} kcal`}
                                   </span>
-                                </div>
+                                )}
                                 <span className={`week-acc-arrow${isOpen ? " open" : ""}`}>▼</span>
                               </div>
                             );

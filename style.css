@@ -395,7 +395,7 @@ body.light .item-cell-active { background: #ede9fe; }
 .week-accordion-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   padding: 12px 16px;
   cursor: pointer;
   user-select: none;
@@ -408,9 +408,9 @@ body.light .week-accordion-header.incomplete { background: #fefce8; border-botto
 body.light .week-accordion-header.incomplete:hover { background: #fef9c3; }
 .week-incomplete-note { font-size: 11px; color: #a16207; margin-top: 8px; }
 body:not(.light) .week-incomplete-note { color: #ca8a04; }
-.week-acc-left { display: flex; flex-direction: column; gap: 3px; }
+.week-acc-left { display: flex; flex-direction: column; gap: 3px; flex: 1; }
 .week-acc-dates { font-size: 13px; font-weight: 600; color: var(--text); }
-.week-acc-balance { font-size: 12px; }
+.week-acc-balance { font-size: 12px; white-space: nowrap; margin-right: 4px; }
 .week-acc-arrow { font-size: 10px; color: var(--text-dimmest); transition: transform .2s; }
 .week-acc-arrow.open { transform: rotate(180deg); }
 
