@@ -107,7 +107,7 @@ const dietData = [
     category: "Fritti", icon: "🍟",
     items: [
       { id: "a3f9v6", name: "Cotoletta pollo Aia", portion: "1 pezzo", kcal: 200 },
-      { id: "f8n2j4", name: "Patatine fritte", portion: "200g", kcal: 280 },
+      { id: "f8n2j4", name: "Patatine fritte", portion: "g", kcal: 0, variable: true, kcalPerG: 1.4 },
       { id: "s1r7b5", name: "Sofficino alla pizzaiola", portion: "1 pezzo", kcal: 144 },
       { id: "w6q4x8", name: "Supplì romano", portion: "1 pezzo", kcal: 250 },
       { id: "h2m5n8", name: "Gran fritto pastellato", portion: "225g", kcal: 315 },
