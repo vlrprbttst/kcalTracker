@@ -197,14 +197,17 @@ La funzione `ACTIVE_DAY()` sostituisce `TODAY()` ovunque nell'app. La giornata d
 ```js
 const ACTIVE_DAY = () => {
   const now = new Date();
-  if (now.getHours() * 60 + now.getMinutes() < 330) {
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().slice(0, 10);
+  const pad = n => String(n).padStart(2, '0');
+  const m = now.getHours() * 60 + now.getMinutes();
+  if (m < 330) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
-  return now.toISOString().slice(0, 10);
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 };
 ```
+
+**Attenzione:** non usare `toISOString()` per calcolare la data locale — restituisce UTC e causa sfasamenti nelle timezone non-UTC (es. in Italia UTC+2 a mezzanotte locale è ancora il giorno prima in UTC). Usare sempre `getFullYear/Month/Date`.
 
 Usata per: load/save Firestore, localStorage, filtro storico, rilevamento settimana corrente, paginazione bimestrale.
 
