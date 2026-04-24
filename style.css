@@ -216,7 +216,6 @@ input { font-family: inherit; }
   background: var(--surface);
   border-radius: 10px;
   border: 1px solid var(--border);
-  overflow: hidden;
   margin-bottom: 6px;
   transition: border-color .15s, background .25s ease;
 }
@@ -234,7 +233,9 @@ input { font-family: inherit; }
   font-size: 14px;
   font-weight: 600;
   text-align: left;
+  border-radius: 10px;
 }
+.category-btn[aria-expanded="true"] { border-radius: 10px 10px 0 0; }
 .category-btn:hover { background: var(--surface-hover); }
 .cat-icon { font-size: 18px; line-height: 1; }
 .cat-name { flex: 1; }
@@ -250,7 +251,8 @@ input { font-family: inherit; }
 .cat-arrow { font-size: 10px; color: var(--text-dimmest); transition: transform .2s; }
 .cat-arrow.open { transform: rotate(180deg); }
 
-.items-grid { display: grid; grid-template-columns: 1fr auto 56px 84px; padding: 0 0 12px; font-size: 13px; align-items: stretch; }
+.items-grid { display: grid; grid-template-columns: 1fr auto 56px 84px; padding: 0 0 12px; font-size: 13px; align-items: stretch; border-radius: 0 0 10px 10px; overflow: hidden; }
+.items-grid :focus-visible { outline-offset: -3px; border-radius: 2px; }
 .items-grid-label { padding: 4px 14px 8px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dimmer); }
 .items-grid-label.right { text-align: right; }
 .items-grid-sep { grid-column: 1 / -1; height: 1px; background: var(--border-subtle); }
