@@ -131,6 +131,16 @@ const ALLOWED_UID = "f1rMJWrezfORvihvxM5EspY3FsA3";
 
 const TODAY = () => new Date().toISOString().slice(0, 10);
 
+const ACTIVE_DAY = () => {
+  const now = new Date();
+  if (now.getHours() * 60 + now.getMinutes() < 330) {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toISOString().slice(0, 10);
+  }
+  return now.toISOString().slice(0, 10);
+};
+
 function migrateCountKeys(counts, varGrams) {
   const isOld = key => /^\d+_\d+$/.test(key);
   const hasOld = Object.keys(counts).some(isOld) || Object.keys(varGrams).some(isOld);
@@ -163,7 +173,7 @@ function loadLocalData() {
     const raw = localStorage.getItem("kcal_data");
     if (!raw) return { counts: {}, extras: [], varGrams: {} };
     const data = JSON.parse(raw);
-    if (data.date !== TODAY()) return { counts: {}, extras: [], varGrams: {} };
+    if (data.date !== ACTIVE_DAY()) return { counts: {}, extras: [], varGrams: {} };
     const { counts: mc, varGrams, migrated } = migrateCountKeys(data.counts || {}, data.varGrams || {});
     const counts = { ...mc };
     Object.keys(counts).forEach(id => {
@@ -171,7 +181,7 @@ function loadLocalData() {
       if (it?.variable && !varGrams[id]) delete counts[id];
     });
     if (migrated) {
-      localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts, extras: data.extras || [], varGrams }));
+      localStorage.setItem("kcal_data", JSON.stringify({ date: ACTIVE_DAY(), counts, extras: data.extras || [], varGrams }));
     }
     return { counts, extras: data.extras || [], varGrams };
   } catch { return { counts: {}, extras: [], varGrams: {} }; }
@@ -211,7 +221,7 @@ function buildItemsList(counts, extras, varGrams = {}) {
 function getMealSlot(ts) {
   const d = new Date(ts);
   const m = d.getHours() * 60 + d.getMinutes();
-  if (m < 390)  return { key: "fuori-orario", label: "Fuori Orario" };
+  if (m < 330)  return { key: "fuori-orario", label: "Fuori Orario" };
   if (m <= 630)  return { key: "colazione",   label: "Colazione" };
   if (m <= 720)  return { key: "merenda-mat", label: "Merenda" };
   if (m <= 900)  return { key: "pranzo",      label: "Pranzo" };
@@ -318,7 +328,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("oggi");
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(() => getBimesterOf(TODAY()));
+  const [currentPage, setCurrentPage] = useState(() => getBimesterOf(ACTIVE_DAY()));
   const [openWeeks, setOpenWeeks] = useState(new Set());
   const [dataReady, setDataReady] = useState(false);
   const [shakeTarget, setShakeTarget] = useState(false);
@@ -357,7 +367,7 @@ function App() {
       }
       if (u) {
         try {
-          const snap = await db.collection("users").doc(u.uid).collection("days").doc(TODAY()).get();
+          const snap = await db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).get();
           if (snap.exists) {
             const data = snap.data();
             const { counts: mc, varGrams: mvg, migrated } = migrateCountKeys(data.counts || {}, data.varGrams || {});
@@ -373,7 +383,7 @@ function App() {
             setLog(data.log || []);
             if (data.target) setTarget(data.target);
             if (migrated) {
-              db.collection("users").doc(u.uid).collection("days").doc(TODAY()).update({ counts: mc, varGrams: mvg }).catch(e => console.error("Migration update error:", e));
+              db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).update({ counts: mc, varGrams: mvg }).catch(e => console.error("Migration update error:", e));
             }
           }
         } catch (e) { console.error(e); }
@@ -384,7 +394,7 @@ function App() {
 
   useEffect(() => {
     if (user === undefined || user) return;
-    localStorage.setItem("kcal_data", JSON.stringify({ date: TODAY(), counts, extras, varGrams }));
+    localStorage.setItem("kcal_data", JSON.stringify({ date: ACTIVE_DAY(), counts, extras, varGrams }));
   }, [counts, extras, varGrams, user]);
 
   useEffect(() => {
@@ -393,8 +403,8 @@ function App() {
     saveDebounceRef.current = setTimeout(() => {
       const totalKcal = computeTotal(counts, extras, varGrams);
       const items = buildItemsList(counts, extras, varGrams);
-      db.collection("users").doc(user.uid).collection("days").doc(TODAY()).set({
-        counts, extras, varGrams, log, target, totalKcal, items, date: TODAY(),
+      db.collection("users").doc(user.uid).collection("days").doc(ACTIVE_DAY()).set({
+        counts, extras, varGrams, log, target, totalKcal, items, date: ACTIVE_DAY(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       }).catch(e => console.error("Firestore save error:", e));
     }, 400);
@@ -429,7 +439,7 @@ function App() {
       .then(snap => {
         const docs = snap.docs
           .map(d => d.data())
-          .filter(d => d.date !== TODAY())
+          .filter(d => d.date !== ACTIVE_DAY())
           .sort((a, b) => b.date.localeCompare(a.date));
         setHistory(docs);
         setHistoryLoading(false);
@@ -845,8 +855,8 @@ function App() {
             {historyLoading ? (
               <div className="history-empty">Caricamento...</div>
             ) : (() => {
-              const { year: curYear, bim: curBim } = getBimesterOf(TODAY());
-              const currentWeekStart = getWeekStart(TODAY());
+              const { year: curYear, bim: curBim } = getBimesterOf(ACTIVE_DAY());
+              const currentWeekStart = getWeekStart(ACTIVE_DAY());
               const pageHistory = history.filter(d => {
                 const { year, bim } = getBimesterOf(d.date);
                 return year === currentPage.year && bim === currentPage.bim;
@@ -950,7 +960,7 @@ function App() {
                                     ⚠️ Dati parziali — {7 - week.days.length} {7 - week.days.length === 1 ? "giorno non tracciato" : "giorni non tracciati"}. Il balance potrebbe non essere accurato.
                                   </div>
                                 )}
-                                {(!isCurrentWeek || TODAY() === week.weekEndStr) && week.days.length === 7 && (
+                                {(!isCurrentWeek || ACTIVE_DAY() === week.weekEndStr) && week.days.length === 7 && (
                                   <div className="week-balance">
                                     {week.balance <= 0 ? (
                                       <>
