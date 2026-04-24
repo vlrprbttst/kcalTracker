@@ -328,6 +328,9 @@ function App() {
   const [editingTarget, setEditingTarget] = useState(false);
   const [targetDraft, setTargetDraft] = useState("");
   const [activeTab, setActiveTab] = useState("oggi");
+  const swipeStart = useRef(null);
+  const tabRefs = useRef({});
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => getBimesterOf(ACTIVE_DAY()));
@@ -434,6 +437,11 @@ function App() {
   }, [log, activeTab]);
 
   useEffect(() => {
+    const btn = tabRefs.current[activeTab];
+    if (btn) setIndicatorStyle({ left: btn.offsetLeft, width: btn.offsetWidth });
+  }, [activeTab, log.length]);
+
+  useEffect(() => {
     if (activeTab !== "storico" || !user) return;
     setHistoryLoading(true);
     db.collection("users").doc(user.uid).collection("days")
@@ -500,6 +508,30 @@ function App() {
 
   const handleReset = () => {
     if (window.confirm("Resettare le calorie di oggi?")) { setCounts({}); setExtras([]); setVarGrams({}); setLog([]); }
+  };
+
+  const getTabs = () => {
+    if (!user) return [];
+    const t = ["oggi"];
+    if (log.length > 0) t.push("menu");
+    t.push("storico");
+    return t;
+  };
+
+  const onTouchStart = (e) => {
+    swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+
+  const onTouchEnd = (e) => {
+    if (!swipeStart.current || !user) return;
+    const dx = e.changedTouches[0].clientX - swipeStart.current.x;
+    const dy = e.changedTouches[0].clientY - swipeStart.current.y;
+    swipeStart.current = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const tabs = getTabs();
+    const idx = tabs.indexOf(activeTab);
+    if (dx < 0 && idx < tabs.length - 1) setActiveTab(tabs[idx + 1]);
+    if (dx > 0 && idx > 0) setActiveTab(tabs[idx - 1]);
   };
 
   const startEditTarget = () => { setTargetDraft(String(target)); setEditingTarget(true); };
@@ -613,14 +645,15 @@ function App() {
       {user && (
         <div className="tabs-bar">
           <div className="tabs-inner">
-            <button className={`tab-btn${activeTab === "oggi" ? " active" : ""}`} onClick={() => setActiveTab("oggi")}>Oggi</button>
-            {log.length > 0 && <button className={`tab-btn${activeTab === "menu" ? " active" : ""}`} onClick={() => setActiveTab("menu")}>Menu</button>}
-            <button className={`tab-btn${activeTab === "storico" ? " active" : ""}`} onClick={() => setActiveTab("storico")}>Storico</button>
+            <button ref={el => tabRefs.current["oggi"] = el} className={`tab-btn${activeTab === "oggi" ? " active" : ""}`} onClick={() => setActiveTab("oggi")}>Oggi</button>
+            {log.length > 0 && <button ref={el => tabRefs.current["menu"] = el} className={`tab-btn${activeTab === "menu" ? " active" : ""}`} onClick={() => setActiveTab("menu")}>Menu</button>}
+            <button ref={el => tabRefs.current["storico"] = el} className={`tab-btn${activeTab === "storico" ? " active" : ""}`} onClick={() => setActiveTab("storico")}>Storico</button>
+            <div className="tab-indicator" style={{ left: indicatorStyle.left, width: indicatorStyle.width }} />
           </div>
         </div>
       )}
 
-      <div className="content">
+      <div className="content" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {(!user || activeTab === "oggi") && (
           <>
             {!searchQuery && openIdx !== null && (

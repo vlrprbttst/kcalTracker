@@ -149,7 +149,7 @@ input { font-family: inherit; }
   padding: 0 16px;
   transition: background .25s ease;
 }
-.tabs-inner { max-width: 520px; margin: 0 auto; display: flex; }
+.tabs-inner { max-width: 520px; margin: 0 auto; display: flex; position: relative; }
 .tab-btn {
   background: transparent;
   border: none;
@@ -159,10 +159,19 @@ input { font-family: inherit; }
   font-weight: 500;
   padding: 10px 16px;
   margin-bottom: -1px;
-  transition: color .15s, border-color .15s;
+  transition: color .25s;
 }
 .tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-btn.active { color: var(--accent); }
+.tab-indicator {
+  position: absolute;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  transition: left .3s cubic-bezier(.4,0,.2,1), width .3s cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+}
 
 .content { max-width: 520px; margin: 0 auto; padding: 16px 12px 0; }
 
