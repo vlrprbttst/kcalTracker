@@ -625,7 +625,7 @@ function App() {
             <div className="progress-bar" style={{ width: `${pct}%`, background: barColor }} />
           </div>
 
-          {(!user || activeTab === "oggi") && (
+          {(user && activeTab === "oggi") && (
             <div className="search-wrap" style={{ marginTop: 10, marginBottom: 0 }}>
               <input
                 className="search-input"
@@ -656,11 +656,11 @@ function App() {
       <div className="content" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {(!user || activeTab === "oggi") && (
           <>
-            {!searchQuery && (
+            {user && !searchQuery && (
               <button className="close-all-btn" style={{ visibility: openIdx !== null ? 'visible' : 'hidden' }} onClick={() => setOpenIdx(null)}>chiudi tutto</button>
             )}
 
-            {(() => {
+            {user && (() => {
               const query = searchQuery.trim().toLowerCase();
               const visibleCats = dietData.map((cat, ci) => ({
                 cat, ci,
@@ -792,9 +792,9 @@ function App() {
                 <div className={`category-card${hasExtras ? " has-checked" : ""}`} style={{ marginTop: 6 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px 0", fontWeight: 600, fontSize: 14 }}>
                     <span className="cat-icon">🧾</span>
-                    <span className="cat-name">Extra</span>
+                    <span className="cat-name">{user ? "Extra" : "Aggiungi alimento"}</span>
                     {hasExtras && <span className="cat-kcal-badge">+{extrasKcal} kcal</span>}
-                    <span style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 400 }}>calorie libere</span>
+                    {user && <span style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 400 }}>calorie libere</span>}
                   </div>
                   <div className="extra-input-row">
                     <input
@@ -835,14 +835,24 @@ function App() {
               );
             })()}
 
-            <div className="legend">
-              {[["var(--color-positive)", "<250 kcal"], ["#fbbf24", "250–400 kcal"], ["var(--color-negative)", ">400 kcal"]].map(([color, label]) => (
-                <span key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
-                  {label}
-                </span>
-              ))}
-            </div>
+            {user && (
+              <div className="legend">
+                {[["var(--color-positive)", "<250 kcal"], ["#fbbf24", "250–400 kcal"], ["var(--color-negative)", ">400 kcal"]].map(([color, label]) => (
+                  <span key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {!user && (
+              <div className="guest-banner">
+                <div className="guest-banner-title">🧪 App in beta privata</div>
+                <div className="guest-banner-body">Accedi per sbloccare la lista alimenti personalizzata, lo storico settimanale e la sincronizzazione tra dispositivi.</div>
+                <button className="guest-banner-btn" onClick={login}>Accedi con Google</button>
+              </div>
+            )}
           </>
         )}
 

@@ -326,6 +326,29 @@ body.light .item-cell-active { background: #ede9fe; }
   color: var(--text-dimmer);
 }
 
+.guest-banner {
+  margin-top: 24px;
+  padding: 18px 16px;
+  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.guest-banner-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.guest-banner-body { font-size: 13px; color: var(--text-dimmer); line-height: 1.5; margin-bottom: 14px; }
+.guest-banner-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.guest-banner-btn:hover { opacity: .85; }
+
 .history-day {
   background: var(--surface);
   border: 1px solid var(--border);
