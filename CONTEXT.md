@@ -145,6 +145,13 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - Da non loggato: localStorage, nessuno storico, reset automatico al cambio giorno
 - Al logout: counts, extras, varGrams, log si azzerano
 
+### Esperienza non loggata (MVP guest)
+- **Non viene mostrata** la lista alimenti (categorie), la search bar, la legenda kcal né la categoria Alcol
+- L'unica interfaccia è il campo **"Aggiungi alimento"** (ex "Extra"): nome libero + kcal — identico al meccanismo Extra dell'utente loggato
+- In fondo compare un **banner beta** che spiega le funzionalità disponibili da loggato e offre il bottone "Accedi con Google"
+- I dati sono in localStorage, si azzerano automaticamente al cambio di giornata dietetica (05:30)
+- Tab Menu e Storico non compaiono
+
 ### Storico (tab "Storico", solo loggati)
 - **Paginazione bimestrale** (Gen-Feb, Mar-Apr, ecc.) con nav ← prec / succ →
 - **Header mese** per ogni gruppo di settimane

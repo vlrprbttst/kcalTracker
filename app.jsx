@@ -306,7 +306,7 @@ const maxItemKcal = Math.max(...dietData.flatMap(c => c.items.filter(i => !i.var
 
 function KcalBar({ kcal, max }) {
   const pct = Math.min((kcal / max) * 100, 100);
-  const color = kcal > 400 ? "var(--color-negative)" : kcal > 250 ? "#fbbf24" : "var(--color-positive)";
+  const color = kcal > 400 ? "var(--color-negative)" : kcal > 250 ? "var(--color-warning)" : "var(--color-positive)";
   return (
     <div className="bar-mini">
       <div className="bar-mini-fill" style={{ width: `${pct}%`, background: color }} />
@@ -505,7 +505,7 @@ function App() {
   const totalKcal = computeTotal(counts, extras, varGrams);
   const pct = Math.min((totalKcal / target) * 100, 100);
   const remaining = target - totalKcal;
-  const barColor = pct >= 100 ? "var(--color-negative)" : pct >= 80 ? "#fbbf24" : "var(--color-positive)";
+  const barColor = pct >= 100 ? "var(--color-negative)" : pct >= 80 ? "var(--color-warning)" : "var(--color-positive)";
 
   const handleReset = () => {
     if (window.confirm("Resettare le calorie di oggi?")) { setCounts({}); setExtras([]); setVarGrams({}); setLog([]); }
@@ -568,28 +568,30 @@ function App() {
 
   return (
     <>
+      <a href="#main-content" className="skip-link">Vai al contenuto principale</a>
+
       {notAllowed && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
           <div className="modal">
-            <img src="no.gif" alt="" style={{ width: 313, maxWidth: "100%", height: "auto", borderRadius: 8, marginBottom: 12 }} />
-            <div className="modal-title">Accesso negato</div>
+            <img src="no.gif" alt="" role="presentation" style={{ width: 313, maxWidth: "100%", height: "auto", borderRadius: 8, marginBottom: 12 }} />
+            <div id="modal-title" className="modal-title">Accesso negato</div>
             <div className="modal-text">Non puoi loggarti a meno che tu non sia il creatore dell'app!</div>
             <button className="modal-btn" onClick={() => setNotAllowed(false)}>Ok, capito</button>
           </div>
         </div>
       )}
-      <div className="header">
+      <header className="header">
         <div style={{ maxWidth: 520, margin: "0 auto" }}>
           <div className="header-top">
             <img src="logo2.png" alt="kcalTracker" className="app-logo" />
             <div className="header-top-right">
-              <button className="reset-btn" onClick={handleReset}>Reset</button>
-              <button className="theme-btn" onClick={() => setLightTheme(t => !t)} title="Cambia tema">
+              <button className="reset-btn" onClick={handleReset} aria-label="Azzera le calorie di oggi">Reset</button>
+              <button className="theme-btn" onClick={() => setLightTheme(t => !t)} aria-label={lightTheme ? "Passa al tema scuro" : "Passa al tema chiaro"}>
                 {lightTheme ? "🌙" : "☀️"}
               </button>
               {user === undefined ? null : user ? (
-                <button className="auth-btn logged" onClick={logout}>
-                  {user.photoURL && <img src={user.photoURL} className="auth-avatar" />}
+                <button className="auth-btn logged" onClick={logout} aria-label={`Esci dall'account ${user.displayName || ''}`}>
+                  {user.photoURL && <img src={user.photoURL} className="auth-avatar" alt="" />}
                   Esci
                 </button>
               ) : (
@@ -598,7 +600,7 @@ function App() {
             </div>
           </div>
 
-          <div className="kcal-row">
+          <div className="kcal-row" aria-live="polite" aria-atomic="true">
             <span className={`kcal-consumed${shakeTarget ? " shake" : ""}`} style={{ color: barColor }}>{totalKcal}</span>
             <span className="kcal-sep">/</span>
             <span className="kcal-target-wrap">
@@ -606,6 +608,7 @@ function App() {
                 <input
                   ref={targetInputRef}
                   className="kcal-target-input"
+                  aria-label="Obiettivo calorico giornaliero"
                   value={targetDraft}
                   onChange={e => setTargetDraft(e.target.value)}
                   onBlur={commitTarget}
@@ -613,7 +616,7 @@ function App() {
                   type="number"
                 />
               ) : (
-                <span className="kcal-target" onClick={startEditTarget} title="Clicca per modificare">{target}</span>
+                <span className="kcal-target" onClick={startEditTarget} role="button" tabIndex={0} aria-label={`Obiettivo calorico: ${target} kcal. Premi per modificare`} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") startEditTarget(); }}>{target}</span>
               )}
               <span className="kcal-label">kcal</span>
             </span>
@@ -630,21 +633,22 @@ function App() {
             <div className="search-wrap" style={{ marginTop: 10, marginBottom: 0 }}>
               <input
                 className="search-input"
-                type="text"
+                type="search"
+                aria-label="Cerca alimento"
                 placeholder="Cerca alimento…"
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setOpenIdx(null); }}
               />
               {searchQuery && (
-                <button className="search-clear" onClick={() => setSearchQuery("")}>×</button>
+                <button className="search-clear" onClick={() => setSearchQuery("")} aria-label="Cancella ricerca">×</button>
               )}
             </div>
           )}
         </div>
-      </div>
+      </header>
 
       {user && (
-        <div className="tabs-bar">
+        <div className="tabs-bar" role="navigation" aria-label="Sezioni principali">
           <div className="tabs-inner">
             <button ref={el => tabRefs.current["oggi"] = el} className={`tab-btn${activeTab === "oggi" ? " active" : ""}`} onClick={() => setActiveTab("oggi")}>Oggi</button>
             {log.length > 0 && <button ref={el => tabRefs.current["menu"] = el} className={`tab-btn${activeTab === "menu" ? " active" : ""}`} onClick={() => setActiveTab("menu")}>Menu</button>}
@@ -654,7 +658,7 @@ function App() {
         </div>
       )}
 
-      <div className="content" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <main id="main-content" className="content" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {(!user || activeTab === "oggi") && (
           <>
             {user && !searchQuery && (
@@ -684,15 +688,15 @@ function App() {
                 const hasAny = kcalCat > 0;
                 return (
                   <div key={ci} className={`category-card${hasAny ? " has-checked" : ""}`}>
-                    <button className="category-btn" onClick={() => !query && setOpenIdx(isOpen ? null : ci)}>
-                      <span className="cat-icon">{cat.icon}</span>
+                    <button className="category-btn" onClick={() => !query && setOpenIdx(isOpen ? null : ci)} aria-expanded={isOpen} aria-controls={`cat-grid-${ci}`}>
+                      <span className="cat-icon" aria-hidden="true">{cat.icon}</span>
                       <span className="cat-name">{cat.category}</span>
                       {hasAny && <span className="cat-kcal-badge">+{kcalCat} kcal</span>}
                       {!query && <span className="cat-meta">{cat.items.length} {cat.items.length === 1 ? "alimento" : "alimenti"}</span>}
                       {!query && <span className={`cat-arrow${isOpen ? " open" : ""}`}>▼</span>}
                     </button>
                     {isOpen && (
-                      <div className="items-grid">
+                      <div id={`cat-grid-${ci}`} className="items-grid">
                         <div className="items-grid-label">Alimento</div>
                         <div className="items-grid-label">Porzione</div>
                         <div className="items-grid-label right">Kcal</div>
@@ -712,6 +716,7 @@ function App() {
                                   <input
                                     type="number"
                                     className="grams-input"
+                                    aria-label={`Grammi di ${item.name}`}
                                     placeholder="Grammi"
                                     value={g || ""}
                                     onChange={e => {
@@ -747,10 +752,10 @@ function App() {
                                   <KcalBar kcal={portionKcal} max={maxItemKcal} />
                                 </div>
                                 <div className={isActive ? "item-cell-active" : ""} style={{ minHeight: 44, padding: "0 14px 0 0", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                                  <div className="counter" onClick={e => e.stopPropagation()}>
-                                    <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(item.id, e)}>−</button>
-                                    <span className="counter-num">{qty}</span>
-                                    <button className="counter-btn plus" onClick={e => inc(item.id, e)}>+</button>
+                                  <div className="counter" onClick={e => e.stopPropagation()} role="group" aria-label={item.name}>
+                                    <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(item.id, e)} aria-label={`Rimuovi ${item.name}`} aria-disabled={!isActive}>−</button>
+                                    <span className="counter-num" aria-label={`${qty} porzioni`}>{qty}</span>
+                                    <button className="counter-btn plus" onClick={e => inc(item.id, e)} aria-label={`Aggiungi ${item.name}`}>+</button>
                                   </div>
                                 </div>
                               </React.Fragment>
@@ -769,10 +774,10 @@ function App() {
                                 <KcalBar kcal={item.kcal} max={maxItemKcal} />
                               </div>
                               <div className={isActive ? "item-cell-active" : ""} style={{ minHeight: 44, padding: "0 14px 0 0", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                                <div className="counter" onClick={e => e.stopPropagation()}>
-                                  <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(item.id, e)}>−</button>
-                                  <span className="counter-num">{qty}</span>
-                                  <button className="counter-btn plus" onClick={e => inc(item.id, e)}>+</button>
+                                <div className="counter" onClick={e => e.stopPropagation()} role="group" aria-label={item.name}>
+                                  <button className={`counter-btn${isActive ? "" : " minus-disabled"}`} onClick={e => dec(item.id, e)} aria-label={`Rimuovi ${item.name}`} aria-disabled={!isActive}>−</button>
+                                  <span className="counter-num" aria-label={`${qty} porzioni`}>{qty}</span>
+                                  <button className="counter-btn plus" onClick={e => inc(item.id, e)} aria-label={`Aggiungi ${item.name}`}>+</button>
                                 </div>
                               </div>
                             </React.Fragment>
@@ -792,7 +797,7 @@ function App() {
               return (
                 <div className={`category-card${hasExtras ? " has-checked" : ""}`} style={{ marginTop: 6 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px 0", fontWeight: 600, fontSize: 14 }}>
-                    <span className="cat-icon">🧾</span>
+                    <span className="cat-icon" aria-hidden="true">🧾</span>
                     <span className="cat-name">{user ? "Extra" : "Aggiungi alimento"}</span>
                     {hasExtras && <span className="cat-kcal-badge">+{extrasKcal} kcal</span>}
                     {user && <span style={{ fontSize: 12, color: "#a1a1aa", fontWeight: 400 }}>calorie libere</span>}
@@ -801,6 +806,7 @@ function App() {
                     <input
                       className="extra-kcal-input"
                       type="text"
+                      aria-label="Nome alimento"
                       placeholder="cosa hai mangiato…"
                       value={extraName}
                       onChange={e => setExtraName(e.target.value)}
@@ -810,6 +816,7 @@ function App() {
                     <input
                       className="extra-kcal-input"
                       type="number"
+                      aria-label="Calorie"
                       placeholder="kcal"
                       value={extraInput}
                       onChange={e => setExtraInput(e.target.value)}
@@ -817,7 +824,7 @@ function App() {
                       min="1"
                       style={{ flex: 1, minWidth: 0 }}
                     />
-                    <button className="extra-add-btn" onClick={addExtra}>+</button>
+                    <button className="extra-add-btn" onClick={addExtra} aria-label="Aggiungi alimento">+</button>
                   </div>
                   {hasExtras && (
                     <div className="extra-list">
@@ -826,7 +833,7 @@ function App() {
                           <span className="extra-item-label">{item.name}</span>
                           <div className="extra-item-right">
                             <span className="extra-item-kcal">{item.kcal} kcal</span>
-                            <button className="extra-remove-btn" onClick={() => removeExtra(item.uid)}>×</button>
+                            <button className="extra-remove-btn" onClick={() => removeExtra(item.uid)} aria-label={`Rimuovi ${item.name}`}>×</button>
                           </div>
                         </div>
                       ))}
@@ -838,7 +845,7 @@ function App() {
 
             {user && (
               <div className="legend">
-                {[["var(--color-positive)", "<250 kcal"], ["#fbbf24", "250–400 kcal"], ["var(--color-negative)", ">400 kcal"]].map(([color, label]) => (
+                {[["var(--color-positive)", "<250 kcal"], ["var(--color-warning)", "250–400 kcal"], ["var(--color-negative)", ">400 kcal"]].map(([color, label]) => (
                   <span key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
                     {label}
@@ -1043,7 +1050,7 @@ function App() {
             })()}
           </>
         )}
-      </div>
+      </main>
     </>
   );
 }
