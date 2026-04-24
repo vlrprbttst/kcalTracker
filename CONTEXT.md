@@ -173,7 +173,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - Preferenza salvata in localStorage
 - Transizione animata (0.25s)
 - CSS variables su `body` / `body.light`
-- `--color-positive` e `--color-negative` cambiano con il tema: dark `#4ade80`/`#f87171`, light `#16a34a`/`#dc2626` (WCAG AA)
+- Tutti i colori rispettano WCAG AAA (7:1 testo normale, 4.5:1 testo grande) — vedere sezione Accessibilità
 
 ---
 
@@ -217,6 +217,54 @@ const ACTIVE_DAY = () => {
 **Attenzione:** non usare `toISOString()` per calcolare la data locale — restituisce UTC e causa sfasamenti nelle timezone non-UTC (es. in Italia UTC+2 a mezzanotte locale è ancora il giorno prima in UTC). Usare sempre `getFullYear/Month/Date`.
 
 Usata per: load/save Firestore, localStorage, filtro storico, rilevamento settimana corrente, paginazione bimestrale.
+
+---
+
+## Accessibilità (WCAG AAA 2.2)
+
+L'app è sviluppata per essere compliant WCAG AAA 2.2. Ogni nuova funzionalità deve rispettare questi standard.
+
+### Colori (SC 1.4.6 — contrasto 7:1)
+Variabili aggiornate per garantire 7:1 su tutti i background:
+
+| Variabile | Dark | Light |
+|---|---|---|
+| `--text-dim` | `#b3b3be` | `#52525b` |
+| `--text-dimmer` | `#a8a8b4` | `#525262` |
+| `--text-dimmest` | `#a0a0aa` | `#606070` |
+| `--accent` | `#b09dfc` | `#5b21b6` |
+| `--color-positive` | `#4ade80` | `#14532d` |
+| `--color-negative` | `#fa8585` | `#991b1b` |
+| `--color-warning` | `#fbbf24` | `#78350f` |
+
+Il `.guest-banner-btn` usa testo scuro (`#111113`) in dark mode (accent chiaro) e bianco in light mode (accent scuro).
+
+### Focus (SC 2.4.12, 2.4.13)
+- Global `:focus-visible` con outline 3px `var(--accent)`, offset 2px
+- Nessun `outline: none` in tutta la codebase
+- `.category-card` senza `overflow: hidden` — le outline non vengono tagliate
+- `.category-btn` ha `border-radius: 10px` proprio per il focus ring
+- Elementi dentro `.items-grid` (overflow:hidden) usano `outline-offset: -3px` (inset)
+- `scroll-padding-top: 140px` su `html` — evita che l'header fisso nasconda il focus
+
+### Touch target (SC 2.5.5 — 44×44px)
+I counter buttons sono 22×22px visivamente, ma il touch target è esteso a 44×44px tramite `.counter-btn::before { inset: -11px }`.
+
+### Motion (SC 2.3.3)
+`@media (prefers-reduced-motion: reduce)` disabilita tutte le transizioni e animazioni.
+
+### Semantic HTML e ARIA
+- `<header>` e `<main id="main-content">` al posto di `<div>`
+- Skip link "Vai al contenuto principale" visibile solo da tastiera
+- `role="navigation"` sulla tabs-bar
+- `role="dialog" aria-modal aria-labelledby` sul modal accesso negato
+- `aria-expanded` + `aria-controls` su tutti i bottoni accordion
+- `aria-label` su tutti i bottoni icona (tema, reset, +/−, ×, ricerca)
+- `aria-label` su tutti gli input (grammi, extra nome/kcal, search, obiettivo)
+- `aria-live="polite" aria-atomic="true"` sul totale kcal
+- `role="group" aria-label` sui counter di ogni alimento
+- Emoji decorative con `aria-hidden="true"`
+- Placeholder degli input in corsivo per distinguerli dal testo inserito
 
 ---
 
