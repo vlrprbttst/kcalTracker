@@ -225,9 +225,9 @@ function getMealSlot(ts) {
   const m = d.getHours() * 60 + d.getMinutes();
   if (m < 330)  return { key: "fuori-orario", label: "Fuori Orario" };
   if (m <= 630)  return { key: "colazione",   label: "Colazione" };
-  if (m <= 720)  return { key: "merenda-mat", label: "Merenda" };
+  if (m <= 720)  return { key: "merenda-mat", label: "Merenda metà mattina" };
   if (m <= 900)  return { key: "pranzo",      label: "Pranzo" };
-  if (m <= 1140) return { key: "merenda-pom", label: "Merenda" };
+  if (m <= 1140) return { key: "merenda-pom", label: "Merenda pomeriggio" };
   if (m <= 1320) return { key: "cena",        label: "Cena" };
   return { key: "fuori-orario", label: "Fuori Orario" };
 }
@@ -849,6 +849,15 @@ function App() {
                   ))}
                 </div>
               )}
+              <div className="menu-legend">
+                <div className="menu-legend-title">Fasce orarie</div>
+                <div className="menu-legend-row"><span>Fuori Orario</span><span>00:00 – 05:29 / 22:01 – 23:59</span></div>
+                <div className="menu-legend-row"><span>Colazione</span><span>05:30 – 10:30</span></div>
+                <div className="menu-legend-row"><span>Merenda metà mattina</span><span>10:31 – 12:00</span></div>
+                <div className="menu-legend-row"><span>Pranzo</span><span>12:01 – 15:00</span></div>
+                <div className="menu-legend-row"><span>Merenda pomeriggio</span><span>15:01 – 19:00</span></div>
+                <div className="menu-legend-row"><span>Cena</span><span>19:01 – 22:00</span></div>
+              </div>
             </div>
           );
         })()}

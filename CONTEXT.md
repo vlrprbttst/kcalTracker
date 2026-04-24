@@ -128,9 +128,9 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - **Fasce orarie:**
   - 00:00–05:29 → **Fuori Orario**
   - 05:30–10:30 → **Colazione**
-  - 10:31–12:00 → **Merenda**
+  - 10:31–12:00 → **Merenda metà mattina**
   - 12:01–15:00 → **Pranzo**
-  - 15:01–19:00 → **Merenda**
+  - 15:01–19:00 → **Merenda pomeriggio**
   - 19:01–22:00 → **Cena**
   - 22:01–23:59 → **Fuori Orario** (stessa fascia del mattino presto)
 - **Sezione 🍺 Extra:** tutti gli alcolici (categoria "Alcol") appaiono qui, indipendentemente dall'orario
