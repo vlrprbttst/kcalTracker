@@ -938,11 +938,11 @@ function App() {
                               ))}
                               <div className="week-summary">
                                 <div className="week-summary-row">
-                                  <span>Obiettivo settimana</span>
+                                  <span>Media settimanale</span>
                                   <span>14.000 kcal</span>
                                 </div>
                                 <div className="week-summary-row">
-                                  <span>Calorie ingerite</span>
+                                  <span>Calorie assunte</span>
                                   <span>{week.totalConsumed.toLocaleString("it-IT")} kcal</span>
                                 </div>
                                 {!isCurrentWeek && week.days.length < 7 && (
