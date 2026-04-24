@@ -65,6 +65,7 @@ const dietData = [
     items: [
       { id: "l6v2n9", name: "Contorno leggerezza", portion: "225g", kcal: 60 },
       { id: "y4p8q1", name: "Contorno tricolore", portion: "225g", kcal: 55 },
+      { id: "k7r3n5", name: "Patate al rosmarino", portion: "225g", kcal: 304 },
     ],
   },
   {
