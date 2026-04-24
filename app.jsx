@@ -110,6 +110,7 @@ const dietData = [
       { id: "s1r7b5", name: "Sofficino alla pizzaiola", portion: "1 pezzo", kcal: 144 },
       { id: "w6q4x8", name: "Supplì romano", portion: "1 pezzo", kcal: 250 },
       { id: "h2m5n8", name: "Gran fritto pastellato", portion: "225g", kcal: 315 },
+      { id: "c6p1w9", name: "Nuggets croccanti", portion: "½ porzione", kcal: 233 },
     ],
   },
   {
