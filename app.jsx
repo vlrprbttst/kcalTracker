@@ -632,7 +632,8 @@ function App() {
                 items: query
                   ? cat.items.map((item, ii) => ({ item, ii })).filter(({ item }) => item.name.toLowerCase().includes(query))
                   : cat.items.map((item, ii) => ({ item, ii })),
-              })).filter(({ items }) => !query || items.length > 0);
+              })).filter(({ items }) => !query || items.length > 0)
+               .filter(({ cat }) => user || cat.category !== 'Alcol');
 
               const highlightName = (name) => {
                 if (!query) return name;
