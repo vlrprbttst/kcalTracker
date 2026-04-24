@@ -370,7 +370,7 @@ function App() {
         counts, extras, varGrams, target, totalKcal, items, date: TODAY(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
-    }, 1500);
+    }, 400);
   }, [counts, extras, varGrams, target, user, dataReady]);
 
   useEffect(() => {
