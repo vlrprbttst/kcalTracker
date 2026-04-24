@@ -656,8 +656,8 @@ function App() {
       <div className="content" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {(!user || activeTab === "oggi") && (
           <>
-            {!searchQuery && openIdx !== null && (
-              <button className="close-all-btn" onClick={() => setOpenIdx(null)}>chiudi tutto</button>
+            {!searchQuery && (
+              <button className="close-all-btn" style={{ visibility: openIdx !== null ? 'visible' : 'hidden' }} onClick={() => setOpenIdx(null)}>chiudi tutto</button>
             )}
 
             {(() => {
