@@ -126,8 +126,8 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - Mostra tutto ciò che è stato loggato oggi, raggruppato per fascia oraria
 - Scompare automaticamente se il log si svuota (torna su "Oggi")
 - **Fasce orarie:**
-  - 00:00–06:29 → **Fuori Orario**
-  - 06:30–10:30 → **Colazione**
+  - 00:00–05:29 → **Fuori Orario**
+  - 05:30–10:30 → **Colazione**
   - 10:31–12:00 → **Merenda**
   - 12:01–15:00 → **Pranzo**
   - 15:01–19:00 → **Merenda**
@@ -190,6 +190,23 @@ Al load da Firestore e localStorage: se un alimento variabile ha `count > 0` ma 
 
 ### dataReady flag
 Blocca il salvataggio Firestore finché i dati non sono stati caricati. Previene il sovrascrittura dei dati al login.
+
+### ACTIVE_DAY() — giornata dietetica
+La funzione `ACTIVE_DAY()` sostituisce `TODAY()` ovunque nell'app. La giornata dietetica inizia alle **05:30**: qualsiasi alimento loggato tra le 00:00 e le 05:29 viene attribuito al giorno precedente (es. mangi qualcosa all'1:00 del 25 aprile → finisce nello storico del 24 aprile, fascia "Fuori Orario").
+
+```js
+const ACTIVE_DAY = () => {
+  const now = new Date();
+  if (now.getHours() * 60 + now.getMinutes() < 330) {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toISOString().slice(0, 10);
+  }
+  return now.toISOString().slice(0, 10);
+};
+```
+
+Usata per: load/save Firestore, localStorage, filtro storico, rilevamento settimana corrente, paginazione bimestrale.
 
 ---
 
