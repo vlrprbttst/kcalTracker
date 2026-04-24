@@ -51,6 +51,7 @@ const dietData = [
       { id: "v5q8k3", name: "Cotoletta vegetale", portion: "1 pezzo", kcal: 220 },
       { id: "w9j2r6", name: "Straccetti di soia al sugo", portion: "1 porzione", kcal: 390 },
       { id: "a4b7x5", name: "Tofu al naturale", portion: "1 porzione", kcal: 190 },
+      { id: "c6p1w9", name: "Nuggets croccanti", portion: "½ porzione", kcal: 233 },
     ],
   },
   {
@@ -110,7 +111,6 @@ const dietData = [
       { id: "s1r7b5", name: "Sofficino alla pizzaiola", portion: "1 pezzo", kcal: 144 },
       { id: "w6q4x8", name: "Supplì romano", portion: "1 pezzo", kcal: 250 },
       { id: "h2m5n8", name: "Gran fritto pastellato", portion: "225g", kcal: 315 },
-      { id: "c6p1w9", name: "Nuggets croccanti", portion: "½ porzione", kcal: 233 },
     ],
   },
   {
