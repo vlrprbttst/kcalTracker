@@ -373,7 +373,7 @@ function App() {
             setLog(data.log || []);
             if (data.target) setTarget(data.target);
             if (migrated) {
-              db.collection("users").doc(u.uid).collection("days").doc(TODAY()).update({ counts: mc, varGrams: mvg });
+              db.collection("users").doc(u.uid).collection("days").doc(TODAY()).update({ counts: mc, varGrams: mvg }).catch(e => console.error("Migration update error:", e));
             }
           }
         } catch (e) { console.error(e); }
@@ -396,7 +396,7 @@ function App() {
       db.collection("users").doc(user.uid).collection("days").doc(TODAY()).set({
         counts, extras, varGrams, log, target, totalKcal, items, date: TODAY(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      });
+      }).catch(e => console.error("Firestore save error:", e));
     }, 400);
   }, [counts, extras, varGrams, log, target, user, dataReady]);
 
