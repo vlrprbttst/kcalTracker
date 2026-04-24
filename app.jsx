@@ -124,7 +124,8 @@ const dietData = [
 ];
 
 const itemById = {};
-dietData.forEach(cat => cat.items.forEach(item => { itemById[item.id] = item; }));
+const itemCategory = {};
+dietData.forEach(cat => cat.items.forEach(item => { itemById[item.id] = item; itemCategory[item.id] = cat.category; }));
 
 const ALLOWED_UID = "f1rMJWrezfORvihvxM5EspY3FsA3";
 
@@ -207,6 +208,28 @@ function buildItemsList(counts, extras, varGrams = {}) {
   return items;
 }
 
+function getMealSlot(ts) {
+  const d = new Date(ts);
+  const m = d.getHours() * 60 + d.getMinutes();
+  if (m < 390)  return { key: "fuori-orario", label: "Fuori Orario" };
+  if (m <= 630)  return { key: "colazione",   label: "Colazione" };
+  if (m <= 720)  return { key: "merenda-mat", label: "Merenda" };
+  if (m <= 900)  return { key: "pranzo",      label: "Pranzo" };
+  if (m <= 1140) return { key: "merenda-pom", label: "Merenda" };
+  if (m <= 1320) return { key: "cena",        label: "Cena" };
+  return { key: "fuori-orario", label: "Fuori Orario" };
+}
+
+function groupLogByMeal(log) {
+  const groups = {}, order = [];
+  log.forEach(entry => {
+    const { key, label } = getMealSlot(entry.ts);
+    if (!groups[key]) { groups[key] = { key, label, items: [] }; order.push(key); }
+    groups[key].items.push(entry);
+  });
+  return order.map(k => groups[k]);
+}
+
 function getWeekStart(dateStr) {
   const d = new Date(dateStr + "T12:00:00");
   const daysSinceFriday = (d.getDay() + 2) % 7;
@@ -284,6 +307,7 @@ function App() {
   const [counts, setCounts] = useState(() => loadLocalData().counts);
   const [extras, setExtras] = useState(() => loadLocalData().extras);
   const [varGrams, setVarGrams] = useState(() => loadLocalData().varGrams);
+  const [log, setLog] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [extraName, setExtraName] = useState("");
   const [extraInput, setExtraInput] = useState("");
@@ -327,6 +351,7 @@ function App() {
         setCounts({});
         setExtras([]);
         setVarGrams({});
+        setLog([]);
         setDataReady(false);
         return;
       }
@@ -341,9 +366,11 @@ function App() {
               const it = itemById[id];
               if (it?.variable && !mvg[id]) delete sanitizedCounts[id];
             });
+            const loadedExtras = (data.extras || []).map(e => e.uid ? e : { ...e, uid: Math.random().toString(36).slice(2, 8) });
             setCounts(sanitizedCounts);
-            setExtras(data.extras || []);
+            setExtras(loadedExtras);
             setVarGrams(mvg);
+            setLog(data.log || []);
             if (data.target) setTarget(data.target);
             if (migrated) {
               db.collection("users").doc(u.uid).collection("days").doc(TODAY()).update({ counts: mc, varGrams: mvg });
@@ -367,11 +394,11 @@ function App() {
       const totalKcal = computeTotal(counts, extras, varGrams);
       const items = buildItemsList(counts, extras, varGrams);
       db.collection("users").doc(user.uid).collection("days").doc(TODAY()).set({
-        counts, extras, varGrams, target, totalKcal, items, date: TODAY(),
+        counts, extras, varGrams, log, target, totalKcal, items, date: TODAY(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
     }, 400);
-  }, [counts, extras, varGrams, target, user, dataReady]);
+  }, [counts, extras, varGrams, log, target, user, dataReady]);
 
   useEffect(() => {
     localStorage.setItem("kcal_target", String(target));
@@ -389,6 +416,10 @@ function App() {
   useEffect(() => {
     if (editingTarget && targetInputRef.current) targetInputRef.current.focus();
   }, [editingTarget]);
+
+  useEffect(() => {
+    if (activeTab === "menu" && log.length === 0) setActiveTab("oggi");
+  }, [log, activeTab]);
 
   useEffect(() => {
     if (activeTab !== "storico" || !user) return;
@@ -422,7 +453,11 @@ function App() {
   const inc = (id, e) => {
     e.stopPropagation();
     vibrate();
+    const item = itemById[id];
+    const grams = varGrams[id] || 0;
+    const kcal = item.variable ? Math.round(grams * item.kcalPerG) : item.kcal;
     setCounts(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    setLog(prev => [...prev, { type: 'item', id, name: item.name, kcal, grams, category: itemCategory[id] || '', ts: new Date().toISOString() }]);
   };
 
   const dec = (id, e) => {
@@ -436,6 +471,14 @@ function App() {
       }
       return { ...prev, [id]: next };
     });
+    setLog(prev => {
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].type === 'item' && prev[i].id === id) {
+          return [...prev.slice(0, i), ...prev.slice(i + 1)];
+        }
+      }
+      return prev;
+    });
   };
 
   const totalKcal = computeTotal(counts, extras, varGrams);
@@ -444,7 +487,7 @@ function App() {
   const barColor = pct >= 100 ? "var(--color-negative)" : pct >= 80 ? "#fbbf24" : "var(--color-positive)";
 
   const handleReset = () => {
-    if (window.confirm("Resettare le calorie di oggi?")) { setCounts({}); setExtras([]); setVarGrams({}); }
+    if (window.confirm("Resettare le calorie di oggi?")) { setCounts({}); setExtras([]); setVarGrams({}); setLog([]); }
   };
 
   const startEditTarget = () => { setTargetDraft(String(target)); setEditingTarget(true); };
@@ -464,13 +507,19 @@ function App() {
     const v = parseInt(extraInput, 10);
     if (v > 0) {
       vibrate();
-      setExtras(prev => [...prev, { name: extraName.trim() || "Extra", kcal: v }]);
+      const uid = Math.random().toString(36).slice(2, 8);
+      const name = extraName.trim() || "Extra";
+      setExtras(prev => [...prev, { uid, name, kcal: v }]);
+      setLog(prev => [...prev, { type: 'extra', uid, name, kcal: v, grams: 0, ts: new Date().toISOString() }]);
       setExtraName("");
       setExtraInput("");
     }
   };
 
-  const removeExtra = (i) => setExtras(prev => prev.filter((_, idx) => idx !== i));
+  const removeExtra = (uid) => {
+    setExtras(prev => prev.filter(e => e.uid !== uid));
+    setLog(prev => prev.filter(e => !(e.type === 'extra' && e.uid === uid)));
+  };
 
   return (
     <>
@@ -553,6 +602,7 @@ function App() {
         <div className="tabs-bar">
           <div className="tabs-inner">
             <button className={`tab-btn${activeTab === "oggi" ? " active" : ""}`} onClick={() => setActiveTab("oggi")}>Oggi</button>
+            {log.length > 0 && <button className={`tab-btn${activeTab === "menu" ? " active" : ""}`} onClick={() => setActiveTab("menu")}>Menu</button>}
             <button className={`tab-btn${activeTab === "storico" ? " active" : ""}`} onClick={() => setActiveTab("storico")}>Storico</button>
           </div>
         </div>
@@ -624,6 +674,19 @@ function App() {
                                         if (!val || val <= 0) { const { [item.id]: _, ...rest } = prev; return rest; }
                                         return { ...prev, [item.id]: val };
                                       });
+                                      if (val > 0 && getCount(item.id) > 0) {
+                                        const newKcal = Math.round(val * item.kcalPerG);
+                                        setLog(prev => {
+                                          for (let i = prev.length - 1; i >= 0; i--) {
+                                            if (prev[i].type === 'item' && prev[i].id === item.id) {
+                                              const updated = [...prev];
+                                              updated[i] = { ...updated[i], grams: val, kcal: newKcal };
+                                              return updated;
+                                            }
+                                          }
+                                          return prev;
+                                        });
+                                      }
                                     }}
                                     onClick={e => e.stopPropagation()}
                                     min="0"
@@ -711,12 +774,12 @@ function App() {
                   </div>
                   {hasExtras && (
                     <div className="extra-list">
-                      {extras.map((item, i) => (
-                        <div key={i} className="extra-item">
+                      {extras.map((item) => (
+                        <div key={item.uid || item.name} className="extra-item">
                           <span className="extra-item-label">{item.name}</span>
                           <div className="extra-item-right">
                             <span className="extra-item-kcal">{item.kcal} kcal</span>
-                            <button className="extra-remove-btn" onClick={() => removeExtra(i)}>×</button>
+                            <button className="extra-remove-btn" onClick={() => removeExtra(item.uid)}>×</button>
                           </div>
                         </div>
                       ))}
@@ -736,6 +799,46 @@ function App() {
             </div>
           </>
         )}
+
+        {user && activeTab === "menu" && (() => {
+          const alcolLog = log.filter(e => e.category === 'Alcol');
+          const foodLog = log.filter(e => e.category !== 'Alcol');
+          return (
+            <div className="menu-tab">
+              {groupLogByMeal(foodLog).map(({ key, label, items }) => {
+                const slotTotal = items.reduce((s, e) => s + e.kcal, 0);
+                return (
+                  <div key={key} className="meal-group">
+                    <div className="meal-group-header">
+                      <span className="meal-group-label">{label}</span>
+                      <span className="meal-group-total">{slotTotal} kcal</span>
+                    </div>
+                    {items.map((entry, i) => (
+                      <div key={i} className="meal-entry">
+                        <span className="meal-entry-name">{entry.name}{entry.grams > 0 ? ` ${entry.grams}g` : ''}</span>
+                        <span className="meal-entry-kcal">{entry.kcal > 0 ? `${entry.kcal} kcal` : '–'}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+              {alcolLog.length > 0 && (
+                <div className="meal-group meal-group-extra">
+                  <div className="meal-group-header">
+                    <span className="meal-group-label">🍺 Extra</span>
+                    <span className="meal-group-total">{alcolLog.reduce((s, e) => s + e.kcal, 0)} kcal</span>
+                  </div>
+                  {alcolLog.map((entry, i) => (
+                    <div key={i} className="meal-entry">
+                      <span className="meal-entry-name">{entry.name}</span>
+                      <span className="meal-entry-kcal">{entry.kcal} kcal</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {user && activeTab === "storico" && (
           <>
@@ -809,9 +912,28 @@ function App() {
                                       {day.totalKcal} kcal
                                     </span>
                                   </div>
-                                  {day.items && day.items.length > 0 && (
+                                  {day.log && day.log.length > 0 ? (() => {
+                                    const alcolLog = day.log.filter(e => e.category === 'Alcol');
+                                    const foodLog = day.log.filter(e => e.category !== 'Alcol');
+                                    return (
+                                      <div className="history-log-groups">
+                                        {groupLogByMeal(foodLog).map(({ key, label, items }) => (
+                                          <div key={key} className="history-log-group">
+                                            <span className="history-log-label">{label}:</span>
+                                            <span className="history-log-items">{items.map(e => e.name + (e.grams > 0 ? ` ${e.grams}g` : '')).join(', ')}</span>
+                                          </div>
+                                        ))}
+                                        {alcolLog.length > 0 && (
+                                          <div className="history-log-group">
+                                            <span className="history-log-label">🍺 Extra:</span>
+                                            <span className="history-log-items">{alcolLog.map(e => e.name).join(', ')}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })() : day.items && day.items.length > 0 ? (
                                     <div className="history-items">{day.items.join(" · ")}</div>
-                                  )}
+                                  ) : null}
                                 </div>
                               ))}
                               <div className="week-summary">

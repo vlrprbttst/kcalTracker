@@ -328,6 +328,20 @@ body.light .item-cell-active { background: #ede9fe; }
 .history-day-date { font-size: 14px; font-weight: 600; text-transform: capitalize; }
 .history-day-kcal { font-size: 16px; font-weight: 700; }
 .history-items { font-size: 12px; color: var(--text-dimmer); line-height: 1.6; }
+.history-log-groups { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+.history-log-group { display: flex; gap: 6px; font-size: 12px; line-height: 1.5; }
+.history-log-label { font-weight: 600; color: var(--text-dim); white-space: nowrap; }
+.history-log-items { color: var(--text-dimmer); }
+
+.menu-tab { padding: 0 0 24px; }
+.meal-group { background: var(--surface); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
+.meal-group-header { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px 9px; border-bottom: 1px solid var(--border); }
+.meal-group-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-dimmer); }
+.meal-group-total { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+.meal-entry { display: flex; justify-content: space-between; align-items: center; padding: 9px 16px; }
+.meal-entry + .meal-entry { border-top: 1px solid var(--border-subtle); }
+.meal-entry-name { font-size: 14px; color: var(--text); }
+.meal-entry-kcal { font-size: 13px; color: var(--text-dimmer); }
 .history-empty { text-align: center; color: var(--text-dimmest); padding: 40px 0; font-size: 14px; line-height: 1.8; }
 
 .week-card {
