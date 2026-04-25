@@ -11,12 +11,14 @@ App personale per tracciare le calorie giornaliere. Pubblicata su GitHub Pages. 
 ---
 
 ## Stack tecnico
-- React 18 via CDN (Babel standalone) — niente npm, niente bundler
-- Firebase (compat SDK via CDN):
+- React 18.3.1 via CDN (versione pinnata, SRI hash)
+- **app.jsx pre-compilato in app.js con Babel Node** — Babel non è più nel browser
+- Firebase 10.12.2 (compat SDK via CDN, versione pinnata, SRI hash):
   - **Authentication** — Google OAuth
   - **Firestore** — salvataggio dati giornalieri e storico
 - GitHub Pages per l'hosting (branch `master`, aggiornamento automatico ad ogni push)
 - Dark/light theme con CSS variables
+- `build.js` + `package.json` per la compilazione locale (Node.js richiesto)
 
 ---
 
@@ -90,6 +92,13 @@ Per gli alimenti a porzione variabile usa la formula `"aggiungi XXX col sistema 
 
 **Attenzione:** non pushare mai a metà giornata se stai cambiando un alimento fisso in variabile — la sanitizzazione al carico azzera il count se varGrams è assente.
 
+### Build
+**Dopo ogni modifica a `app.jsx`, eseguire sempre `npm run build` prima di committare.** Il browser carica `app.js` (JavaScript puro), non `app.jsx`. Se non si ricompila, le modifiche non hanno effetto.
+
+```bash
+npm run build   # compila app.jsx → app.js
+```
+
 ### Git
 Usare sempre `git add .` quando si committa (non specificare file singoli).
 
@@ -124,6 +133,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 ### Tab Menu (solo loggati, appare solo con almeno un alimento loggato)
 - Si trova tra "Oggi" e "Storico"
 - Mostra tutto ciò che è stato loggato oggi, raggruppato per fascia oraria
+- **Voci duplicate raggruppate:** stesso alimento ripetuto più volte appare come "Bao ×3" con kcal totali sommate. Per alimenti variabili, grammi diversi restano voci separate (es. "Basmati 150g" e "Basmati 200g")
 - Scompare automaticamente se il log si svuota (torna su "Oggi")
 - **Fasce orarie:**
   - 00:00–05:29 → **Fuori Orario**
@@ -276,14 +286,18 @@ Le categorie e l'ordine degli alimenti sono modificabili liberamente.
 ---
 
 ## File nella repo
-- `index.html` — scheletro HTML (head, root div, link a CSS e JSX)
+- `index.html` — scheletro HTML (head, root div, CDN scripts con SRI, CSP meta tag)
 - `style.css` — tutto il CSS dell'app
-- `app.jsx` — tutto il JS/JSX React (logica, componenti, dietData)
+- `app.jsx` — sorgente JSX React (logica, componenti, dietData) — **non caricato dal browser**
+- `app.js` — output compilato da `app.jsx` — **questo è ciò che carica il browser**
+- `build.js` — script di compilazione (`node build.js` compila app.jsx → app.js)
+- `package.json` — devDependencies (@babel/core, @babel/preset-react) + script `build`
+- `package-lock.json` — lockfile npm
 - `manifest.json` — PWA manifest (icona 1024×1024, maskable)
 - `logo.png` — icona app PWA (1024×1024, sfondo scuro #111113)
 - `logo2.png` — logo testuale nell'header
 - `no.gif` — gif mostrata quando un utente non autorizzato prova a loggarsi
-- `.gitignore` — esclude `.claude/`
+- `.gitignore` — esclude `.claude/`, `CLAUDE.md`, `node_modules/`
 - `CONTEXT.md` — questo file
 
 ---
@@ -298,11 +312,17 @@ Le categorie e l'ordine degli alimenti sono modificabili liberamente.
 
 ## Come lavorare su questo progetto
 1. Modifiche al CSS → `style.css`
-2. Modifiche alla logica/UI → `app.jsx`
-3. Aggiunta alimenti → in `app.jsx` nell'array `dietData`, con un nuovo ID opaco unico a 6 caratteri
+2. Modifiche alla logica/UI → `app.jsx`, poi **`npm run build`** per compilare in `app.js`
+3. Aggiunta alimenti → in `app.jsx` nell'array `dietData`, con un nuovo ID opaco unico a 6 caratteri, poi `npm run build`
 4. Push → `git add . && git commit -m "..." && git push` — solo quando Valerio lo chiede
 5. GitHub Pages → si aggiorna in 1-2 minuti dal push
 6. Per testare in locale → live server su `127.0.0.1:5500` (VS Code) o `localhost`
 
 ### Cache PWA mobile
-`app.jsx` è caricato con query string di versione: `<script src="app.jsx?v=N">`. Il numero viene **incrementato automaticamente dal pre-commit hook** ogni volta che `app.jsx` è in staging — non serve farlo a mano. `style.css` non ha bisogno del versioning.
+`app.js` è caricato con query string di versione: `<script src="app.js?v=N">`. Il numero va incrementato manualmente a ogni rilascio per forzare il ricaricamento della PWA su mobile. `style.css` non ha bisogno del versioning.
+
+### Sicurezza
+- **SRI hash** su tutti gli script CDN (React 18.3.1, Firebase 10.12.2) — il browser rifiuta file manomessi
+- **Content Security Policy** via meta tag: limita `script-src` a `self`, `unpkg.com`, `gstatic.com`, `apis.google.com`; `connect-src` alle API Firebase/Google; `object-src 'none'`; `base-uri 'self'`
+- **Babel non più nel browser** — nessun compilatore runtime, superficie di attacco ridotta
+- **Versioni CDN pinnate** — nessun aggiornamento silenzioso
