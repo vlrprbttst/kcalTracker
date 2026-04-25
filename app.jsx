@@ -243,6 +243,21 @@ function groupLogByMeal(log) {
   return order.map(k => groups[k]);
 }
 
+function groupEntries(entries) {
+  const map = new Map();
+  for (const e of entries) {
+    const key = e.name + (e.grams > 0 ? `-${e.grams}` : '');
+    if (map.has(key)) {
+      const g = map.get(key);
+      g.count++;
+      g.totalKcal += e.kcal;
+    } else {
+      map.set(key, { ...e, count: 1, totalKcal: e.kcal });
+    }
+  }
+  return Array.from(map.values());
+}
+
 function getWeekStart(dateStr) {
   const d = new Date(dateStr + "T12:00:00");
   const daysSinceFriday = (d.getDay() + 2) % 7;
@@ -420,6 +435,8 @@ function App() {
     localStorage.setItem("kcal_target", String(target));
   }, [target]);
 
+  const totalKcal = computeTotal(counts, extras, varGrams);
+
   useEffect(() => {
     const over = totalKcal > target;
     if (over && !prevOverTarget.current) {
@@ -502,7 +519,6 @@ function App() {
     });
   };
 
-  const totalKcal = computeTotal(counts, extras, varGrams);
   const pct = Math.min((totalKcal / target) * 100, 100);
   const remaining = target - totalKcal;
   const barColor = pct >= 100 ? "var(--color-negative)" : pct >= 80 ? "var(--color-warning)" : "var(--color-positive)";
@@ -877,10 +893,10 @@ function App() {
                       <span className="meal-group-label">{label}</span>
                       <span className="meal-group-total">{slotTotal} kcal</span>
                     </div>
-                    {items.map((entry, i) => (
+                    {groupEntries(items).map((entry, i) => (
                       <div key={i} className="meal-entry">
-                        <span className="meal-entry-name">{entry.name}{entry.grams > 0 ? ` ${entry.grams}g` : ''}</span>
-                        <span className="meal-entry-kcal">{entry.kcal > 0 ? `${entry.kcal} kcal` : '–'}</span>
+                        <span className="meal-entry-name">{entry.name}{entry.grams > 0 ? ` ${entry.grams}g` : ''}{entry.count > 1 ? ` ×${entry.count}` : ''}</span>
+                        <span className="meal-entry-kcal">{entry.totalKcal > 0 ? `${entry.totalKcal} kcal` : '–'}</span>
                       </div>
                     ))}
                   </div>
@@ -892,10 +908,10 @@ function App() {
                     <span className="meal-group-label">🍺 Extra</span>
                     <span className="meal-group-total">{alcolLog.reduce((s, e) => s + e.kcal, 0)} kcal</span>
                   </div>
-                  {alcolLog.map((entry, i) => (
+                  {groupEntries(alcolLog).map((entry, i) => (
                     <div key={i} className="meal-entry">
-                      <span className="meal-entry-name">{entry.name}</span>
-                      <span className="meal-entry-kcal">{entry.kcal} kcal</span>
+                      <span className="meal-entry-name">{entry.name}{entry.count > 1 ? ` ×${entry.count}` : ''}</span>
+                      <span className="meal-entry-kcal">{entry.totalKcal} kcal</span>
                     </div>
                   ))}
                 </div>
@@ -993,13 +1009,13 @@ function App() {
                                         {groupLogByMeal(foodLog).map(({ key, label, items }) => (
                                           <div key={key} className="history-log-group">
                                             <span className="history-log-label">{label}:</span>
-                                            <span className="history-log-items">{items.map(e => e.name + (e.grams > 0 ? ` ${e.grams}g` : '')).join(', ')}</span>
+                                            <span className="history-log-items">{groupEntries(items).map(e => e.name + (e.grams > 0 ? ` ${e.grams}g` : '') + (e.count > 1 ? ` ×${e.count}` : '')).join(', ')}</span>
                                           </div>
                                         ))}
                                         {alcolLog.length > 0 && (
                                           <div className="history-log-group">
                                             <span className="history-log-label">🍺 Extra:</span>
-                                            <span className="history-log-items">{alcolLog.map(e => e.name).join(', ')}</span>
+                                            <span className="history-log-items">{groupEntries(alcolLog).map(e => e.name + (e.count > 1 ? ` ×${e.count}` : '')).join(', ')}</span>
                                           </div>
                                         )}
                                       </div>
