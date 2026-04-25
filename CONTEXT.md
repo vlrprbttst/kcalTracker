@@ -5,7 +5,7 @@ App personale per tracciare le calorie giornaliere. Pubblicata su GitHub Pages. 
 
 **Live:** https://vlrprbttst.github.io/kcalTracker  
 **Repo:** https://github.com/vlrprbttst/kcalTracker  
-**File principali:** `index.html` (scheletro HTML), `style.css` (tutto il CSS), `app.jsx` (tutto il JS/JSX React)  
+**File principali:** `index.html` (scheletro HTML), `style.css` (tutto il CSS), `app.jsx` (sorgente JSX), `app.js` (compilato — quello che carica il browser)  
 **File di riferimento alimenti:** la lista alimenti è in `app.jsx` nell'array `dietData`.
 
 ---
@@ -113,12 +113,13 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - Lista alimenti divisa in categorie, ognuna è un accordion
 - Layout interno accordion: **CSS Grid** (`1fr auto 56px 84px`) — nome flessibile, porzione auto, kcal e counter fissi
 - Contatore +/− per porzione (supporta stessa voce più volte)
-- **Alimenti a porzione variabile** (`variable: true` in dietData): input "Grammi" nella colonna porzione, kcal si aggiorna live; +/− contano le porzioni come al solito. Variabili attuali: Basmati cotto (`kcalPerG: 4/3`), Gnocchi (`kcalPerG: 1.5`), Pasta (`kcalPerG: 3.6`), Passata (`kcalPerG: 0.3`), Tikka masala sauce (`kcalPerG: 1.32`), Olio (`kcalPerG: 9`)
+- **Alimenti a porzione variabile** (`variable: true, kcalPerG: N` in dietData): input "Grammi" nella colonna porzione, kcal si aggiorna live; +/− contano le porzioni come al solito. La lista aggiornata è in `dietData` in `app.jsx`
 - Bottoni +/− sempre visibili: il − è opaco (75%) e non cliccabile finché qty = 0
 - Totale kcal live con barra di progresso colorata (verde/giallo/rosso)
 - Goal calorico editabile cliccando il numero nell'header (default: 2000 kcal)
 - Shake animation quando si supera il target per la prima volta
-- Bottone "chiudi tutto" per chiudere tutti gli accordion aperti
+- Barra di ricerca per filtrare gli alimenti per nome (solo loggati)
+- Bottone "chiudi tutto" per chiudere tutti gli accordion aperti (spazio riservato fisso per evitare layout shift)
 - Feedback tattile (vibrazione) al tap su + (funziona solo se la vibrazione del telefono è attiva)
 - Reset manuale con conferma (azzera counts, extras, varGrams, log)
 - Legenda colori barre kcal in fondo alla lista (verde <250, giallo 250–400, rosso >400)
@@ -178,6 +179,10 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
   - Se il giorno non ha `log` (dati vecchi): mostra la flat list `items` (compatibilità)
 - Label riepilogo settimana: "Media settimanale" (14.000 kcal) e "Calorie assunte"
 
+### Navigazione tab
+- Swipe orizzontale sul `<main>` per passare tra i tab (touch)
+- Indicatore tab animato: bordo inferiore scorrevole con `cubic-bezier`, misura i bottoni con `tabRefs` e aggiorna `indicatorStyle` (`left` + `width`) tramite `useEffect`
+
 ### Tema
 - Toggle ☀️/🌙 nell'header
 - Preferenza salvata in localStorage
@@ -206,7 +211,7 @@ Al load da Firestore e localStorage: se un alimento variabile ha `count > 0` ma 
 400ms (ridotto da 1500ms per ridurre il rischio di perdita dati su reload PWA).
 
 ### dataReady flag
-Blocca il salvataggio Firestore finché i dati non sono stati caricati. Previene il sovrascrittura dei dati al login.
+Blocca il salvataggio Firestore finché i dati non sono stati caricati. Previene la sovrascrittura dei dati al login. **Se il caricamento Firestore fallisce (errore di rete, CSP, ecc.), `setDataReady(true)` non viene chiamato** — il salvataggio non parte e Firestore non viene mai sovrascritto con stato vuoto. L'app rimane in stato "frozen" finché l'utente non ricarica.
 
 ### ACTIVE_DAY() — giornata dietetica
 La funzione `ACTIVE_DAY()` sostituisce `TODAY()` ovunque nell'app. La giornata dietetica inizia alle **05:30**: qualsiasi alimento loggato tra le 00:00 e le 05:29 viene attribuito al giorno precedente (es. mangi qualcosa all'1:00 del 25 aprile → finisce nello storico del 24 aprile, fascia "Fuori Orario").
