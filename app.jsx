@@ -92,6 +92,7 @@ const dietData = [
       { id: "r3q9f7", name: "Yogurt bianco", portion: "1 vasetto", kcal: 50 },
       { id: "m6k2w8", name: "Mela gialla", portion: "1 medio-piccola", kcal: 67 },
       { id: "g4h7r5", name: "Cono gelato medio", portion: "3 gusti cremosi + panna", kcal: 450 },
+      { id: "d5n1q8", name: "Latte parz. scremato UHT", portion: "1 tazza (200ml)", kcal: 96 },
     ],
   },
   {

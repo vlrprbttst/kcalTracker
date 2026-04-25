@@ -230,6 +230,11 @@ const dietData = [{
     name: "Cono gelato medio",
     portion: "3 gusti cremosi + panna",
     kcal: 450
+  }, {
+    id: "d5n1q8",
+    name: "Latte parz. scremato UHT",
+    portion: "1 tazza (200ml)",
+    kcal: 96
   }]
 }, {
   category: "Altro",
