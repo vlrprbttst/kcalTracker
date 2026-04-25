@@ -62,6 +62,12 @@ const dietData = [
     ],
   },
   {
+    category: "Zuppe", icon: "🍜",
+    items: [
+      { id: "t2v8r4", name: "Antichi sapori", portion: "1 porzione", kcal: 350 },
+    ],
+  },
+  {
     category: "Contorni", icon: "🥦",
     items: [
       { id: "l6v2n9", name: "Contorno leggerezza", portion: "225g", kcal: 60 },
