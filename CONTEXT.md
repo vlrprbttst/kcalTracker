@@ -319,7 +319,7 @@ Le categorie e l'ordine degli alimenti sono modificabili liberamente.
 6. Per testare in locale → live server su `127.0.0.1:5500` (VS Code) o `localhost`
 
 ### Cache PWA mobile
-`app.js` è caricato con query string di versione: `<script src="app.js?v=N">`. Il numero va incrementato manualmente a ogni rilascio per forzare il ricaricamento della PWA su mobile. `style.css` non ha bisogno del versioning.
+`app.js` è caricato con query string di versione: `<script src="app.js?v=HASH">`. L'hash è i primi 8 caratteri del SHA-256 del contenuto di `app.js`, calcolato e aggiornato automaticamente da `build.js` ad ogni compilazione. Se `app.jsx` non cambia, l'hash rimane identico. `style.css` non ha bisogno del versioning.
 
 ### Sicurezza
 - **SRI hash** su tutti gli script CDN (React 18.3.1, Firebase 10.12.2) — il browser rifiuta file manomessi
