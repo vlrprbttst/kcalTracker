@@ -65,6 +65,7 @@ const dietData = [
     category: "Zuppe", icon: "🍜",
     items: [
       { id: "t2v8r4", name: "Antichi sapori", portion: "1 porzione", kcal: 350 },
+      { id: "m3k6p9", name: "Verdurì Minestrone", portion: "1 porzione", kcal: 230 },
     ],
   },
   {

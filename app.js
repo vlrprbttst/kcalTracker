@@ -152,6 +152,11 @@ const dietData = [{
     name: "Antichi sapori",
     portion: "1 porzione",
     kcal: 350
+  }, {
+    id: "m3k6p9",
+    name: "Verdurì Minestrone",
+    portion: "1 porzione",
+    kcal: 230
   }]
 }, {
   category: "Contorni",
