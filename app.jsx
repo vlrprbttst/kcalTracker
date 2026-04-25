@@ -414,8 +414,10 @@ function App() {
               db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).update({ counts: mc, varGrams: mvg }).catch(e => console.error("Migration update error:", e));
             }
           }
-        } catch (e) { console.error(e); }
-        setDataReady(true);
+          setDataReady(true);
+        } catch (e) {
+          console.error("Firestore load error — save disabled to prevent data loss:", e);
+        }
       }
     });
   }, []);

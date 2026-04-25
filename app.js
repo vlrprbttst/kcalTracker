@@ -711,10 +711,10 @@ function App() {
               }).catch(e => console.error("Migration update error:", e));
             }
           }
+          setDataReady(true);
         } catch (e) {
-          console.error(e);
+          console.error("Firestore load error — save disabled to prevent data loss:", e);
         }
-        setDataReady(true);
       }
     });
   }, []);
