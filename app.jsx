@@ -66,6 +66,7 @@ const dietData = [
     items: [
       { id: "t2v8r4", name: "Antichi sapori", portion: "1 porzione", kcal: 350 },
       { id: "m3k6p9", name: "Verdurì Minestrone", portion: "1 porzione", kcal: 230 },
+      { id: "s9f2j6", name: "Verdurì Zucca e carota", portion: "1 porzione", kcal: 220 },
     ],
   },
   {

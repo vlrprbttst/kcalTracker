@@ -157,6 +157,11 @@ const dietData = [{
     name: "Verdurì Minestrone",
     portion: "1 porzione",
     kcal: 230
+  }, {
+    id: "s9f2j6",
+    name: "Verdurì Zucca e carota",
+    portion: "1 porzione",
+    kcal: 220
   }]
 }, {
   category: "Contorni",
