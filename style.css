@@ -595,6 +595,34 @@ body:not(.light) .week-incomplete-note { color: #ca8a04; }
   transition: background .12s;
 }
 .modal-btn:hover { background: var(--accent-hover); }
+.modal-actions { display: flex; gap: 10px; justify-content: center; }
+.modal-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s, color .15s;
+}
+.modal-btn-ghost:hover { border-color: var(--text-dimmer); color: var(--text); }
+.modal-btn-danger {
+  background: #3a1212;
+  border: 1px solid var(--color-negative);
+  border-radius: 8px;
+  color: var(--color-negative);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity .12s;
+}
+body.light .modal-btn-danger { background: #fee2e2; }
+.modal-btn-danger:hover { opacity: .85; }
 
 /* Admin tab — Alimenti */
 .admin-tab { padding-bottom: 24px; }

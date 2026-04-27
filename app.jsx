@@ -366,6 +366,7 @@ function App() {
   const [dataReady, setDataReady] = useState(false);
   const [shakeTarget, setShakeTarget] = useState(false);
   const [lightTheme, setLightTheme] = useState(() => localStorage.getItem("kcal_theme") === "light");
+  const [confirmModal, setConfirmModal] = useState(null);
 
   // dietData state — loaded from Firestore on login, seeded from SEED_DIET_DATA if absent
   const [dietData, setDietData] = useState(SEED_DIET_DATA);
@@ -617,7 +618,11 @@ function App() {
   };
 
   const logout = () => {
-    if (window.confirm("Esci dall'account?")) auth.signOut();
+    setConfirmModal({
+      title: "Esci",
+      message: "Esci dall'account?",
+      onConfirm: () => auth.signOut(),
+    });
   };
 
   const getCount = (id) => counts[id] || 0;
@@ -660,7 +665,11 @@ function App() {
   const barColor = pct >= 100 ? "var(--color-negative)" : pct >= 80 ? "var(--color-warning)" : "var(--color-positive)";
 
   const handleReset = () => {
-    if (window.confirm("Resettare le calorie di oggi?")) { setCounts({}); setExtras([]); setVarGrams({}); setLog([]); }
+    setConfirmModal({
+      title: "Reset",
+      message: "Resettare le calorie di oggi?",
+      onConfirm: () => { setCounts({}); setExtras([]); setVarGrams({}); setLog([]); },
+    });
   };
 
   const getTabs = () => {
@@ -768,17 +777,23 @@ function App() {
   const deleteItem = (itemId) => {
     const item = itemById[itemId];
     const hasCount = (counts[itemId] || 0) > 0;
-    const msg = hasCount
-      ? `"${item?.name}" ha ${counts[itemId]} porzioni registrate oggi. Eliminarlo dalla lista?\n(Il conteggio di oggi non verrà modificato)`
+    const message = hasCount
+      ? `"${item?.name}" ha ${counts[itemId]} porzioni registrate oggi. Il conteggio di oggi non verrà modificato.`
       : `Eliminare "${item?.name}" dalla lista?`;
-    if (!window.confirm(msg)) return;
-    const newDietData = dietData.map(cat => ({
-      ...cat,
-      items: cat.items.filter(i => i.id !== itemId),
-    }));
-    setDietData(newDietData);
-    saveDietToFirestore(newDietData);
-    if (adminEditId === itemId) setAdminEditId(null);
+    setConfirmModal({
+      title: "Elimina alimento",
+      message,
+      danger: true,
+      onConfirm: () => {
+        const newDietData = dietData.map(cat => ({
+          ...cat,
+          items: cat.items.filter(i => i.id !== itemId),
+        }));
+        setDietData(newDietData);
+        saveDietToFirestore(newDietData);
+        if (adminEditId === itemId) setAdminEditId(null);
+      },
+    });
   };
 
   const addNewItem = (catIdx) => {
@@ -816,20 +831,45 @@ function App() {
 
   const deleteCategory = (catIdx) => {
     const cat = dietData[catIdx];
-    const msg = cat.items.length > 0
+    const message = cat.items.length > 0
       ? `La categoria "${cat.category}" contiene ${cat.items.length} aliment${cat.items.length === 1 ? "o" : "i"}. Eliminare tutto?`
       : `Eliminare la categoria "${cat.category}"?`;
-    if (!window.confirm(msg)) return;
-    const newDietData = dietData.filter((_, i) => i !== catIdx);
-    setDietData(newDietData);
-    saveDietToFirestore(newDietData);
-    if (adminOpenCat === catIdx) setAdminOpenCat(null);
-    else if (adminOpenCat > catIdx) setAdminOpenCat(adminOpenCat - 1);
+    setConfirmModal({
+      title: "Elimina categoria",
+      message,
+      danger: true,
+      onConfirm: () => {
+        const newDietData = dietData.filter((_, i) => i !== catIdx);
+        setDietData(newDietData);
+        saveDietToFirestore(newDietData);
+        if (adminOpenCat === catIdx) setAdminOpenCat(null);
+        else if (adminOpenCat > catIdx) setAdminOpenCat(adminOpenCat - 1);
+      },
+    });
   };
 
   return (
     <>
       <a href="#main-content" className="skip-link">Vai al contenuto principale</a>
+
+      {confirmModal && (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title"
+          onKeyDown={e => { if (e.key === "Escape") setConfirmModal(null); }}>
+          <div className="modal">
+            <div id="confirm-title" className="modal-title">{confirmModal.title}</div>
+            <div className="modal-text">{confirmModal.message}</div>
+            <div className="modal-actions">
+              <button className="modal-btn-ghost" onClick={() => setConfirmModal(null)}>Annulla</button>
+              <button
+                className={confirmModal.danger ? "modal-btn-danger" : "modal-btn"}
+                onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }}
+              >
+                Conferma
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {notAllowed && (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
