@@ -443,6 +443,30 @@ function App() {
           let loadedDietData;
           if (foodsSnap.exists && foodsSnap.data().dietData) {
             loadedDietData = foodsSnap.data().dietData;
+            // Merge any items/categories added to SEED_DIET_DATA that are missing from Firestore
+            const firestoreIds = new Set(loadedDietData.flatMap(c => c.items.map(i => i.id)));
+            let needsMerge = false;
+            const mergedData = loadedDietData.map(cat => {
+              const seedCat = SEED_DIET_DATA.find(sc => sc.category === cat.category);
+              if (!seedCat) return cat;
+              const newItems = seedCat.items.filter(si => !firestoreIds.has(si.id));
+              if (newItems.length === 0) return cat;
+              needsMerge = true;
+              return { ...cat, items: [...cat.items, ...newItems] };
+            });
+            const firestoreCats = new Set(loadedDietData.map(c => c.category));
+            SEED_DIET_DATA.forEach(seedCat => {
+              if (!firestoreCats.has(seedCat.category)) {
+                mergedData.push(seedCat);
+                needsMerge = true;
+              }
+            });
+            if (needsMerge) {
+              loadedDietData = mergedData;
+              db.collection("users").doc(u.uid).collection("config").doc("foods")
+                .set({ dietData: mergedData })
+                .catch(e => console.error("Merge diet data error:", e));
+            }
           } else {
             loadedDietData = SEED_DIET_DATA;
             db.collection("users").doc(u.uid).collection("config").doc("foods")
