@@ -1,7 +1,8 @@
 const {
   useState,
   useEffect,
-  useRef
+  useRef,
+  useMemo
 } = React;
 const firebaseConfig = {
   apiKey: "AIzaSyBCY1ONerEeZ6Ysa34222hZ-JzJ_rIjcZI",
@@ -14,7 +15,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const dietData = [{
+const SEED_DIET_DATA = [{
   category: "Carboidrati",
   icon: "🍞",
   items: [{
@@ -340,11 +341,11 @@ const dietData = [{
     kcal: 260
   }]
 }];
-const itemById = {};
-const itemCategory = {};
-dietData.forEach(cat => cat.items.forEach(item => {
-  itemById[item.id] = item;
-  itemCategory[item.id] = cat.category;
+const seedItemById = {};
+const seedItemCategory = {};
+SEED_DIET_DATA.forEach(cat => cat.items.forEach(item => {
+  seedItemById[item.id] = item;
+  seedItemCategory[item.id] = cat.category;
 }));
 const ALLOWED_UID = "f1rMJWrezfORvihvxM5EspY3FsA3";
 const TODAY = () => new Date().toISOString().slice(0, 10);
@@ -358,6 +359,7 @@ const ACTIVE_DAY = () => {
   }
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 };
+const genId = () => Math.random().toString(36).slice(2, 8);
 function migrateCountKeys(counts, varGrams) {
   const isOld = key => /^\d+_\d+$/.test(key);
   const hasOld = Object.keys(counts).some(isOld) || Object.keys(varGrams).some(isOld);
@@ -370,7 +372,7 @@ function migrateCountKeys(counts, varGrams) {
   Object.entries(counts).forEach(([key, qty]) => {
     if (isOld(key)) {
       const [ci, ii] = key.split("_").map(Number);
-      const item = dietData[ci]?.items[ii];
+      const item = SEED_DIET_DATA[ci]?.items[ii];
       if (item) newCounts[item.id] = qty;
     } else {
       newCounts[key] = qty;
@@ -380,7 +382,7 @@ function migrateCountKeys(counts, varGrams) {
   Object.entries(varGrams).forEach(([key, g]) => {
     if (isOld(key)) {
       const [ci, ii] = key.split("_").map(Number);
-      const item = dietData[ci]?.items[ii];
+      const item = SEED_DIET_DATA[ci]?.items[ii];
       if (item) newVarGrams[item.id] = g;
     } else {
       newVarGrams[key] = g;
@@ -415,7 +417,7 @@ function loadLocalData() {
       ...mc
     };
     Object.keys(counts).forEach(id => {
-      const it = itemById[id];
+      const it = seedItemById[id];
       if (it?.variable && !varGrams[id]) delete counts[id];
     });
     if (migrated) {
@@ -442,7 +444,7 @@ function loadLocalData() {
 function loadTarget() {
   return parseInt(localStorage.getItem("kcal_target") || "2000", 10);
 }
-function computeTotal(counts, extras, varGrams = {}) {
+function computeTotal(counts, extras, varGrams = {}, itemById = seedItemById) {
   return Object.entries(counts).reduce((sum, [id, qty]) => {
     const item = itemById[id];
     if (!item) return sum;
@@ -450,7 +452,7 @@ function computeTotal(counts, extras, varGrams = {}) {
     return sum + item.kcal * qty;
   }, 0) + extras.reduce((s, e) => s + e.kcal, 0);
 }
-function buildItemsList(counts, extras, varGrams = {}) {
+function buildItemsList(counts, extras, varGrams = {}, itemById = seedItemById) {
   const items = [];
   Object.entries(counts).forEach(([id, qty]) => {
     const item = itemById[id];
@@ -615,7 +617,6 @@ function formatDate(dateStr) {
     month: "long"
   });
 }
-const maxItemKcal = Math.max(...dietData.flatMap(c => c.items.filter(i => !i.variable).map(i => i.kcal)));
 function KcalBar({
   kcal,
   max
@@ -660,6 +661,43 @@ function App() {
   const [dataReady, setDataReady] = useState(false);
   const [shakeTarget, setShakeTarget] = useState(false);
   const [lightTheme, setLightTheme] = useState(() => localStorage.getItem("kcal_theme") === "light");
+
+  // dietData state — loaded from Firestore on login, seeded from SEED_DIET_DATA if absent
+  const [dietData, setDietData] = useState(SEED_DIET_DATA);
+
+  // Admin tab state
+  const [adminEditId, setAdminEditId] = useState(null);
+  const [adminEditDraft, setAdminEditDraft] = useState({});
+  const [adminNewItem, setAdminNewItem] = useState(null);
+  const [adminNewCat, setAdminNewCat] = useState(false);
+  const [adminNewCatDraft, setAdminNewCatDraft] = useState({
+    name: "",
+    icon: ""
+  });
+  const [adminOpenCat, setAdminOpenCat] = useState(null);
+  const sortableListRef = useRef(null);
+  const adminOpenCatRef = useRef(null);
+  const userRef = useRef(null);
+
+  // Derived lookup maps — recomputed whenever dietData changes
+  const itemById = useMemo(() => {
+    const m = {};
+    dietData.forEach(cat => cat.items.forEach(item => {
+      m[item.id] = item;
+    }));
+    return m;
+  }, [dietData]);
+  const itemCategory = useMemo(() => {
+    const m = {};
+    dietData.forEach(cat => cat.items.forEach(item => {
+      m[item.id] = cat.category;
+    }));
+    return m;
+  }, [dietData]);
+  const maxItemKcal = useMemo(() => {
+    const fixed = dietData.flatMap(c => c.items.filter(i => !i.variable).map(i => i.kcal));
+    return fixed.length > 0 ? Math.max(...fixed) : 1000;
+  }, [dietData]);
   const toggleWeek = ws => setOpenWeeks(prev => {
     const next = new Set(prev);
     next.has(ws) ? next.delete(ws) : next.add(ws);
@@ -685,14 +723,36 @@ function App() {
         setExtras([]);
         setVarGrams({});
         setLog([]);
+        setDietData(SEED_DIET_DATA);
         setDataReady(false);
         return;
       }
       if (u) {
         try {
-          const snap = await db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).get();
-          if (snap.exists) {
-            const data = snap.data();
+          // Load day data and food list in parallel
+          const [daySnap, foodsSnap] = await Promise.all([db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).get(), db.collection("users").doc(u.uid).collection("config").doc("foods").get()]);
+
+          // Handle food list: use Firestore version if present, otherwise seed from hardcoded
+          let loadedDietData;
+          if (foodsSnap.exists && foodsSnap.data().dietData) {
+            loadedDietData = foodsSnap.data().dietData;
+          } else {
+            loadedDietData = SEED_DIET_DATA;
+            db.collection("users").doc(u.uid).collection("config").doc("foods").set({
+              dietData: SEED_DIET_DATA
+            }).catch(e => console.error("Seed diet data error:", e));
+          }
+          setDietData(loadedDietData);
+
+          // Build lookup from the loaded food list for use in sanitization below
+          const loadedItemById = {};
+          loadedDietData.forEach(cat => cat.items.forEach(item => {
+            loadedItemById[item.id] = item;
+          }));
+
+          // Handle today's day document
+          if (daySnap.exists) {
+            const data = daySnap.data();
             const {
               counts: mc,
               varGrams: mvg,
@@ -702,7 +762,7 @@ function App() {
               ...mc
             };
             Object.keys(sanitizedCounts).forEach(id => {
-              const it = itemById[id];
+              const it = loadedItemById[id];
               if (it?.variable && !mvg[id]) delete sanitizedCounts[id];
             });
             const loadedExtras = (data.extras || []).map(e => e.uid ? e : {
@@ -741,8 +801,8 @@ function App() {
     if (!user || !dataReady) return;
     clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
-      const totalKcal = computeTotal(counts, extras, varGrams);
-      const items = buildItemsList(counts, extras, varGrams);
+      const totalKcal = computeTotal(counts, extras, varGrams, itemById);
+      const items = buildItemsList(counts, extras, varGrams, itemById);
       db.collection("users").doc(user.uid).collection("days").doc(ACTIVE_DAY()).set({
         counts,
         extras,
@@ -759,7 +819,7 @@ function App() {
   useEffect(() => {
     localStorage.setItem("kcal_target", String(target));
   }, [target]);
-  const totalKcal = computeTotal(counts, extras, varGrams);
+  const totalKcal = computeTotal(counts, extras, varGrams, itemById);
   useEffect(() => {
     const over = totalKcal > target;
     if (over && !prevOverTarget.current) {
@@ -790,6 +850,61 @@ function App() {
       setHistoryLoading(false);
     }).catch(() => setHistoryLoading(false));
   }, [activeTab, user]);
+  useEffect(() => {
+    adminOpenCatRef.current = adminOpenCat;
+  }, [adminOpenCat]);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+  useEffect(() => {
+    if (typeof Sortable === 'undefined' || adminOpenCat === null || activeTab !== "alimenti" || !sortableListRef.current) return;
+    const sortable = Sortable.create(sortableListRef.current, {
+      animation: 150,
+      handle: '.admin-drag-handle',
+      ghostClass: 'admin-drag-ghost',
+      onEnd: evt => {
+        const {
+          oldIndex,
+          newIndex
+        } = evt;
+        if (oldIndex === newIndex) return;
+        const catIdx = adminOpenCatRef.current;
+        const u = userRef.current;
+        setDietData(prev => {
+          const newData = prev.map((cat, ci) => {
+            if (ci !== catIdx) return cat;
+            const items = [...cat.items];
+            const [moved] = items.splice(oldIndex, 1);
+            items.splice(newIndex, 0, moved);
+            return {
+              ...cat,
+              items
+            };
+          });
+          if (u) {
+            db.collection("users").doc(u.uid).collection("config").doc("foods").set({
+              dietData: newData
+            }).catch(e => console.error("Diet save error:", e));
+          }
+          return newData;
+        });
+      }
+    });
+    return () => {
+      try {
+        sortable.destroy();
+      } catch {}
+    };
+  }, [adminOpenCat, activeTab]);
+
+  // Reset admin forms when leaving the tab
+  useEffect(() => {
+    if (activeTab !== "alimenti") {
+      setAdminEditId(null);
+      setAdminNewItem(null);
+      setAdminNewCat(false);
+    }
+  }, [activeTab]);
   const login = () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).catch(console.error);
@@ -872,6 +987,7 @@ function App() {
     const t = ["oggi"];
     if (log.length > 0) t.push("menu");
     t.push("storico");
+    t.push("alimenti");
     return t;
   };
   const onTouchStart = e => {
@@ -931,6 +1047,133 @@ function App() {
   const removeExtra = uid => {
     setExtras(prev => prev.filter(e => e.uid !== uid));
     setLog(prev => prev.filter(e => !(e.type === 'extra' && e.uid === uid)));
+  };
+
+  // --- Admin tab functions ---
+
+  const saveDietToFirestore = newDietData => {
+    if (!user) return;
+    db.collection("users").doc(user.uid).collection("config").doc("foods").set({
+      dietData: newDietData
+    }).catch(e => console.error("Diet save error:", e));
+  };
+  const startEditItem = item => {
+    setAdminNewItem(null);
+    setAdminEditId(item.id);
+    setAdminEditDraft({
+      name: item.name,
+      kcal: item.variable ? "" : String(item.kcal),
+      portion: item.portion || "",
+      variable: !!item.variable,
+      kcalPerG: item.variable ? String(item.kcalPerG) : ""
+    });
+  };
+  const saveEditedItem = itemId => {
+    const d = adminEditDraft;
+    if (!d.name.trim()) return;
+    if (d.variable) {
+      const p = parseFloat(d.kcalPerG);
+      if (isNaN(p) || p <= 0) return;
+    } else {
+      const k = parseInt(d.kcal, 10);
+      if (isNaN(k) || k < 0) return;
+    }
+    const newDietData = dietData.map(cat => ({
+      ...cat,
+      items: cat.items.map(item => {
+        if (item.id !== itemId) return item;
+        if (d.variable) {
+          return {
+            id: item.id,
+            name: d.name.trim(),
+            portion: d.portion.trim() || "g",
+            kcal: 0,
+            variable: true,
+            kcalPerG: parseFloat(d.kcalPerG)
+          };
+        }
+        return {
+          id: item.id,
+          name: d.name.trim(),
+          portion: d.portion.trim(),
+          kcal: parseInt(d.kcal, 10)
+        };
+      })
+    }));
+    setDietData(newDietData);
+    saveDietToFirestore(newDietData);
+    setAdminEditId(null);
+  };
+  const deleteItem = itemId => {
+    const item = itemById[itemId];
+    const hasCount = (counts[itemId] || 0) > 0;
+    const msg = hasCount ? `"${item?.name}" ha ${counts[itemId]} porzioni registrate oggi. Eliminarlo dalla lista?\n(Il conteggio di oggi non verrà modificato)` : `Eliminare "${item?.name}" dalla lista?`;
+    if (!window.confirm(msg)) return;
+    const newDietData = dietData.map(cat => ({
+      ...cat,
+      items: cat.items.filter(i => i.id !== itemId)
+    }));
+    setDietData(newDietData);
+    saveDietToFirestore(newDietData);
+    if (adminEditId === itemId) setAdminEditId(null);
+  };
+  const addNewItem = catIdx => {
+    const form = adminNewItem;
+    if (!form || !form.name.trim()) return;
+    if (form.variable) {
+      const p = parseFloat(form.kcalPerG);
+      if (isNaN(p) || p <= 0) return;
+    } else {
+      const k = parseInt(form.kcal, 10);
+      if (isNaN(k) || k < 0) return;
+    }
+    const newId = genId();
+    const newItem = form.variable ? {
+      id: newId,
+      name: form.name.trim(),
+      portion: form.portion.trim() || "g",
+      kcal: 0,
+      variable: true,
+      kcalPerG: parseFloat(form.kcalPerG)
+    } : {
+      id: newId,
+      name: form.name.trim(),
+      portion: form.portion.trim(),
+      kcal: parseInt(form.kcal, 10)
+    };
+    const newDietData = dietData.map((cat, ci) => ci !== catIdx ? cat : {
+      ...cat,
+      items: [...cat.items, newItem]
+    });
+    setDietData(newDietData);
+    saveDietToFirestore(newDietData);
+    setAdminNewItem(null);
+  };
+  const addNewCategory = () => {
+    const name = adminNewCatDraft.name.trim();
+    if (!name) return;
+    const icon = adminNewCatDraft.icon.trim() || "🍽️";
+    const newDietData = [...dietData, {
+      category: name,
+      icon,
+      items: []
+    }];
+    setDietData(newDietData);
+    saveDietToFirestore(newDietData);
+    setAdminNewCat(false);
+    setAdminNewCatDraft({
+      name: "",
+      icon: ""
+    });
+  };
+  const deleteCategory = catIdx => {
+    const cat = dietData[catIdx];
+    const msg = cat.items.length > 0 ? `La categoria "${cat.category}" contiene ${cat.items.length} aliment${cat.items.length === 1 ? "o" : "i"}. Eliminare tutto?` : `Eliminare la categoria "${cat.category}"?`;
+    if (!window.confirm(msg)) return;
+    const newDietData = dietData.filter((_, i) => i !== catIdx);
+    setDietData(newDietData);
+    saveDietToFirestore(newDietData);
+    if (adminOpenCat === catIdx) setAdminOpenCat(null);else if (adminOpenCat > catIdx) setAdminOpenCat(adminOpenCat - 1);
   };
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("a", {
     href: "#main-content",
@@ -1079,7 +1322,11 @@ function App() {
     ref: el => tabRefs.current["storico"] = el,
     className: `tab-btn${activeTab === "storico" ? " active" : ""}`,
     onClick: () => setActiveTab("storico")
-  }, "Storico"), /*#__PURE__*/React.createElement("div", {
+  }, "Storico"), /*#__PURE__*/React.createElement("button", {
+    ref: el => tabRefs.current["alimenti"] = el,
+    className: `tab-btn${activeTab === "alimenti" ? " active" : ""}`,
+    onClick: () => setActiveTab("alimenti")
+  }, "Alimenti"), /*#__PURE__*/React.createElement("div", {
     className: "tab-indicator",
     style: {
       left: indicatorStyle.left,
@@ -1610,6 +1857,264 @@ function App() {
         className: "surplus"
       }, "+", week.balance.toLocaleString("it-IT"), " kcal")))))));
     }));
-  })())));
+  })()), user && activeTab === "alimenti" && /*#__PURE__*/React.createElement("div", {
+    className: "admin-tab"
+  }, dietData.map((cat, catIdx) => {
+    const isOpen = adminOpenCat === catIdx;
+    return /*#__PURE__*/React.createElement("div", {
+      key: catIdx,
+      className: "category-card"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "category-btn",
+      onClick: () => setAdminOpenCat(isOpen ? null : catIdx),
+      "aria-expanded": isOpen,
+      "aria-controls": `admin-cat-${catIdx}`
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "cat-icon",
+      "aria-hidden": "true"
+    }, cat.icon), /*#__PURE__*/React.createElement("span", {
+      className: "cat-name"
+    }, cat.category), /*#__PURE__*/React.createElement("span", {
+      className: "cat-meta"
+    }, cat.items.length, " ", cat.items.length === 1 ? "alimento" : "alimenti"), /*#__PURE__*/React.createElement("span", {
+      className: `cat-arrow${isOpen ? " open" : ""}`
+    }, "\u25BC")), isOpen && /*#__PURE__*/React.createElement("div", {
+      id: `admin-cat-${catIdx}`,
+      className: "admin-items-list"
+    }, /*#__PURE__*/React.createElement("div", {
+      ref: isOpen ? sortableListRef : null
+    }, cat.items.map(item => /*#__PURE__*/React.createElement("div", {
+      key: item.id
+    }, adminEditId === item.id ? /*#__PURE__*/React.createElement("div", {
+      className: "admin-form"
+    }, /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-name",
+      "aria-label": "Nome alimento",
+      placeholder: "Nome",
+      value: adminEditDraft.name,
+      onChange: e => setAdminEditDraft(d => ({
+        ...d,
+        name: e.target.value
+      })),
+      onKeyDown: e => {
+        if (e.key === "Enter") saveEditedItem(item.id);
+        if (e.key === "Escape") setAdminEditId(null);
+      },
+      autoFocus: true
+    }), /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-portion",
+      "aria-label": "Porzione",
+      placeholder: "Porzione",
+      value: adminEditDraft.portion,
+      onChange: e => setAdminEditDraft(d => ({
+        ...d,
+        portion: e.target.value
+      }))
+    }), /*#__PURE__*/React.createElement("label", {
+      className: "admin-variable-label"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: adminEditDraft.variable,
+      onChange: e => setAdminEditDraft(d => ({
+        ...d,
+        variable: e.target.checked
+      }))
+    }), "Variabile"), adminEditDraft.variable ? /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-kcal",
+      type: "number",
+      "aria-label": "Kcal per grammo",
+      placeholder: "kcal/g",
+      value: adminEditDraft.kcalPerG,
+      onChange: e => setAdminEditDraft(d => ({
+        ...d,
+        kcalPerG: e.target.value
+      })),
+      min: "0",
+      step: "0.01"
+    }) : /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-kcal",
+      type: "number",
+      "aria-label": "Calorie",
+      placeholder: "kcal",
+      value: adminEditDraft.kcal,
+      onChange: e => setAdminEditDraft(d => ({
+        ...d,
+        kcal: e.target.value
+      })),
+      min: "0"
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "admin-form-actions"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "admin-btn admin-btn-primary",
+      onClick: () => saveEditedItem(item.id),
+      "aria-label": "Salva modifiche"
+    }, "Salva"), /*#__PURE__*/React.createElement("button", {
+      className: "admin-btn admin-btn-ghost",
+      onClick: () => setAdminEditId(null),
+      "aria-label": "Annulla modifica"
+    }, "Annulla"))) : /*#__PURE__*/React.createElement("div", {
+      className: "admin-item-row"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "admin-drag-handle",
+      "aria-hidden": "true"
+    }, "\u283F"), /*#__PURE__*/React.createElement("div", {
+      className: "admin-item-info"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "admin-item-name"
+    }, item.name), /*#__PURE__*/React.createElement("span", {
+      className: "admin-item-meta"
+    }, item.variable ? `${item.kcalPerG} kcal/g` : `${item.kcal} kcal`, item.portion ? ` · ${item.portion}` : "")), /*#__PURE__*/React.createElement("div", {
+      className: "admin-item-actions"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "admin-icon-btn",
+      onClick: () => startEditItem(item),
+      "aria-label": `Modifica ${item.name}`
+    }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
+      className: "admin-icon-btn admin-icon-btn-delete",
+      onClick: () => deleteItem(item.id),
+      "aria-label": `Elimina ${item.name}`
+    }, "\uD83D\uDDD1\uFE0F")))))), adminNewItem?.catIdx === catIdx ? /*#__PURE__*/React.createElement("div", {
+      className: "admin-form admin-form-new"
+    }, /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-name",
+      "aria-label": "Nome nuovo alimento",
+      placeholder: "Nome alimento",
+      value: adminNewItem.name,
+      onChange: e => setAdminNewItem(d => ({
+        ...d,
+        name: e.target.value
+      })),
+      onKeyDown: e => {
+        if (e.key === "Enter") addNewItem(catIdx);
+        if (e.key === "Escape") setAdminNewItem(null);
+      },
+      autoFocus: true
+    }), /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-portion",
+      "aria-label": "Porzione",
+      placeholder: "Porzione",
+      value: adminNewItem.portion,
+      onChange: e => setAdminNewItem(d => ({
+        ...d,
+        portion: e.target.value
+      }))
+    }), /*#__PURE__*/React.createElement("label", {
+      className: "admin-variable-label"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: adminNewItem.variable,
+      onChange: e => setAdminNewItem(d => ({
+        ...d,
+        variable: e.target.checked
+      }))
+    }), "Variabile"), adminNewItem.variable ? /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-kcal",
+      type: "number",
+      "aria-label": "Kcal per grammo",
+      placeholder: "kcal/g",
+      value: adminNewItem.kcalPerG,
+      onChange: e => setAdminNewItem(d => ({
+        ...d,
+        kcalPerG: e.target.value
+      })),
+      min: "0",
+      step: "0.01"
+    }) : /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-kcal",
+      type: "number",
+      "aria-label": "Calorie",
+      placeholder: "kcal",
+      value: adminNewItem.kcal,
+      onChange: e => setAdminNewItem(d => ({
+        ...d,
+        kcal: e.target.value
+      })),
+      min: "0"
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "admin-form-actions"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "admin-btn admin-btn-primary",
+      onClick: () => addNewItem(catIdx),
+      "aria-label": "Aggiungi alimento"
+    }, "Aggiungi"), /*#__PURE__*/React.createElement("button", {
+      className: "admin-btn admin-btn-ghost",
+      onClick: () => setAdminNewItem(null),
+      "aria-label": "Annulla"
+    }, "Annulla"))) : /*#__PURE__*/React.createElement("button", {
+      className: "admin-add-btn",
+      onClick: () => {
+        setAdminEditId(null);
+        setAdminNewItem({
+          catIdx,
+          name: "",
+          kcal: "",
+          portion: "",
+          variable: false,
+          kcalPerG: ""
+        });
+      },
+      "aria-label": `Aggiungi alimento a ${cat.category}`
+    }, "+ Aggiungi alimento"), /*#__PURE__*/React.createElement("div", {
+      className: "admin-cat-footer"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "admin-delete-cat-btn",
+      onClick: () => deleteCategory(catIdx),
+      "aria-label": `Elimina categoria ${cat.category}`
+    }, "Elimina categoria"))));
+  }), adminNewCat ? /*#__PURE__*/React.createElement("div", {
+    className: "admin-new-cat-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "admin-form"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "admin-input admin-input-name",
+    "aria-label": "Nome nuova categoria",
+    placeholder: "Nome categoria",
+    value: adminNewCatDraft.name,
+    onChange: e => setAdminNewCatDraft(d => ({
+      ...d,
+      name: e.target.value
+    })),
+    onKeyDown: e => {
+      if (e.key === "Enter") addNewCategory();
+      if (e.key === "Escape") {
+        setAdminNewCat(false);
+        setAdminNewCatDraft({
+          name: "",
+          icon: ""
+        });
+      }
+    },
+    autoFocus: true
+  }), /*#__PURE__*/React.createElement("input", {
+    className: "admin-input admin-input-icon",
+    "aria-label": "Emoji icona categoria",
+    placeholder: "Emoji",
+    value: adminNewCatDraft.icon,
+    onChange: e => setAdminNewCatDraft(d => ({
+      ...d,
+      icon: e.target.value
+    })),
+    maxLength: 2
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "admin-form-actions"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "admin-btn admin-btn-primary",
+    onClick: addNewCategory,
+    "aria-label": "Aggiungi categoria"
+  }, "Aggiungi"), /*#__PURE__*/React.createElement("button", {
+    className: "admin-btn admin-btn-ghost",
+    onClick: () => {
+      setAdminNewCat(false);
+      setAdminNewCatDraft({
+        name: "",
+        icon: ""
+      });
+    },
+    "aria-label": "Annulla"
+  }, "Annulla")))) : /*#__PURE__*/React.createElement("button", {
+    className: "admin-add-cat-btn",
+    onClick: () => setAdminNewCat(true),
+    "aria-label": "Aggiungi nuova categoria"
+  }, "+ Aggiungi categoria"))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));

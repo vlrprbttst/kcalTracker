@@ -6,7 +6,7 @@ App personale per tracciare le calorie giornaliere. Pubblicata su GitHub Pages. 
 **Live:** https://vlrprbttst.github.io/kcalTracker  
 **Repo:** https://github.com/vlrprbttst/kcalTracker  
 **File principali:** `index.html` (scheletro HTML), `style.css` (tutto il CSS), `app.jsx` (sorgente JSX), `app.js` (compilato — quello che carica il browser)  
-**File di riferimento alimenti:** la lista alimenti è in `app.jsx` nell'array `dietData`.
+**File di riferimento alimenti:** la lista alimenti è in `app.jsx` nell'array `SEED_DIET_DATA` (seed iniziale), ma in produzione viene caricata da Firestore (`users/{uid}/config/foods`).
 
 ---
 
@@ -15,7 +15,8 @@ App personale per tracciare le calorie giornaliere. Pubblicata su GitHub Pages. 
 - **app.jsx pre-compilato in app.js con Babel Node** — Babel non è più nel browser
 - Firebase 10.12.2 (compat SDK via CDN, versione pinnata, SRI hash):
   - **Authentication** — Google OAuth
-  - **Firestore** — salvataggio dati giornalieri e storico
+  - **Firestore** — salvataggio dati giornalieri, storico, e lista alimenti
+- SortableJS 1.15.2 via CDN (no SRI hash) — drag & drop nel tab Alimenti
 - GitHub Pages per l'hosting (branch `master`, aggiornamento automatico ad ogni push)
 - Dark/light theme con CSS variables
 - `build.js` + `package.json` per la compilazione locale (Node.js richiesto)
@@ -47,6 +48,10 @@ service cloud.firestore {
 ```
 users/
   {uid}/
+    config/
+      foods: {
+        dietData: [ { category, icon, items: [{ id, name, portion, kcal, variable?, kcalPerG? }] } ]
+      }
     days/
       2026-04-24: {
         counts:   { "b4x8q3": 2, "u6r3k8": 1, ... },
@@ -66,34 +71,36 @@ users/
 ```
 
 **Note sui campi:**
-- `counts` / `varGrams`: chiavi = ID stabili opachi a 6 caratteri da `dietData`
-- `extras`: ogni extra ha un `uid` opaco generato al momento dell'aggiunta (per tracciamento nel log)
-- `log`: array cronologico di tutto ciò che è stato mangiato, con timestamp ISO. Usato dal tab Menu e dallo Storico (vista raggruppata per pasto). Non va storicizzato — vale solo per il giorno corrente.
+- `config/foods.dietData`: lista alimenti completa, modificabile dal tab Alimenti. Al primo login viene seminata da `SEED_DIET_DATA` in `app.jsx`.
+- `counts` / `varGrams`: chiavi = ID stabili opachi a 6 caratteri
+- `extras`: ogni extra ha un `uid` opaco generato al momento dell'aggiunta
+- `log`: array cronologico — vale solo per il giorno corrente
 - `items`: stringhe leggibili per lo storico — immune a modifiche future agli alimenti
-- Il debounce di salvataggio è **400ms**
+- Il debounce di salvataggio dei dati giornalieri è **400ms**
+- Il salvataggio di `config/foods` è **immediato** ad ogni modifica nel tab Alimenti
 
 ### Migrazione automatica
-`migrateCountKeys()` converte i vecchi documenti con chiavi `"ci_ii"` al formato ID stabile. Gira su localStorage e Firestore (solo documento di oggi).
+`migrateCountKeys()` converte i vecchi documenti con chiavi `"ci_ii"` al formato ID stabile. Usa `SEED_DIET_DATA` come riferimento (la migrazione è storica, i dati sono già migrati).
 
 ---
 
 ## Regole importanti
 
 ### Aggiunta/modifica alimenti
-Puoi aggiungere, rimuovere e riordinare alimenti liberamente — gli ID stabili disaccoppiano i dati Firestore dalla posizione nell'array.
+Puoi aggiungere, rimuovere e riordinare alimenti liberamente — sia via tab Alimenti nell'app, sia modificando `SEED_DIET_DATA` in `app.jsx` (solo per modifiche strutturali, es. aggiungere una categoria al seed iniziale).
 
 **L'unica regola: non riusare mai un ID già usato per un alimento diverso.** Il nome può cambiare, l'ID è per sempre.
 
-Quando aggiungi un nuovo alimento, Claude genera un ID opaco a 6 caratteri (es. `k3m7p2`). Non ha significato — è intenzionale.
+Quando aggiungi un nuovo alimento via codice, genera un ID opaco a 6 caratteri (es. `k3m7p2`). L'app genera automaticamente l'ID quando si aggiunge dal tab Alimenti.
 
-Per gli alimenti a porzione variabile usa la formula `"aggiungi XXX col sistema di porzione variabile"` e specifica nome + kcal per 100g.
+Per gli alimenti a porzione variabile usa la formula `"aggiungi XXX col sistema di porzione variabile"` oppure usa il toggle "Variabile" nel tab Alimenti e inserisci kcal per grammo.
 
-**Categoria Alcol → sezione Extra nel Menu:** tutti gli item con `category: "Alcol"` finiscono automaticamente nella sezione "🍺 Extra" del tab Menu e dello Storico, indipendentemente dall'orario. Basta aggiungere nuovi alcolici nella categoria "Alcol" in `dietData`.
+**Categoria Alcol → sezione Extra nel Menu:** tutti gli item con `category: "Alcol"` finiscono automaticamente nella sezione "🍺 Extra" del tab Menu e dello Storico.
 
 **Attenzione:** non pushare mai a metà giornata se stai cambiando un alimento fisso in variabile — la sanitizzazione al carico azzera il count se varGrams è assente.
 
 ### Build
-**Dopo ogni modifica a `app.jsx`, eseguire sempre `npm run build` prima di committare.** Il browser carica `app.js` (JavaScript puro), non `app.jsx`. Se non si ricompila, le modifiche non hanno effetto.
+**Dopo ogni modifica a `app.jsx`, eseguire sempre `npm run build` prima di committare.**
 
 ```bash
 npm run build   # compila app.jsx → app.js
@@ -113,108 +120,108 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - Lista alimenti divisa in categorie, ognuna è un accordion
 - Layout interno accordion: **CSS Grid** (`1fr auto 56px 84px`) — nome flessibile, porzione auto, kcal e counter fissi
 - Contatore +/− per porzione (supporta stessa voce più volte)
-- **Alimenti a porzione variabile** (`variable: true, kcalPerG: N` in dietData): input "Grammi" nella colonna porzione, kcal si aggiorna live; +/− contano le porzioni come al solito. La lista aggiornata è in `dietData` in `app.jsx`
+- **Alimenti a porzione variabile** (`variable: true, kcalPerG: N`): input "Grammi" nella colonna porzione, kcal si aggiorna live
 - Bottoni +/− sempre visibili: il − è opaco (75%) e non cliccabile finché qty = 0
 - Totale kcal live con barra di progresso colorata (verde/giallo/rosso)
 - Goal calorico editabile cliccando il numero nell'header (default: 2000 kcal)
 - Shake animation quando si supera il target per la prima volta
 - Barra di ricerca per filtrare gli alimenti per nome (solo loggati)
-- Bottone "chiudi tutto" per chiudere tutti gli accordion aperti (spazio riservato fisso per evitare layout shift)
-- Feedback tattile (vibrazione) al tap su + (funziona solo se la vibrazione del telefono è attiva)
-- Reset manuale con conferma (azzera counts, extras, varGrams, log)
-- Legenda colori barre kcal in fondo alla lista (verde <250, giallo 250–400, rosso >400)
+- Bottone "chiudi tutto" per chiudere tutti gli accordion aperti
+- Feedback tattile (vibrazione) al tap su +
+- Reset manuale con conferma
+- Legenda colori barre kcal in fondo alla lista
 - Logo testuale sostituito con `logo2.png` nell'header
 
 ### Extra (campo libero)
 - Card in fondo alla lista con due input: nome alimento + kcal
 - Gli extra hanno un `uid` opaco per essere tracciati nel log
-- Gli extra appaiono come lista con bottone × per rimuoverli (rimozione per uid, non per indice)
+- Gli extra appaiono come lista con bottone × per rimuoverli
 - Si sommano al totale kcal
 
 ### Tab Menu (solo loggati, appare solo con almeno un alimento loggato)
-- Si trova tra "Oggi" e "Storico"
 - Mostra tutto ciò che è stato loggato oggi, raggruppato per fascia oraria
-- **Voci duplicate raggruppate:** stesso alimento ripetuto più volte appare come "Bao ×3" con kcal totali sommate. Per alimenti variabili, grammi diversi restano voci separate (es. "Basmati 150g" e "Basmati 200g")
-- Scompare automaticamente se il log si svuota (torna su "Oggi")
-- **Fasce orarie:**
-  - 00:00–05:29 → **Fuori Orario**
-  - 05:30–10:30 → **Colazione**
-  - 10:31–12:00 → **Merenda metà mattina**
-  - 12:01–15:00 → **Pranzo**
-  - 15:01–19:00 → **Merenda pomeriggio**
-  - 19:01–22:00 → **Cena**
-  - 22:01–23:59 → **Fuori Orario** (stessa fascia del mattino presto)
-- **Sezione 🍺 Extra:** tutti gli alcolici (categoria "Alcol") appaiono qui, indipendentemente dall'orario
-- Il log è salvato in Firestore → persiste tra dispositivi e reload
-- Ogni pressione di + aggiunge una voce al log con timestamp corrente; ogni − rimuove l'ultima voce di quell'alimento
-- Per alimenti variabili: se si digitano i grammi dopo aver premuto +, l'ultima voce del log viene aggiornata retroattivamente
+- **Voci duplicate raggruppate:** stesso alimento ripetuto più volte appare come "Bao ×3"
+- **Fasce orarie:** Fuori Orario / Colazione / Merenda metà mattina / Pranzo / Merenda pomeriggio / Cena
+- **Sezione 🍺 Extra:** tutti gli alcolici (categoria "Alcol") appaiono qui indipendentemente dall'orario
+
+### Tab Alimenti (solo loggati)
+- Gestione completa della lista alimenti direttamente nell'app
+- **Struttura:** categorie come accordion, ognuna con la lista degli item interni
+- **Per ogni item:** visualizzazione nome + kcal/porzione, bottone modifica (✏️) e elimina (🗑️)
+- **Modifica inline:** form che sostituisce la riga, con campi nome, porzione, kcal (o kcal/g se variabile), toggle variabile
+- **Aggiunta item:** bottone "+ Aggiungi alimento" in fondo a ogni categoria aperta
+- **Aggiunta categoria:** bottone "+ Aggiungi categoria" in fondo alla lista
+- **Eliminazione categoria:** bottone "Elimina categoria" in fondo all'accordion aperto
+- **Drag & drop** (SortableJS): handle `⠿` su ogni riga per riordinare gli item all'interno della stessa categoria — funziona su mouse e touch
+- **Salvataggio:** ogni modifica (add/edit/delete/reorder) salva immediatamente su Firestore `config/foods`
+- **Prima apertura post-deploy:** se `config/foods` non esiste, viene seminato da `SEED_DIET_DATA`
+- Eliminare un item con conteggi attivi oggi mostra un warning — il conteggio giornaliero non viene modificato
 
 ### Autenticazione
 - Bottone "Accedi" nell'header (Google OAuth)
-- Solo l'ALLOWED_UID può loggarsi — chiunque altro vede la gif `no.gif` + messaggio "non puoi loggarti..."
-- Da loggato: sync Firestore (debounced 400ms)
+- Solo l'ALLOWED_UID può loggarsi
+- Da loggato: sync Firestore (debounced 400ms per dati giornalieri, immediato per lista alimenti)
 - Da non loggato: localStorage, nessuno storico, reset automatico al cambio giorno
-- Al logout: counts, extras, varGrams, log si azzerano
+- Al logout: counts, extras, varGrams, log si azzerano; dietData torna a SEED_DIET_DATA
 
 ### Esperienza non loggata (MVP guest)
-- **Non viene mostrata** la lista alimenti (categorie), la search bar, la legenda kcal né la categoria Alcol
-- L'unica interfaccia è il campo **"Aggiungi alimento"** (ex "Extra"): nome libero + kcal — identico al meccanismo Extra dell'utente loggato
-- In fondo compare un **banner beta** che spiega le funzionalità disponibili da loggato e offre il bottone "Accedi con Google"
-- I dati sono in localStorage, si azzerano automaticamente al cambio di giornata dietetica (05:30)
-- Tab Menu e Storico non compaiono
+- Nessuna lista alimenti — solo il campo **"Aggiungi alimento"** (nome libero + kcal)
+- Banner beta con bottone "Accedi con Google"
+- I dati sono in localStorage, si azzerano al cambio di giornata dietetica (05:30)
+- Tab Menu, Storico e Alimenti non compaiono
 
 ### Storico (tab "Storico", solo loggati)
-- **Paginazione bimestrale** (Gen-Feb, Mar-Apr, ecc.) con nav ← prec / succ →
-- **Header mese** per ogni gruppo di settimane
+- **Paginazione bimestrale** con nav ← prec / succ →
 - **Settimana in corso**: card sempre aperta, non chiudibile, header viola
-- **Settimane passate**: accordion chiuso; cliccabile per aprire
-  - Se **completa** (7/7 giorni): mostra balance deficit/surplus a destra nell'header
-  - Se **incompleta**: nessun balance nell'header, solo date + N/7 giorni + ⚠️
-- Settimane dal venerdì al giovedì (Valerio si pesa il venerdì)
-- **Obiettivo settimana: 14.000 kcal** (fisso)
+- **Settimane passate**: accordion; se completa mostra balance deficit/surplus
+- Settimane dal venerdì al giovedì
+- **Obiettivo settimana: 14.000 kcal**
 - Verde = deficit, rosso = surplus
-- **Settimane incomplete**: accordion giallino, nota "dati parziali" nel riepilogo aperto
-- **Vista pasti nel giorno:**
-  - Se il giorno ha `log` (dati nuovi): mostra raggruppato per fascia oraria con sezione "🍺 Extra:" per alcolici
-  - Se il giorno non ha `log` (dati vecchi): mostra la flat list `items` (compatibilità)
-- Label riepilogo settimana: "Media settimanale" (14.000 kcal) e "Calorie assunte"
+- **Vista pasti nel giorno:** se il giorno ha `log` mostra raggruppato per fascia oraria; altrimenti flat list `items`
 
 ### Navigazione tab
-- Swipe orizzontale sul `<main>` per passare tra i tab (touch)
-- Indicatore tab animato: bordo inferiore scorrevole con `cubic-bezier`, misura i bottoni con `tabRefs` e aggiorna `indicatorStyle` (`left` + `width`) tramite `useEffect`
+- Swipe orizzontale sul `<main>` per passare tra i tab
+- Indicatore tab animato con `cubic-bezier`
 
 ### Tema
 - Toggle ☀️/🌙 nell'header
-- Preferenza salvata in localStorage
-- Transizione animata (0.25s)
+- Preferenza in localStorage
 - CSS variables su `body` / `body.light`
-- Tutti i colori rispettano WCAG AAA (7:1 testo normale, 4.5:1 testo grande) — vedere sezione Accessibilità
+- Tutti i colori WCAG AAA (7:1)
 
 ---
 
 ## Dettagli tecnici importanti
 
-### Lookup maps (globali, costruite da dietData)
+### dietData — da globale a state dinamico
+`SEED_DIET_DATA` è l'array hardcoded in `app.jsx` usato come seed e fallback per la migrazione legacy.
+
+Al login, `dietData` viene caricato da Firestore (`config/foods`) in parallelo con i dati del giorno. Se `config/foods` non esiste, viene seminato da `SEED_DIET_DATA`. Il componente mantiene `dietData` come React state.
+
+`itemById` e `itemCategory` sono `useMemo` derivati da `dietData` — si ricalcolano ad ogni modifica della lista.
+
+### Lookup maps
 ```js
-const itemById = {};      // id → item object
-const itemCategory = {};  // id → nome categoria
-dietData.forEach(cat => cat.items.forEach(item => {
-  itemById[item.id] = item;
-  itemCategory[item.id] = cat.category;
-}));
+// globali (per loadLocalData e migrateCountKeys — usano SEED_DIET_DATA)
+const seedItemById = {};
+const seedItemCategory = {};
+
+// dentro App() — derivati da state
+const itemById = useMemo(() => { ... }, [dietData]);
+const itemCategory = useMemo(() => { ... }, [dietData]);
 ```
 
 ### Sanitizzazione al carico
-Al load da Firestore e localStorage: se un alimento variabile ha `count > 0` ma `varGrams = 0`, il count viene azzerato. Previene lo stato "evidenziato ma senza grammi".
+Al load da Firestore: se un alimento variabile ha `count > 0` ma `varGrams = 0`, il count viene azzerato. Usa `loadedItemById` (costruito dalla dietData caricata, non da SEED_DIET_DATA).
 
 ### Debounce salvataggio
-400ms (ridotto da 1500ms per ridurre il rischio di perdita dati su reload PWA).
+400ms per i dati giornalieri. Il salvataggio di `config/foods` è sincrono (immediato).
 
 ### dataReady flag
-Blocca il salvataggio Firestore finché i dati non sono stati caricati. Previene la sovrascrittura dei dati al login. **Se il caricamento Firestore fallisce (errore di rete, CSP, ecc.), `setDataReady(true)` non viene chiamato** — il salvataggio non parte e Firestore non viene mai sovrascritto con stato vuoto. L'app rimane in stato "frozen" finché l'utente non ricarica.
+Bloccato finché non sono caricati **sia** i dati del giorno **sia** la lista alimenti (`config/foods`). Se uno dei due fetch fallisce, `setDataReady(true)` non viene chiamato — il salvataggio non parte.
 
 ### ACTIVE_DAY() — giornata dietetica
-La funzione `ACTIVE_DAY()` sostituisce `TODAY()` ovunque nell'app. La giornata dietetica inizia alle **05:30**: qualsiasi alimento loggato tra le 00:00 e le 05:29 viene attribuito al giorno precedente (es. mangi qualcosa all'1:00 del 25 aprile → finisce nello storico del 24 aprile, fascia "Fuori Orario").
+La giornata dietetica inizia alle **05:30**.
 
 ```js
 const ACTIVE_DAY = () => {
@@ -229,9 +236,16 @@ const ACTIVE_DAY = () => {
 };
 ```
 
-**Attenzione:** non usare `toISOString()` per calcolare la data locale — restituisce UTC e causa sfasamenti nelle timezone non-UTC (es. in Italia UTC+2 a mezzanotte locale è ancora il giorno prima in UTC). Usare sempre `getFullYear/Month/Date`.
+Non usare `toISOString()` — restituisce UTC e causa sfasamenti.
 
-Usata per: load/save Firestore, localStorage, filtro storico, rilevamento settimana corrente, paginazione bimestrale.
+### SortableJS nel tab Alimenti
+Inizializzato via `useEffect([adminOpenCat, activeTab])`. Dipende da `activeTab` perché il tab Alimenti viene smontato/rimontato al cambio tab — senza questa dipendenza, Sortable non verrebbe ricreato al ritorno sul tab. Usa `adminOpenCatRef` e `userRef` per accesso closure-safe a valori correnti dentro `onEnd`.
+
+### genId
+```js
+const genId = () => Math.random().toString(36).slice(2, 8);
+```
+Genera ID opachi a 6 caratteri base-36. Usato per nuovi alimenti aggiunti dal tab Alimenti.
 
 ---
 
@@ -240,7 +254,6 @@ Usata per: load/save Firestore, localStorage, filtro storico, rilevamento settim
 L'app è sviluppata per essere compliant WCAG AAA 2.2. Ogni nuova funzionalità deve rispettare questi standard.
 
 ### Colori (SC 1.4.6 — contrasto 7:1)
-Variabili aggiornate per garantire 7:1 su tutti i background:
 
 | Variabile | Dark | Light |
 |---|---|---|
@@ -252,63 +265,38 @@ Variabili aggiornate per garantire 7:1 su tutti i background:
 | `--color-negative` | `#fa8585` | `#991b1b` |
 | `--color-warning` | `#fbbf24` | `#78350f` |
 
-Il `.guest-banner-btn` usa testo scuro (`#111113`) in dark mode (accent chiaro) e bianco in light mode (accent scuro).
-
-### Focus (SC 2.4.12, 2.4.13)
-- Global `:focus-visible` con outline 3px `var(--accent)`, offset 2px
-- Nessun `outline: none` in tutta la codebase
-- `.category-card` senza `overflow: hidden` — le outline non vengono tagliate
-- `.category-btn` ha `border-radius: 10px` proprio per il focus ring
-- Elementi dentro `.items-grid` (overflow:hidden) usano `outline-offset: -3px` (inset)
-- `scroll-padding-top: 140px` su `html` — evita che l'header fisso nasconda il focus
-
-### Touch target (SC 2.5.5 — 44×44px)
-I counter buttons sono 22×22px visivamente, ma il touch target è esteso a 44×44px tramite `.counter-btn::before { inset: -11px }`.
-
-### Motion (SC 2.3.3)
-`@media (prefers-reduced-motion: reduce)` disabilita tutte le transizioni e animazioni.
-
-### Semantic HTML e ARIA
-- `<header>` e `<main id="main-content">` al posto di `<div>`
-- Skip link "Vai al contenuto principale" visibile solo da tastiera
-- `role="navigation"` sulla tabs-bar
-- `role="dialog" aria-modal aria-labelledby` sul modal accesso negato
-- `aria-expanded` + `aria-controls` su tutti i bottoni accordion
-- `aria-label` su tutti i bottoni icona (tema, reset, +/−, ×, ricerca)
-- `aria-label` su tutti gli input (grammi, extra nome/kcal, search, obiettivo)
-- `aria-live="polite" aria-atomic="true"` sul totale kcal
-- `role="group" aria-label` sui counter di ogni alimento
-- Emoji decorative con `aria-hidden="true"`
-- Placeholder degli input in corsivo per distinguerli dal testo inserito
+### Focus, Touch target, Motion, Semantic HTML
+- Global `:focus-visible` 3px accent, offset 2px
+- Counter buttons: touch target 44×44px via `::before { inset: -11px }`
+- `@media (prefers-reduced-motion)` disabilita tutte le transizioni
+- Skip link, `role="navigation"`, `aria-expanded`, `aria-label` su tutti i bottoni icona
 
 ---
 
 ## Lista alimenti
-La lista completa è in `app.jsx` nell'array `dietData` (circa riga 15).  
-Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.  
-Le categorie e l'ordine degli alimenti sono modificabili liberamente.
+La lista completa è gestita in Firestore (`config/foods`). `SEED_DIET_DATA` in `app.jsx` è la versione di partenza.  
+Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 
 ---
 
 ## File nella repo
-- `index.html` — scheletro HTML (head, root div, CDN scripts con SRI, CSP meta tag)
+- `index.html` — scheletro HTML (head, root div, CDN scripts con SRI, SortableJS, CSP meta tag)
 - `style.css` — tutto il CSS dell'app
-- `app.jsx` — sorgente JSX React (logica, componenti, dietData) — **non caricato dal browser**
-- `app.js` — output compilato da `app.jsx` — **questo è ciò che carica il browser**
-- `build.js` — script di compilazione (`node build.js` compila app.jsx → app.js)
-- `package.json` — devDependencies (@babel/core, @babel/preset-react) + script `build`
+- `app.jsx` — sorgente JSX React — **non caricato dal browser**
+- `app.js` — output compilato — **quello che carica il browser**
+- `build.js` — script di compilazione
+- `package.json` — devDependencies + script `build`
 - `package-lock.json` — lockfile npm
-- `manifest.json` — PWA manifest (icona 1024×1024, maskable)
-- `logo.png` — icona app PWA (1024×1024, sfondo scuro #111113)
+- `manifest.json` — PWA manifest
+- `logo.png` — icona app PWA
 - `logo2.png` — logo testuale nell'header
-- `no.gif` — gif mostrata quando un utente non autorizzato prova a loggarsi
+- `no.gif` — gif accesso negato
 - `.gitignore` — esclude `.claude/`, `CLAUDE.md`, `node_modules/`
 - `CONTEXT.md` — questo file
 
 ---
 
 ## Idee discusse ma non implementate
-- **Admin page** per gestire alimenti senza chiedere a Claude — ora fattibile grazie agli ID stabili, ma non prioritaria
 - **Grafico nello storico** — scartato per ora
 - **Nota giornaliera** — scartata per ora
 - **Google Fit integration** — impossibile, API dismessa dal 30/06/2025
@@ -317,17 +305,17 @@ Le categorie e l'ordine degli alimenti sono modificabili liberamente.
 
 ## Come lavorare su questo progetto
 1. Modifiche al CSS → `style.css`
-2. Modifiche alla logica/UI → `app.jsx`, poi **`npm run build`** per compilare in `app.js`
-3. Aggiunta alimenti → in `app.jsx` nell'array `dietData`, con un nuovo ID opaco unico a 6 caratteri, poi `npm run build`
+2. Modifiche alla logica/UI → `app.jsx`, poi **`npm run build`**
+3. Aggiunta/modifica alimenti → direttamente dal **tab Alimenti** nell'app (loggato), oppure in `SEED_DIET_DATA` in `app.jsx` per modifiche strutturali al seed
 4. Push → `git add . && git commit -m "..." && git push` — solo quando Valerio lo chiede
 5. GitHub Pages → si aggiorna in 1-2 minuti dal push
-6. Per testare in locale → live server su `127.0.0.1:5500` (VS Code) o `localhost`
+6. Per testare in locale → live server su `127.0.0.1:5500`
 
 ### Cache PWA mobile
-`app.js` è caricato con query string di versione: `<script src="app.js?v=HASH">`. L'hash è i primi 8 caratteri del SHA-256 del contenuto di `app.js`, calcolato e aggiornato automaticamente da `build.js` ad ogni compilazione. Se `app.jsx` non cambia, l'hash rimane identico. `style.css` non ha bisogno del versioning.
+`app.js` è caricato con query string di versione: `<script src="app.js?v=HASH">`. L'hash è i primi 8 caratteri del SHA-256 del contenuto di `app.js`, aggiornato automaticamente da `build.js`.
 
 ### Sicurezza
-- **SRI hash** su tutti gli script CDN (React 18.3.1, Firebase 10.12.2) — il browser rifiuta file manomessi
-- **Content Security Policy** via meta tag: limita `script-src` a `self`, `unpkg.com`, `gstatic.com`, `apis.google.com`; `connect-src` alle API Firebase/Google; `object-src 'none'`; `base-uri 'self'`
-- **Babel non più nel browser** — nessun compilatore runtime, superficie di attacco ridotta
-- **Versioni CDN pinnate** — nessun aggiornamento silenzioso
+- **SRI hash** su tutti gli script CDN eccetto SortableJS (aggiunto successivamente)
+- **Content Security Policy** via meta tag: `script-src` include `unpkg.com` (dove risiedono React e SortableJS)
+- **Babel non più nel browser**
+- **Versioni CDN pinnate**

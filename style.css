@@ -595,3 +595,186 @@ body:not(.light) .week-incomplete-note { color: #ca8a04; }
   transition: background .12s;
 }
 .modal-btn:hover { background: var(--accent-hover); }
+
+/* Admin tab — Alimenti */
+.admin-tab { padding-bottom: 24px; }
+
+.admin-items-list {
+  padding: 4px 14px 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.admin-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.admin-item-row:last-of-type { border-bottom: none; }
+
+.admin-item-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.admin-item-name { font-size: 14px; color: var(--text); }
+.admin-item-meta { font-size: 11px; color: var(--text-dimmest); }
+
+.admin-item-actions { display: flex; gap: 2px; flex-shrink: 0; }
+
+.admin-icon-btn {
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  padding: 4px 6px;
+  color: var(--text-dimmer);
+  cursor: pointer;
+  border-radius: 6px;
+  min-width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .12s;
+}
+.admin-icon-btn:hover { background: var(--surface-hover); }
+.admin-icon-btn-delete:hover { background: #3a1212; }
+body.light .admin-icon-btn-delete:hover { background: #fee2e2; }
+
+.admin-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 0 8px;
+}
+.admin-form-new { border-top: 1px solid var(--border-subtle); margin-top: 4px; }
+
+.admin-input {
+  background: var(--surface);
+  border: 1px solid var(--border-mid);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 6px 9px;
+  font-family: inherit;
+  transition: border-color .15s;
+}
+.admin-input:focus { border-color: var(--accent); outline: none; }
+.admin-input::placeholder { color: var(--text-dimmest); font-style: italic; }
+.admin-input-name { flex: 1; min-width: 120px; }
+.admin-input-portion { width: 90px; }
+.admin-input-kcal { width: 80px; }
+.admin-input-icon { width: 70px; }
+
+.admin-variable-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.admin-form-actions { display: flex; gap: 6px; }
+
+.admin-btn {
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  min-height: 32px;
+  border: none;
+  cursor: pointer;
+  transition: opacity .12s;
+  font-family: inherit;
+}
+.admin-btn:hover { opacity: .85; }
+.admin-btn-primary { background: var(--accent); color: #111113; }
+body.light .admin-btn-primary { color: #fff; }
+.admin-btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border-mid);
+}
+.admin-btn-ghost:hover { opacity: 1; border-color: var(--text-dimmer); color: var(--text); }
+
+.admin-add-btn {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  background: transparent;
+  border: 1px dashed var(--border-mid);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: center;
+  min-height: 36px;
+  font-family: inherit;
+  transition: border-color .15s, background .12s;
+}
+.admin-add-btn:hover { border-color: var(--accent); background: var(--accent-bg); }
+
+.admin-cat-footer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-delete-cat-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dimmest);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  min-height: 32px;
+  font-family: inherit;
+  transition: color .12s;
+}
+.admin-delete-cat-btn:hover { color: var(--color-negative); }
+
+.admin-new-cat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 6px;
+}
+
+.admin-add-cat-btn {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  background: transparent;
+  border: 1px dashed var(--border-mid);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 13px 14px;
+  cursor: pointer;
+  text-align: center;
+  min-height: 44px;
+  font-family: inherit;
+  transition: border-color .15s, background .12s;
+}
+.admin-add-cat-btn:hover { border-color: var(--accent); background: var(--accent-bg); }
+
+.admin-drag-handle {
+  font-size: 16px;
+  color: var(--text-dimmest);
+  cursor: grab;
+  padding: 0 8px 0 0;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  line-height: 1;
+}
+.admin-drag-handle:active { cursor: grabbing; }
+.admin-drag-ghost { opacity: 0.4; background: var(--accent-bg) !important; }
