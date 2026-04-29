@@ -1870,7 +1870,7 @@ function App() {
           className: "surplus-snackbar-icon"
         }, "\u26A0\uFE0F"), /*#__PURE__*/React.createElement("div", {
           className: "surplus-snackbar-text"
-        }, /*#__PURE__*/React.createElement("strong", null, "Surplus previsto: +", projectedSurplus.toLocaleString("it-IT"), " kcal"), /*#__PURE__*/React.createElement("span", null, "A fine settimana potresti aumentare di circa ", weightGain, " kg")));
+        }, /*#__PURE__*/React.createElement("strong", null, "Surplus ad oggi: +", projectedSurplus.toLocaleString("it-IT"), " kcal"), /*#__PURE__*/React.createElement("span", null, "A fine settimana potresti aumentare di circa ", weightGain, " kg")));
       })()) : (() => {
         const incomplete = week.days.length < 7;
         return /*#__PURE__*/React.createElement("div", {

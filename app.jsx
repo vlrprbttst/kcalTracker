@@ -1272,7 +1272,7 @@ function App() {
                                   <div className="surplus-snackbar">
                                     <span className="surplus-snackbar-icon">⚠️</span>
                                     <div className="surplus-snackbar-text">
-                                      <strong>Surplus previsto: +{projectedSurplus.toLocaleString("it-IT")} kcal</strong>
+                                      <strong>Surplus ad oggi: +{projectedSurplus.toLocaleString("it-IT")} kcal</strong>
                                       <span>A fine settimana potresti aumentare di circa {weightGain} kg</span>
                                     </div>
                                   </div>
