@@ -128,7 +128,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - Barra di ricerca per filtrare gli alimenti per nome (solo loggati)
 - Bottone "chiudi tutto" per chiudere tutti gli accordion aperti
 - Feedback tattile (vibrazione) al tap su +
-- Reset manuale con conferma
+- Reset manuale con conferma (modale custom)
 - Legenda colori barre kcal in fondo alla lista
 - Logo testuale sostituito con `logo2.png` nell'header
 
@@ -155,7 +155,15 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - **Drag & drop** (SortableJS): handle `⠿` su ogni riga per riordinare gli item all'interno della stessa categoria — funziona su mouse e touch
 - **Salvataggio:** ogni modifica (add/edit/delete/reorder) salva immediatamente su Firestore `config/foods`
 - **Prima apertura post-deploy:** se `config/foods` non esiste, viene seminato da `SEED_DIET_DATA`
+- **Auto-merge al login:** se `config/foods` esiste ma mancano item/categorie presenti in `SEED_DIET_DATA`, vengono aggiunti automaticamente. Garantisce che nuovi alimenti aggiunti via codice appaiano anche per utenti già onboardati
 - Eliminare un item con conteggi attivi oggi mostra un warning — il conteggio giornaliero non viene modificato
+
+### Modali di conferma
+Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col design dell'app:
+- **Reset** e **Logout**: modale con bottoni Annulla / Conferma (accent)
+- **Elimina alimento** e **Elimina categoria**: modale con bottone Conferma in rosso (danger)
+- Stato: `confirmModal = { title, message, onConfirm, danger? } | null`
+- Escape chiude la modale
 
 ### Autenticazione
 - Bottone "Accedi" nell'header (Google OAuth)
