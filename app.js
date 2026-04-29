@@ -1859,9 +1859,8 @@ function App() {
         const daysFromFriday = (d.getDay() + 2) % 7;
         if (daysFromFriday < 3) return null;
         const weekKcal = week.days.reduce((s, day) => s + (day.totalKcal || 0), 0);
-        const totalSoFar = weekKcal + totalKcal;
-        const daysRemaining = 6 - daysFromFriday;
-        const projectedTotal = totalSoFar + target * daysRemaining;
+        const daysAfterToday = 6 - daysFromFriday;
+        const projectedTotal = weekKcal + Math.max(totalKcal, target) + target * daysAfterToday;
         const projectedSurplus = projectedTotal - 14000;
         if (projectedSurplus <= 0) return null;
         const weightGain = (projectedSurplus / 7700).toFixed(2);
