@@ -524,6 +524,21 @@ body.light .week-accordion-header.incomplete:hover { background: #fef9c3; }
 body.light .surplus-snackbar { background: #fffbeb; border-top-color: #fde68a; border-bottom-color: #fde68a; }
 body.light .surplus-snackbar-text strong { color: #b45309; }
 body.light .surplus-snackbar-text span { color: #92400e; }
+
+.deficit-snackbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #0a2010;
+  border-top: 1px solid #166534;
+  border-bottom: 1px solid #166534;
+  padding: 11px 16px;
+}
+.deficit-snackbar .surplus-snackbar-text strong { color: #4ade80; }
+.deficit-snackbar .surplus-snackbar-text span { color: #16a34a; }
+body.light .deficit-snackbar { background: #f0fdf4; border-top-color: #bbf7d0; border-bottom-color: #bbf7d0; }
+body.light .deficit-snackbar .surplus-snackbar-text strong { color: #15803d; }
+body.light .deficit-snackbar .surplus-snackbar-text span { color: #166534; }
 body:not(.light) .week-incomplete-note { color: #ca8a04; }
 .week-acc-left { display: flex; flex-direction: column; gap: 3px; flex: 1; }
 .week-acc-dates { font-size: 13px; font-weight: 600; color: var(--text); }

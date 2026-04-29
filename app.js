@@ -1862,15 +1862,21 @@ function App() {
         const daysAfterToday = 6 - daysFromFriday;
         const projectedTotal = weekKcal + Math.max(totalKcal, target) + target * daysAfterToday;
         const projectedSurplus = projectedTotal - 14000;
-        if (projectedSurplus <= 0) return null;
-        const weightGain = (projectedSurplus / 7700).toFixed(2);
-        return /*#__PURE__*/React.createElement("div", {
+        const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2);
+        if (projectedSurplus > 0) return /*#__PURE__*/React.createElement("div", {
           className: "surplus-snackbar"
         }, /*#__PURE__*/React.createElement("span", {
           className: "surplus-snackbar-icon"
         }, "\u26A0\uFE0F"), /*#__PURE__*/React.createElement("div", {
           className: "surplus-snackbar-text"
-        }, /*#__PURE__*/React.createElement("strong", null, "Surplus ad oggi: +", projectedSurplus.toLocaleString("it-IT"), " kcal"), /*#__PURE__*/React.createElement("span", null, "A fine settimana potresti aumentare di circa ", weightGain, " kg")));
+        }, /*#__PURE__*/React.createElement("strong", null, "Surplus ad oggi: +", projectedSurplus.toLocaleString("it-IT"), " kcal"), /*#__PURE__*/React.createElement("span", null, "A fine settimana potresti aumentare di circa ", weightDelta, " kg")));
+        return /*#__PURE__*/React.createElement("div", {
+          className: "deficit-snackbar"
+        }, /*#__PURE__*/React.createElement("span", {
+          className: "surplus-snackbar-icon"
+        }, "\u2705"), /*#__PURE__*/React.createElement("div", {
+          className: "surplus-snackbar-text"
+        }, /*#__PURE__*/React.createElement("strong", null, "Deficit ad oggi: ", projectedSurplus.toLocaleString("it-IT"), " kcal"), /*#__PURE__*/React.createElement("span", null, "A fine settimana potresti perdere circa ", weightDelta, " kg")));
       })()) : (() => {
         const incomplete = week.days.length < 7;
         return /*#__PURE__*/React.createElement("div", {
