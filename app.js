@@ -1851,9 +1851,28 @@ function App() {
         className: "month-label"
       }, weekMonth), /*#__PURE__*/React.createElement("div", {
         className: "week-card"
-      }, isCurrentWeek ? /*#__PURE__*/React.createElement("div", {
+      }, isCurrentWeek ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
         className: "week-current-header"
-      }, "Settimana in corso \xB7 ", formatShortDate(week.weekStart), " \u2192 ", formatShortDate(week.weekEndStr)) : (() => {
+      }, "Settimana in corso \xB7 ", formatShortDate(week.weekStart), " \u2192 ", formatShortDate(week.weekEndStr)), (() => {
+        const activeDay = ACTIVE_DAY();
+        const d = new Date(activeDay + "T12:00:00");
+        const daysFromFriday = (d.getDay() + 2) % 7;
+        if (daysFromFriday < 3) return null;
+        const weekKcal = week.days.reduce((s, day) => s + (day.totalKcal || 0), 0);
+        const totalSoFar = weekKcal + totalKcal;
+        const daysRemaining = 6 - daysFromFriday;
+        const projectedTotal = totalSoFar + target * daysRemaining;
+        const projectedSurplus = projectedTotal - 14000;
+        if (projectedSurplus <= 0) return null;
+        const weightGain = (projectedSurplus / 7700).toFixed(2);
+        return /*#__PURE__*/React.createElement("div", {
+          className: "surplus-snackbar"
+        }, /*#__PURE__*/React.createElement("span", {
+          className: "surplus-snackbar-icon"
+        }, "\u26A0\uFE0F"), /*#__PURE__*/React.createElement("div", {
+          className: "surplus-snackbar-text"
+        }, /*#__PURE__*/React.createElement("strong", null, "Surplus previsto: +", projectedSurplus.toLocaleString("it-IT"), " kcal"), /*#__PURE__*/React.createElement("span", null, "A fine settimana potresti aumentare di circa ", weightGain, " kg")));
+      })()) : (() => {
         const incomplete = week.days.length < 7;
         return /*#__PURE__*/React.createElement("div", {
           className: `week-accordion-header${incomplete ? " incomplete" : ""}`,

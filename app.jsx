@@ -1253,9 +1253,33 @@ function App() {
                         {showMonthHeader && <div className="month-label">{weekMonth}</div>}
                         <div className="week-card">
                           {isCurrentWeek ? (
-                            <div className="week-current-header">
-                              Settimana in corso · {formatShortDate(week.weekStart)} → {formatShortDate(week.weekEndStr)}
-                            </div>
+                            <>
+                              <div className="week-current-header">
+                                Settimana in corso · {formatShortDate(week.weekStart)} → {formatShortDate(week.weekEndStr)}
+                              </div>
+                              {(() => {
+                                const activeDay = ACTIVE_DAY();
+                                const d = new Date(activeDay + "T12:00:00");
+                                const daysFromFriday = (d.getDay() + 2) % 7;
+                                if (daysFromFriday < 3) return null;
+                                const weekKcal = week.days.reduce((s, day) => s + (day.totalKcal || 0), 0);
+                                const totalSoFar = weekKcal + totalKcal;
+                                const daysRemaining = 6 - daysFromFriday;
+                                const projectedTotal = totalSoFar + target * daysRemaining;
+                                const projectedSurplus = projectedTotal - 14000;
+                                if (projectedSurplus <= 0) return null;
+                                const weightGain = (projectedSurplus / 7700).toFixed(2);
+                                return (
+                                  <div className="surplus-snackbar">
+                                    <span className="surplus-snackbar-icon">⚠️</span>
+                                    <div className="surplus-snackbar-text">
+                                      <strong>Surplus previsto: +{projectedSurplus.toLocaleString("it-IT")} kcal</strong>
+                                      <span>A fine settimana potresti aumentare di circa {weightGain} kg</span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </>
                           ) : (() => {
                             const incomplete = week.days.length < 7;
                             return (
