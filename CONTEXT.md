@@ -187,6 +187,25 @@ Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col de
 - Verde = deficit, rosso = surplus
 - **Vista pasti nel giorno:** se il giorno ha `log` mostra raggruppato per fascia oraria; altrimenti flat list `items`
 
+#### Snackbar proiezione fine settimana
+Visibile nella card "Settimana in corso" **dal lunedì in poi** (`daysFromFriday >= 3`, dove venerdì=0).
+
+Formula:
+```js
+const daysFromFriday = (d.getDay() + 2) % 7; // Ven=0, Sab=1, Dom=2, Lun=3, Mar=4, Mer=5, Gio=6
+const weekKcal = week.days.reduce(...);        // kcal giorni passati (da Firestore, escluso oggi)
+const daysAfterToday = 6 - daysFromFriday;     // giorni rimanenti dopo oggi
+const projectedTotal = weekKcal + Math.max(totalKcal, target) + target * daysAfterToday;
+// Math.max(totalKcal, target): oggi si assume almeno il target giornaliero
+const projectedSurplus = projectedTotal - 14000;
+const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2); // kg
+```
+
+- **Surplus** (`projectedSurplus > 0`): banner giallo (`.surplus-snackbar`) con ⚠️ — "Surplus ad oggi: +X kcal / potresti aumentare di circa Y kg"
+- **Deficit** (`projectedSurplus <= 0`): banner verde (`.deficit-snackbar`) con ✅ — "Deficit ad oggi: −X kcal / potresti perdere circa Y kg"
+- Scompare automaticamente a inizio nuova settimana (venerdì)
+- `week.days` non include oggi (la history filtra `ACTIVE_DAY()`); `totalKcal` è lo stato corrente del giorno in corso
+
 ### Navigazione tab
 - Swipe orizzontale sul `<main>` per passare tra i tab
 - Indicatore tab animato con `cubic-bezier`

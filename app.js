@@ -1914,7 +1914,9 @@ function App() {
         style: {
           color: day.totalKcal > day.target ? "var(--color-negative)" : "var(--color-positive)"
         }
-      }, day.totalKcal, " kcal")), day.log && day.log.length > 0 ? (() => {
+      }, day.totalKcal, " kcal", day.target && /*#__PURE__*/React.createElement("span", {
+        className: "history-day-target"
+      }, "di ", day.target))), day.log && day.log.length > 0 ? (() => {
         const alcolLog = day.log.filter(e => e.category === 'Alcol');
         const foodLog = day.log.filter(e => e.category !== 'Alcol');
         return /*#__PURE__*/React.createElement("div", {
@@ -1928,13 +1930,13 @@ function App() {
           className: "history-log-group"
         }, /*#__PURE__*/React.createElement("span", {
           className: "history-log-label"
-        }, label, ":"), /*#__PURE__*/React.createElement("span", {
+        }, label, ": "), /*#__PURE__*/React.createElement("span", {
           className: "history-log-items"
         }, groupEntries(items).map(e => e.name + (e.grams > 0 ? ` ${e.grams}g` : '') + (e.count > 1 ? ` ×${e.count}` : '')).join(', ')))), alcolLog.length > 0 && /*#__PURE__*/React.createElement("div", {
           className: "history-log-group"
         }, /*#__PURE__*/React.createElement("span", {
           className: "history-log-label"
-        }, "\uD83C\uDF7A Extra:"), /*#__PURE__*/React.createElement("span", {
+        }, "\uD83C\uDF7A Extra: "), /*#__PURE__*/React.createElement("span", {
           className: "history-log-items"
         }, groupEntries(alcolLog).map(e => e.name + (e.count > 1 ? ` ×${e.count}` : '')).join(', '))));
       })() : day.items && day.items.length > 0 ? /*#__PURE__*/React.createElement("div", {

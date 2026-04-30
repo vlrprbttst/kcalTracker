@@ -1316,6 +1316,7 @@ function App() {
                                     <span className="history-day-date">{formatDate(day.date)}</span>
                                     <span className="history-day-kcal" style={{ color: day.totalKcal > day.target ? "var(--color-negative)" : "var(--color-positive)" }}>
                                       {day.totalKcal} kcal
+                                      {day.target && <span className="history-day-target">di {day.target}</span>}
                                     </span>
                                   </div>
                                   {day.log && day.log.length > 0 ? (() => {
@@ -1325,13 +1326,13 @@ function App() {
                                       <div className="history-log-groups">
                                         {groupLogByMeal(foodLog).map(({ key, label, items }) => (
                                           <div key={key} className="history-log-group">
-                                            <span className="history-log-label">{label}:</span>
+                                            <span className="history-log-label">{label}: </span>
                                             <span className="history-log-items">{groupEntries(items).map(e => e.name + (e.grams > 0 ? ` ${e.grams}g` : '') + (e.count > 1 ? ` ×${e.count}` : '')).join(', ')}</span>
                                           </div>
                                         ))}
                                         {alcolLog.length > 0 && (
                                           <div className="history-log-group">
-                                            <span className="history-log-label">🍺 Extra:</span>
+                                            <span className="history-log-label">🍺 Extra: </span>
                                             <span className="history-log-items">{groupEntries(alcolLog).map(e => e.name + (e.count > 1 ? ` ×${e.count}` : '')).join(', ')}</span>
                                           </div>
                                         )}
