@@ -338,8 +338,10 @@ Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 - `package.json` — devDependencies + script `build`
 - `package-lock.json` — lockfile npm
 - `manifest.json` — PWA manifest
-- `logo.png` — icona app PWA
-- `logo2.png` — logo testuale nell'header
+- `logo.png` — icona app PWA (favicon, apple-touch-icon, manifest)
+- `logo2.png` — logo testuale nell'header (img in app.jsx)
+- `logo3.png` — icona precedente (non più usata)
+- `logo4.png` — logo header precedente (non più usato)
 - `no.gif` — gif accesso negato
 - `.gitignore` — esclude `.claude/`, `CLAUDE.md`, `node_modules/`
 - `CONTEXT.md` — questo file
@@ -362,7 +364,7 @@ Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 6. Per testare in locale → live server su `127.0.0.1:5500`
 
 ### Cache PWA mobile
-Sia `app.js` che `style.css` sono caricati con query string di versione (`?v=HASH`). Gli hash sono i primi 8 caratteri del SHA-256 dei rispettivi contenuti, aggiornati automaticamente da `build.js` ad ogni build. **Modificare `style.css` senza fare `npm run build` non invalida la cache PWA mobile.**
+`app.js`, `style.css` e `manifest.json` sono caricati con query string di versione (`?v=HASH`). Gli hash sono i primi 8 caratteri del SHA-256 dei rispettivi contenuti, aggiornati automaticamente da `build.js` ad ogni build. **Modificare qualsiasi di questi file senza fare `npm run build` non invalida la cache PWA mobile.**
 
 ### Sicurezza
 - **SRI hash** su tutti gli script CDN eccetto SortableJS (aggiunto successivamente)
