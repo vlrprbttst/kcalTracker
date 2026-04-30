@@ -130,7 +130,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - Feedback tattile (vibrazione) al tap su +
 - Reset manuale con conferma (modale custom)
 - Legenda colori barre kcal in fondo alla lista
-- Logo testuale sostituito con `logo2.png` nell'header
+- Logo testuale sostituito con `logo-main-horizontal.png` nell'header
 
 ### Extra (campo libero)
 - Card in fondo alla lista con due input: nome alimento + kcal
@@ -338,8 +338,8 @@ Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 - `package.json` — devDependencies + script `build`
 - `package-lock.json` — lockfile npm
 - `manifest.json` — PWA manifest
-- `logo.png` — icona app PWA (favicon, apple-touch-icon, manifest)
-- `logo2.png` — logo testuale nell'header (img in app.jsx)
+- `logo-main.png` — icona app PWA (favicon, apple-touch-icon, manifest)
+- `logo-main-horizontal.png` — logo testuale nell'header (img in app.jsx)
 - `logo3.png` — icona precedente (non più usata)
 - `logo4.png` — logo header precedente (non più usato)
 - `no.gif` — gif accesso negato
