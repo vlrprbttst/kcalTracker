@@ -123,7 +123,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - **Alimenti a porzione variabile** (`variable: true, kcalPerG: N`): input "Grammi" nella colonna porzione, kcal si aggiorna live
 - Bottoni +/− sempre visibili: il − è opaco (75%) e non cliccabile finché qty = 0
 - Totale kcal live con barra di progresso colorata (verde/giallo/rosso)
-- Goal calorico editabile cliccando il numero nell'header (default: 2000 kcal)
+- Goal calorico fisso a 2000 kcal nell'header (non editabile — il target si edita per giorno nello Storico)
 - Shake animation quando si supera il target per la prima volta
 - Barra di ricerca per filtrare gli alimenti per nome (solo loggati)
 - Bottone "chiudi tutto" per chiudere tutti gli accordion aperti
@@ -183,9 +183,27 @@ Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col de
 - **Settimana in corso**: card sempre aperta, non chiudibile, header viola
 - **Settimane passate**: accordion; se completa mostra balance deficit/surplus
 - Settimane dal venerdì al giovedì
-- **Obiettivo settimana: 14.000 kcal**
 - Verde = deficit, rosso = surplus
 - **Vista pasti nel giorno:** se il giorno ha `log` mostra raggruppato per fascia oraria; altrimenti flat list `items`
+
+#### target giornaliero = calorie bruciate (TDEE)
+`day.target` rappresenta le calorie bruciate stimate per quel giorno (default 2000). Il surplus/deficit reale è `totalKcal − target`. Il target dell'header è fisso a 2000 e non è editabile.
+
+**Editing target in Storico:** ogni giorno mostra `{totalKcal} kcal` e sotto `di {target}` (underline tratteggiato). Cliccando si apre un input inline che salva su Firestore e aggiorna tutta la UI in memoria (`setHistory`).
+
+Regole di editabilità:
+- **Settimana in corso**: editabile
+- **Settimane passate complete** (7 giorni): editabile
+- **Settimane passate incomplete** (<7 giorni): non editabile, "di X" statico
+
+#### Calcoli basati su target giornalieri
+Tutti i calcoli usano la somma dei `day.target` effettivi, non un fisso 14.000:
+
+- **Balance settimana passata completa**: `totalConsumed − weeklyTarget` dove `weeklyTarget = days.reduce((s,d) => s + (d.target||2000), 0)`
+- **Balance settimana incompleta**: non mostrato (warning dati parziali)
+- **"Media settimanale" settimana completa**: somma target giornalieri effettivi
+- **"Media settimanale" settimana in corso**: `pastDaysTarget + 2000 × (7 − week.days.length)` (giorni rimanenti stimati a 2000)
+- **"Media settimanale" settimana incompleta**: fisso 14.000
 
 #### Snackbar proiezione fine settimana
 Visibile nella card "Settimana in corso" **dal lunedì in poi** (`daysFromFriday >= 3`, dove venerdì=0).
@@ -197,7 +215,9 @@ const weekKcal = week.days.reduce(...);        // kcal giorni passati (da Firest
 const daysAfterToday = 6 - daysFromFriday;     // giorni rimanenti dopo oggi
 const projectedTotal = weekKcal + Math.max(totalKcal, target) + target * daysAfterToday;
 // Math.max(totalKcal, target): oggi si assume almeno il target giornaliero
-const projectedSurplus = projectedTotal - 14000;
+const pastDaysTarget = week.days.reduce((s, day) => s + (day.target || 2000), 0);
+const weeklyProjectedTarget = pastDaysTarget + target + target * daysAfterToday;
+const projectedSurplus = projectedTotal - weeklyProjectedTarget;
 const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2); // kg
 ```
 
