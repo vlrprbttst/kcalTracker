@@ -1977,11 +1977,11 @@ function App() {
         className: "week-incomplete-note"
       }, "\u26A0\uFE0F Dati parziali \u2014 ", 7 - week.days.length, " ", 7 - week.days.length === 1 ? "giorno non tracciato" : "giorni non tracciati", ". Il balance potrebbe non essere accurato."), (!isCurrentWeek || ACTIVE_DAY() === week.weekEndStr) && week.days.length === 7 && /*#__PURE__*/React.createElement("div", {
         className: "week-balance"
-      }, week.balance <= 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, "\u2705 Sei in deficit"), /*#__PURE__*/React.createElement("span", {
-        className: "deficit"
-      }, "\u2212", Math.abs(week.balance).toLocaleString("it-IT"), " kcal")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, "\u26A0\uFE0F Sei in surplus"), /*#__PURE__*/React.createElement("span", {
-        className: "surplus"
-      }, "+", week.balance.toLocaleString("it-IT"), " kcal")))))));
+      }, week.balance <= 0 ? /*#__PURE__*/React.createElement("span", {
+        className: "week-weight-delta deficit"
+      }, "\uD83C\uDF89 potresti aver perso circa ", (Math.abs(week.balance) / 7700).toFixed(2), " kg") : /*#__PURE__*/React.createElement("span", {
+        className: "week-weight-delta surplus"
+      }, "\u26A0\uFE0F potresti aver preso circa", (Math.abs(week.balance) / 7700).toFixed(2), " kg"))))));
     }));
   })()), user && activeTab === "alimenti" && /*#__PURE__*/React.createElement("div", {
     className: "admin-tab"

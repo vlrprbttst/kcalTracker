@@ -1373,17 +1373,9 @@ function App() {
                                 )}
                                 {(!isCurrentWeek || ACTIVE_DAY() === week.weekEndStr) && week.days.length === 7 && (
                                   <div className="week-balance">
-                                    {week.balance <= 0 ? (
-                                      <>
-                                        <span>✅ Sei in deficit</span>
-                                        <span className="deficit">−{Math.abs(week.balance).toLocaleString("it-IT")} kcal</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <span>⚠️ Sei in surplus</span>
-                                        <span className="surplus">+{week.balance.toLocaleString("it-IT")} kcal</span>
-                                      </>
-                                    )}
+                                    {week.balance <= 0
+                                      ? <span className="week-weight-delta deficit">🎉 potresti aver perso circa {(Math.abs(week.balance) / 7700).toFixed(2)} kg</span>
+                                      : <span className="week-weight-delta surplus">⚠️ potresti aver preso circa{(Math.abs(week.balance) / 7700).toFixed(2)} kg</span>}
                                   </div>
                                 )}
                               </div>
