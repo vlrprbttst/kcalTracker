@@ -565,12 +565,14 @@ function groupByWeek(history) {
     weekEnd.setDate(weekEnd.getDate() + 6);
     const weekEndStr = weekEnd.toISOString().slice(0, 10);
     const totalConsumed = days.reduce((s, d) => s + (d.totalKcal || 0), 0);
-    const balance = totalConsumed - 14000;
+    const weeklyTarget = days.reduce((s, d) => s + (d.target || 2000), 0);
+    const balance = totalConsumed - weeklyTarget;
     return {
       weekStart,
       weekEndStr,
       days: days.sort((a, b) => b.date.localeCompare(a.date)),
       totalConsumed,
+      weeklyTarget,
       balance
     };
   });
@@ -645,8 +647,7 @@ function App() {
   const [extraInput, setExtraInput] = useState("");
   const [target, setTarget] = useState(loadTarget);
   const [openIdx, setOpenIdx] = useState(null);
-  const [editingTarget, setEditingTarget] = useState(false);
-  const [targetDraft, setTargetDraft] = useState("");
+  const [editingDayTarget, setEditingDayTarget] = useState(null);
   const [activeTab, setActiveTab] = useState("oggi");
   const swipeStart = useRef(null);
   const tabRefs = useRef({});
@@ -708,7 +709,6 @@ function App() {
     document.body.classList.toggle("light", lightTheme);
     localStorage.setItem("kcal_theme", lightTheme ? "light" : "dark");
   }, [lightTheme]);
-  const targetInputRef = useRef(null);
   const saveDebounceRef = useRef(null);
   const prevOverTarget = useRef(false);
   useEffect(() => {
@@ -856,9 +856,6 @@ function App() {
     }
     prevOverTarget.current = over;
   }, [totalKcal, target]);
-  useEffect(() => {
-    if (editingTarget && targetInputRef.current) targetInputRef.current.focus();
-  }, [editingTarget]);
   useEffect(() => {
     if (activeTab === "menu" && log.length === 0) setActiveTab("oggi");
   }, [log, activeTab]);
@@ -1043,14 +1040,17 @@ function App() {
     if (dx < 0 && idx < tabs.length - 1) setActiveTab(tabs[idx + 1]);
     if (dx > 0 && idx > 0) setActiveTab(tabs[idx - 1]);
   };
-  const startEditTarget = () => {
-    setTargetDraft(String(target));
-    setEditingTarget(true);
-  };
-  const commitTarget = () => {
-    const v = parseInt(targetDraft, 10);
-    if (v > 0) setTarget(v);
-    setEditingTarget(false);
+  const saveDayTarget = date => {
+    const t = parseInt(editingDayTarget?.draft, 10);
+    setEditingDayTarget(null);
+    if (!t || t <= 0) return;
+    setHistory(prev => prev.map(d => d.date === date ? {
+      ...d,
+      target: t
+    } : d));
+    db.collection("users").doc(user.uid).collection("days").doc(date).update({
+      target: t
+    }).catch(e => console.error("Day target update error:", e));
   };
   const catKcal = ci => dietData[ci].items.reduce((s, item) => {
     const qty = getCount(item.id);
@@ -1325,27 +1325,9 @@ function App() {
     className: "kcal-sep"
   }, "/"), /*#__PURE__*/React.createElement("span", {
     className: "kcal-target-wrap"
-  }, editingTarget ? /*#__PURE__*/React.createElement("input", {
-    ref: targetInputRef,
-    className: "kcal-target-input",
-    "aria-label": "Obiettivo calorico giornaliero",
-    value: targetDraft,
-    onChange: e => setTargetDraft(e.target.value),
-    onBlur: commitTarget,
-    onKeyDown: e => {
-      if (e.key === "Enter") commitTarget();
-      if (e.key === "Escape") setEditingTarget(false);
-    },
-    type: "number"
-  }) : /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
     className: "kcal-target",
-    onClick: startEditTarget,
-    role: "button",
-    tabIndex: 0,
-    "aria-label": `Obiettivo calorico: ${target} kcal. Premi per modificare`,
-    onKeyDown: e => {
-      if (e.key === "Enter" || e.key === " ") startEditTarget();
-    }
+    "aria-label": `Obiettivo calorico: ${target} kcal`
   }, target), /*#__PURE__*/React.createElement("span", {
     className: "kcal-label"
   }, "kcal")), /*#__PURE__*/React.createElement("span", {
@@ -1861,7 +1843,9 @@ function App() {
         const weekKcal = week.days.reduce((s, day) => s + (day.totalKcal || 0), 0);
         const daysAfterToday = 6 - daysFromFriday;
         const projectedTotal = weekKcal + Math.max(totalKcal, target) + target * daysAfterToday;
-        const projectedSurplus = projectedTotal - 14000;
+        const pastDaysTarget = week.days.reduce((s, day) => s + (day.target || 2000), 0);
+        const weeklyProjectedTarget = pastDaysTarget + target + target * daysAfterToday;
+        const projectedSurplus = projectedTotal - weeklyProjectedTarget;
         const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2);
         if (projectedSurplus > 0) return /*#__PURE__*/React.createElement("div", {
           className: "surplus-snackbar"
@@ -1914,9 +1898,43 @@ function App() {
         style: {
           color: day.totalKcal > day.target ? "var(--color-negative)" : "var(--color-positive)"
         }
-      }, day.totalKcal, " kcal", day.target && /*#__PURE__*/React.createElement("span", {
-        className: "history-day-target"
-      }, "di ", day.target))), day.log && day.log.length > 0 ? (() => {
+      }, day.totalKcal, " kcal", isCurrentWeek || week.days.length === 7 ? editingDayTarget?.date === day.date ? /*#__PURE__*/React.createElement("input", {
+        className: "history-day-target-input",
+        type: "number",
+        value: editingDayTarget.draft,
+        onChange: e => setEditingDayTarget(prev => ({
+          ...prev,
+          draft: e.target.value
+        })),
+        onBlur: () => saveDayTarget(day.date),
+        onKeyDown: e => {
+          if (e.key === "Enter") saveDayTarget(day.date);
+          if (e.key === "Escape") setEditingDayTarget(null);
+        },
+        autoFocus: true,
+        "aria-label": `Obiettivo calorico per ${day.date}`
+      }) : /*#__PURE__*/React.createElement("span", {
+        className: "history-day-target",
+        onClick: () => setEditingDayTarget({
+          date: day.date,
+          draft: String(day.target || 2000)
+        }),
+        role: "button",
+        tabIndex: 0,
+        onKeyDown: e => {
+          if (e.key === "Enter" || e.key === " ") setEditingDayTarget({
+            date: day.date,
+            draft: String(day.target || 2000)
+          });
+        },
+        "aria-label": `Obiettivo ${day.date}: ${day.target || 2000} kcal. Premi per modificare`
+      }, "di ", day.target || 2000) : /*#__PURE__*/React.createElement("span", {
+        className: "history-day-target",
+        style: {
+          cursor: "default",
+          borderBottom: "none"
+        }
+      }, "di ", day.target || 2000))), day.log && day.log.length > 0 ? (() => {
         const alcolLog = day.log.filter(e => e.category === 'Alcol');
         const foodLog = day.log.filter(e => e.category !== 'Alcol');
         return /*#__PURE__*/React.createElement("div", {
@@ -1945,7 +1963,7 @@ function App() {
         className: "week-summary"
       }, /*#__PURE__*/React.createElement("div", {
         className: "week-summary-row"
-      }, /*#__PURE__*/React.createElement("span", null, "Media settimanale"), /*#__PURE__*/React.createElement("span", null, "14.000 kcal")), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("span", null, "Media settimanale"), /*#__PURE__*/React.createElement("span", null, (isCurrentWeek ? week.days.reduce((s, d) => s + (d.target || 2000), 0) + target * (7 - week.days.length) : week.days.length < 7 ? 14000 : week.weeklyTarget).toLocaleString("it-IT"), " kcal")), /*#__PURE__*/React.createElement("div", {
         className: "week-summary-row"
       }, /*#__PURE__*/React.createElement("span", null, "Calorie assunte"), /*#__PURE__*/React.createElement("span", null, week.totalConsumed.toLocaleString("it-IT"), " kcal")), !isCurrentWeek && week.days.length < 7 && /*#__PURE__*/React.createElement("div", {
         className: "week-incomplete-note"

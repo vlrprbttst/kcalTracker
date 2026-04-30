@@ -299,8 +299,9 @@ function groupByWeek(history) {
       weekEnd.setDate(weekEnd.getDate() + 6);
       const weekEndStr = weekEnd.toISOString().slice(0, 10);
       const totalConsumed = days.reduce((s, d) => s + (d.totalKcal || 0), 0);
-      const balance = totalConsumed - 14000;
-      return { weekStart, weekEndStr, days: days.sort((a, b) => b.date.localeCompare(a.date)), totalConsumed, balance };
+      const weeklyTarget = days.reduce((s, d) => s + (d.target || 2000), 0);
+      const balance = totalConsumed - weeklyTarget;
+      return { weekStart, weekEndStr, days: days.sort((a, b) => b.date.localeCompare(a.date)), totalConsumed, weeklyTarget, balance };
     });
 }
 
@@ -353,8 +354,7 @@ function App() {
   const [extraInput, setExtraInput] = useState("");
   const [target, setTarget] = useState(loadTarget);
   const [openIdx, setOpenIdx] = useState(null);
-  const [editingTarget, setEditingTarget] = useState(false);
-  const [targetDraft, setTargetDraft] = useState("");
+  const [editingDayTarget, setEditingDayTarget] = useState(null);
   const [activeTab, setActiveTab] = useState("oggi");
   const swipeStart = useRef(null);
   const tabRefs = useRef({});
@@ -411,7 +411,6 @@ function App() {
     localStorage.setItem("kcal_theme", lightTheme ? "light" : "dark");
   }, [lightTheme]);
 
-  const targetInputRef = useRef(null);
   const saveDebounceRef = useRef(null);
   const prevOverTarget = useRef(false);
 
@@ -539,10 +538,6 @@ function App() {
     }
     prevOverTarget.current = over;
   }, [totalKcal, target]);
-
-  useEffect(() => {
-    if (editingTarget && targetInputRef.current) targetInputRef.current.focus();
-  }, [editingTarget]);
 
   useEffect(() => {
     if (activeTab === "menu" && log.length === 0) setActiveTab("oggi");
@@ -697,11 +692,14 @@ function App() {
     if (dx > 0 && idx > 0) setActiveTab(tabs[idx - 1]);
   };
 
-  const startEditTarget = () => { setTargetDraft(String(target)); setEditingTarget(true); };
-  const commitTarget = () => {
-    const v = parseInt(targetDraft, 10);
-    if (v > 0) setTarget(v);
-    setEditingTarget(false);
+  const saveDayTarget = (date) => {
+    const t = parseInt(editingDayTarget?.draft, 10);
+    setEditingDayTarget(null);
+    if (!t || t <= 0) return;
+    setHistory(prev => prev.map(d => d.date === date ? { ...d, target: t } : d));
+    db.collection("users").doc(user.uid).collection("days").doc(date)
+      .update({ target: t })
+      .catch(e => console.error("Day target update error:", e));
   };
 
   const catKcal = (ci) => dietData[ci].items.reduce((s, item) => {
@@ -905,20 +903,7 @@ function App() {
             <span className={`kcal-consumed${shakeTarget ? " shake" : ""}`} style={{ color: barColor }}>{totalKcal}</span>
             <span className="kcal-sep">/</span>
             <span className="kcal-target-wrap">
-              {editingTarget ? (
-                <input
-                  ref={targetInputRef}
-                  className="kcal-target-input"
-                  aria-label="Obiettivo calorico giornaliero"
-                  value={targetDraft}
-                  onChange={e => setTargetDraft(e.target.value)}
-                  onBlur={commitTarget}
-                  onKeyDown={e => { if (e.key === "Enter") commitTarget(); if (e.key === "Escape") setEditingTarget(false); }}
-                  type="number"
-                />
-              ) : (
-                <span className="kcal-target" onClick={startEditTarget} role="button" tabIndex={0} aria-label={`Obiettivo calorico: ${target} kcal. Premi per modificare`} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") startEditTarget(); }}>{target}</span>
-              )}
+              <span className="kcal-target" aria-label={`Obiettivo calorico: ${target} kcal`}>{target}</span>
               <span className="kcal-label">kcal</span>
             </span>
             <span className="kcal-remaining">
@@ -1265,7 +1250,9 @@ function App() {
                                 const weekKcal = week.days.reduce((s, day) => s + (day.totalKcal || 0), 0);
                                 const daysAfterToday = 6 - daysFromFriday;
                                 const projectedTotal = weekKcal + Math.max(totalKcal, target) + target * daysAfterToday;
-                                const projectedSurplus = projectedTotal - 14000;
+                                const pastDaysTarget = week.days.reduce((s, day) => s + (day.target || 2000), 0);
+                                const weeklyProjectedTarget = pastDaysTarget + target + target * daysAfterToday;
+                                const projectedSurplus = projectedTotal - weeklyProjectedTarget;
                                 const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2);
                                 if (projectedSurplus > 0) return (
                                   <div className="surplus-snackbar">
@@ -1316,7 +1303,24 @@ function App() {
                                     <span className="history-day-date">{formatDate(day.date)}</span>
                                     <span className="history-day-kcal" style={{ color: day.totalKcal > day.target ? "var(--color-negative)" : "var(--color-positive)" }}>
                                       {day.totalKcal} kcal
-                                      {day.target && <span className="history-day-target">di {day.target}</span>}
+                                      {(isCurrentWeek || week.days.length === 7) ? (
+                                        editingDayTarget?.date === day.date ? (
+                                          <input
+                                            className="history-day-target-input"
+                                            type="number"
+                                            value={editingDayTarget.draft}
+                                            onChange={e => setEditingDayTarget(prev => ({ ...prev, draft: e.target.value }))}
+                                            onBlur={() => saveDayTarget(day.date)}
+                                            onKeyDown={e => { if (e.key === "Enter") saveDayTarget(day.date); if (e.key === "Escape") setEditingDayTarget(null); }}
+                                            autoFocus
+                                            aria-label={`Obiettivo calorico per ${day.date}`}
+                                          />
+                                        ) : (
+                                          <span className="history-day-target" onClick={() => setEditingDayTarget({ date: day.date, draft: String(day.target || 2000) })} role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setEditingDayTarget({ date: day.date, draft: String(day.target || 2000) }); }} aria-label={`Obiettivo ${day.date}: ${day.target || 2000} kcal. Premi per modificare`}>di {day.target || 2000}</span>
+                                        )
+                                      ) : (
+                                        <span className="history-day-target" style={{ cursor: "default", borderBottom: "none" }}>di {day.target || 2000}</span>
+                                      )}
                                     </span>
                                   </div>
                                   {day.log && day.log.length > 0 ? (() => {
@@ -1346,7 +1350,9 @@ function App() {
                               <div className="week-summary">
                                 <div className="week-summary-row">
                                   <span>Media settimanale</span>
-                                  <span>14.000 kcal</span>
+                                  <span>{(isCurrentWeek
+                                    ? week.days.reduce((s, d) => s + (d.target || 2000), 0) + target * (7 - week.days.length)
+                                    : week.days.length < 7 ? 14000 : week.weeklyTarget).toLocaleString("it-IT")} kcal</span>
                                 </div>
                                 <div className="week-summary-row">
                                   <span>Calorie assunte</span>

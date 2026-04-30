@@ -155,9 +155,6 @@ input { font-family: inherit; }
 .kcal-target {
   font-size: 14px;
   color: var(--text-dim);
-  cursor: pointer;
-  border-bottom: 1px dashed var(--text-dimmest);
-  padding-bottom: 1px;
 }
 .kcal-target-input {
   font-size: 14px;
@@ -404,7 +401,8 @@ body.light .guest-banner-btn { color: #fff; }
 .history-day-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
 .history-day-date { font-size: 14px; font-weight: 600; text-transform: capitalize; }
 .history-day-kcal { font-size: 16px; font-weight: 700; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.history-day-target { font-size: 11px; font-weight: 400; color: var(--text-dim); }
+.history-day-target { font-size: 11px; font-weight: 400; color: var(--text-dim); cursor: pointer; border-bottom: 1px dashed var(--text-dimmest); }
+.history-day-target-input { font-size: 11px; width: 52px; background: var(--surface); border: 1px solid var(--accent); border-radius: 4px; color: var(--text); padding: 1px 4px; text-align: right; }
 .history-items { font-size: 12px; color: var(--text-dimmer); line-height: 1.6; }
 .history-log-groups { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
 .history-log-group { font-size: 12px; line-height: 1.5; }
