@@ -354,7 +354,7 @@ Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 ---
 
 ## Come lavorare su questo progetto
-1. Modifiche al CSS → `style.css`
+1. Modifiche al CSS → `style.css`, poi **`npm run build`** (aggiorna l'hash CSS in `index.html`)
 2. Modifiche alla logica/UI → `app.jsx`, poi **`npm run build`**
 3. Aggiunta/modifica alimenti → direttamente dal **tab Alimenti** nell'app (loggato), oppure in `SEED_DIET_DATA` in `app.jsx` per modifiche strutturali al seed
 4. Push → `git add . && git commit -m "..." && git push` — solo quando Valerio lo chiede
@@ -362,7 +362,7 @@ Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 6. Per testare in locale → live server su `127.0.0.1:5500`
 
 ### Cache PWA mobile
-`app.js` è caricato con query string di versione: `<script src="app.js?v=HASH">`. L'hash è i primi 8 caratteri del SHA-256 del contenuto di `app.js`, aggiornato automaticamente da `build.js`.
+Sia `app.js` che `style.css` sono caricati con query string di versione (`?v=HASH`). Gli hash sono i primi 8 caratteri del SHA-256 dei rispettivi contenuti, aggiornati automaticamente da `build.js` ad ogni build. **Modificare `style.css` senza fare `npm run build` non invalida la cache PWA mobile.**
 
 ### Sicurezza
 - **SRI hash** su tutti gli script CDN eccetto SortableJS (aggiunto successivamente)

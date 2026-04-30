@@ -100,7 +100,7 @@ input { font-family: inherit; }
 }
 .header-top-right { display: flex; gap: 8px; align-items: center; }
 .app-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
-.app-logo { height: 43px;    position: relative;
+.app-logo { height: 28px;    position: relative;
     top: -2px; }
 @media (min-width: 360px) { .app-logo { height: 43px; } }
 @media (min-width: 768px) { .app-logo { height: 48px; } }
