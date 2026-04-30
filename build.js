@@ -9,9 +9,13 @@ const result = transformSync(code, {
 });
 fs.writeFileSync('app.js', result.code);
 
-const hash = crypto.createHash('sha256').update(result.code).digest('hex').slice(0, 8);
-const html = fs.readFileSync('index.html', 'utf8');
-const updated = html.replace(/app\.js\?v=[^"]+/, `app.js?v=${hash}`);
-fs.writeFileSync('index.html', updated);
+const jsHash = crypto.createHash('sha256').update(result.code).digest('hex').slice(0, 8);
+const cssContent = fs.readFileSync('style.css', 'utf8');
+const cssHash = crypto.createHash('sha256').update(cssContent).digest('hex').slice(0, 8);
 
-console.log(`Compiled app.jsx -> app.js (${result.code.length} bytes) [v=${hash}]`);
+let html = fs.readFileSync('index.html', 'utf8');
+html = html.replace(/app\.js\?v=[^"]+/, `app.js?v=${jsHash}`);
+html = html.replace(/style\.css(?:\?v=[^"]*)?/, `style.css?v=${cssHash}`);
+fs.writeFileSync('index.html', html);
+
+console.log(`Compiled app.jsx -> app.js (${result.code.length} bytes) [v=${jsHash}] css=[v=${cssHash}]`);
