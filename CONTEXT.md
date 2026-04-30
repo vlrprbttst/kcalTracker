@@ -93,7 +93,7 @@ Puoi aggiungere, rimuovere e riordinare alimenti liberamente — sia via tab Ali
 
 Quando aggiungi un nuovo alimento via codice, genera un ID opaco a 6 caratteri (es. `k3m7p2`). L'app genera automaticamente l'ID quando si aggiunge dal tab Alimenti.
 
-Per gli alimenti a porzione variabile usa la formula `"aggiungi XXX col sistema di porzione variabile"` oppure usa il toggle "Variabile" nel tab Alimenti e inserisci kcal per grammo.
+Per gli alimenti a porzione variabile usa il toggle "Variabile" nel tab Alimenti e inserisci i grammi di riferimento e le kcal corrispondenti (es. 100g = 140 kcal → il `kcalPerG` viene calcolato automaticamente). Non inserire mai `kcalPerG` a mano nel codice — usare sempre la divisione `kcal / g`.
 
 **Categoria Alcol → sezione Extra nel Menu:** tutti gli item con `category: "Alcol"` finiscono automaticamente nella sezione "🍺 Extra" del tab Menu e dello Storico.
 
@@ -148,7 +148,10 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - Gestione completa della lista alimenti direttamente nell'app
 - **Struttura:** categorie come accordion, ognuna con la lista degli item interni
 - **Per ogni item:** visualizzazione nome + kcal/porzione, bottone modifica (✏️) e elimina (🗑️)
-- **Modifica inline:** form che sostituisce la riga, con campi nome, porzione, kcal (o kcal/g se variabile), toggle variabile
+- **Modifica inline:** form con campi nome, porzione (nascosta se variabile), toggle variabile, kcal (fissi) o `[Xg = Y kcal]` (variabili)
+- **Alimenti variabili nel form:** due input `[g di riferimento] g = [kcal] kcal` — `kcalPerG` calcolato al salvataggio. Il campo porzione è nascosto (sempre "g"). Spuntare "Variabile" resetta il campo porzione.
+- **Display nella lista:** alimenti variabili mostrano `X kcal/100g` (non `kcalPerG kcal/g`)
+- **Editing alimento variabile esistente:** pre-popola `100g` e `Math.round(kcalPerG × 100)` kcal
 - **Aggiunta item:** bottone "+ Aggiungi alimento" in fondo a ogni categoria aperta
 - **Aggiunta categoria:** bottone "+ Aggiungi categoria" in fondo alla lista
 - **Eliminazione categoria:** bottone "Elimina categoria" in fondo all'accordion aperto

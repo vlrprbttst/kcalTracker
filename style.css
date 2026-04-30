@@ -742,6 +742,10 @@ body.light .admin-icon-btn-delete:hover { background: #fee2e2; }
 }
 
 .admin-form-actions { display: flex; gap: 6px; }
+.admin-ref-wrap { display: flex; align-items: center; gap: 4px; }
+.admin-input-ref-g { width: 52px; }
+.admin-input-ref-kcal { width: 60px; }
+.admin-ref-sep { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
 
 .admin-btn {
   border-radius: 6px;

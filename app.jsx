@@ -744,15 +744,20 @@ function App() {
       portion: item.portion || "",
       variable: !!item.variable,
       kcalPerG: item.variable ? String(item.kcalPerG) : "",
+      refGrams: "100",
+      refKcal: item.variable ? String(Math.round(item.kcalPerG * 100)) : "",
     });
   };
 
   const saveEditedItem = (itemId) => {
     const d = adminEditDraft;
     if (!d.name.trim()) return;
+    let computedKcalPerG = null;
     if (d.variable) {
-      const p = parseFloat(d.kcalPerG);
-      if (isNaN(p) || p <= 0) return;
+      const g = parseFloat(d.refGrams);
+      const k = parseFloat(d.refKcal);
+      if (isNaN(g) || g <= 0 || isNaN(k) || k < 0) return;
+      computedKcalPerG = k / g;
     } else {
       const k = parseInt(d.kcal, 10);
       if (isNaN(k) || k < 0) return;
@@ -762,7 +767,7 @@ function App() {
       items: cat.items.map(item => {
         if (item.id !== itemId) return item;
         if (d.variable) {
-          return { id: item.id, name: d.name.trim(), portion: d.portion.trim() || "g", kcal: 0, variable: true, kcalPerG: parseFloat(d.kcalPerG) };
+          return { id: item.id, name: d.name.trim(), portion: d.portion.trim() || "g", kcal: 0, variable: true, kcalPerG: computedKcalPerG };
         }
         return { id: item.id, name: d.name.trim(), portion: d.portion.trim(), kcal: parseInt(d.kcal, 10) };
       }),
@@ -797,16 +802,19 @@ function App() {
   const addNewItem = (catIdx) => {
     const form = adminNewItem;
     if (!form || !form.name.trim()) return;
+    let computedKcalPerG = null;
     if (form.variable) {
-      const p = parseFloat(form.kcalPerG);
-      if (isNaN(p) || p <= 0) return;
+      const g = parseFloat(form.refGrams);
+      const k = parseFloat(form.refKcal);
+      if (isNaN(g) || g <= 0 || isNaN(k) || k < 0) return;
+      computedKcalPerG = k / g;
     } else {
       const k = parseInt(form.kcal, 10);
       if (isNaN(k) || k < 0) return;
     }
     const newId = genId();
     const newItem = form.variable
-      ? { id: newId, name: form.name.trim(), portion: form.portion.trim() || "g", kcal: 0, variable: true, kcalPerG: parseFloat(form.kcalPerG) }
+      ? { id: newId, name: form.name.trim(), portion: form.portion.trim() || "g", kcal: 0, variable: true, kcalPerG: computedKcalPerG }
       : { id: newId, name: form.name.trim(), portion: form.portion.trim(), kcal: parseInt(form.kcal, 10) };
     const newDietData = dietData.map((cat, ci) =>
       ci !== catIdx ? cat : { ...cat, items: [...cat.items, newItem] }
@@ -1424,32 +1432,46 @@ function App() {
                                 onKeyDown={e => { if (e.key === "Enter") saveEditedItem(item.id); if (e.key === "Escape") setAdminEditId(null); }}
                                 autoFocus
                               />
-                              <input
-                                className="admin-input admin-input-portion"
-                                aria-label="Porzione"
-                                placeholder="Porzione"
-                                value={adminEditDraft.portion}
-                                onChange={e => setAdminEditDraft(d => ({ ...d, portion: e.target.value }))}
-                              />
+                              {!adminEditDraft.variable && (
+                                <input
+                                  className="admin-input admin-input-portion"
+                                  aria-label="Porzione"
+                                  placeholder="Porzione"
+                                  value={adminEditDraft.portion}
+                                  onChange={e => setAdminEditDraft(d => ({ ...d, portion: e.target.value }))}
+                                />
+                              )}
                               <label className="admin-variable-label">
                                 <input
                                   type="checkbox"
                                   checked={adminEditDraft.variable}
-                                  onChange={e => setAdminEditDraft(d => ({ ...d, variable: e.target.checked }))}
+                                  onChange={e => setAdminEditDraft(d => ({ ...d, variable: e.target.checked, ...(e.target.checked ? { portion: "" } : {}) }))}
                                 />
                                 Variabile
                               </label>
                               {adminEditDraft.variable ? (
-                                <input
-                                  className="admin-input admin-input-kcal"
-                                  type="number"
-                                  aria-label="Kcal per grammo"
-                                  placeholder="kcal/g"
-                                  value={adminEditDraft.kcalPerG}
-                                  onChange={e => setAdminEditDraft(d => ({ ...d, kcalPerG: e.target.value }))}
-                                  min="0"
-                                  step="0.01"
-                                />
+                                <div className="admin-ref-wrap">
+                                  <input
+                                    className="admin-input admin-input-ref-g"
+                                    type="number"
+                                    aria-label="Grammi di riferimento"
+                                    placeholder="g"
+                                    value={adminEditDraft.refGrams}
+                                    onChange={e => setAdminEditDraft(d => ({ ...d, refGrams: e.target.value }))}
+                                    min="1"
+                                  />
+                                  <span className="admin-ref-sep">g =</span>
+                                  <input
+                                    className="admin-input admin-input-ref-kcal"
+                                    type="number"
+                                    aria-label="Calorie per i grammi di riferimento"
+                                    placeholder="kcal"
+                                    value={adminEditDraft.refKcal}
+                                    onChange={e => setAdminEditDraft(d => ({ ...d, refKcal: e.target.value }))}
+                                    min="0"
+                                  />
+                                  <span className="admin-ref-sep">kcal</span>
+                                </div>
                               ) : (
                                 <input
                                   className="admin-input admin-input-kcal"
@@ -1472,7 +1494,7 @@ function App() {
                               <div className="admin-item-info">
                                 <span className="admin-item-name">{item.name}</span>
                                 <span className="admin-item-meta">
-                                  {item.variable ? `${item.kcalPerG} kcal/g` : `${item.kcal} kcal`}
+                                  {item.variable ? `${Math.round(item.kcalPerG * 100)} kcal/100g` : `${item.kcal} kcal`}
                                   {item.portion ? ` · ${item.portion}` : ""}
                                 </span>
                               </div>
@@ -1497,32 +1519,46 @@ function App() {
                             onKeyDown={e => { if (e.key === "Enter") addNewItem(catIdx); if (e.key === "Escape") setAdminNewItem(null); }}
                             autoFocus
                           />
-                          <input
-                            className="admin-input admin-input-portion"
-                            aria-label="Porzione"
-                            placeholder="Porzione"
-                            value={adminNewItem.portion}
-                            onChange={e => setAdminNewItem(d => ({ ...d, portion: e.target.value }))}
-                          />
+                          {!adminNewItem.variable && (
+                            <input
+                              className="admin-input admin-input-portion"
+                              aria-label="Porzione"
+                              placeholder="Porzione"
+                              value={adminNewItem.portion}
+                              onChange={e => setAdminNewItem(d => ({ ...d, portion: e.target.value }))}
+                            />
+                          )}
                           <label className="admin-variable-label">
                             <input
                               type="checkbox"
                               checked={adminNewItem.variable}
-                              onChange={e => setAdminNewItem(d => ({ ...d, variable: e.target.checked }))}
+                              onChange={e => setAdminNewItem(d => ({ ...d, variable: e.target.checked, ...(e.target.checked ? { portion: "" } : {}) }))}
                             />
                             Variabile
                           </label>
                           {adminNewItem.variable ? (
-                            <input
-                              className="admin-input admin-input-kcal"
-                              type="number"
-                              aria-label="Kcal per grammo"
-                              placeholder="kcal/g"
-                              value={adminNewItem.kcalPerG}
-                              onChange={e => setAdminNewItem(d => ({ ...d, kcalPerG: e.target.value }))}
-                              min="0"
-                              step="0.01"
-                            />
+                            <div className="admin-ref-wrap">
+                              <input
+                                className="admin-input admin-input-ref-g"
+                                type="number"
+                                aria-label="Grammi di riferimento"
+                                placeholder="g"
+                                value={adminNewItem.refGrams}
+                                onChange={e => setAdminNewItem(d => ({ ...d, refGrams: e.target.value }))}
+                                min="1"
+                              />
+                              <span className="admin-ref-sep">g =</span>
+                              <input
+                                className="admin-input admin-input-ref-kcal"
+                                type="number"
+                                aria-label="Calorie per i grammi di riferimento"
+                                placeholder="kcal"
+                                value={adminNewItem.refKcal}
+                                onChange={e => setAdminNewItem(d => ({ ...d, refKcal: e.target.value }))}
+                                min="0"
+                              />
+                              <span className="admin-ref-sep">kcal</span>
+                            </div>
                           ) : (
                             <input
                               className="admin-input admin-input-kcal"
@@ -1542,7 +1578,7 @@ function App() {
                       ) : (
                         <button
                           className="admin-add-btn"
-                          onClick={() => { setAdminEditId(null); setAdminNewItem({ catIdx, name: "", kcal: "", portion: "", variable: false, kcalPerG: "" }); }}
+                          onClick={() => { setAdminEditId(null); setAdminNewItem({ catIdx, name: "", kcal: "", portion: "", variable: false, kcalPerG: "", refGrams: "100", refKcal: "" }); }}
                           aria-label={`Aggiungi alimento a ${cat.category}`}
                         >
                           + Aggiungi alimento

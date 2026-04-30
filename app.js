@@ -1101,15 +1101,20 @@ function App() {
       kcal: item.variable ? "" : String(item.kcal),
       portion: item.portion || "",
       variable: !!item.variable,
-      kcalPerG: item.variable ? String(item.kcalPerG) : ""
+      kcalPerG: item.variable ? String(item.kcalPerG) : "",
+      refGrams: "100",
+      refKcal: item.variable ? String(Math.round(item.kcalPerG * 100)) : ""
     });
   };
   const saveEditedItem = itemId => {
     const d = adminEditDraft;
     if (!d.name.trim()) return;
+    let computedKcalPerG = null;
     if (d.variable) {
-      const p = parseFloat(d.kcalPerG);
-      if (isNaN(p) || p <= 0) return;
+      const g = parseFloat(d.refGrams);
+      const k = parseFloat(d.refKcal);
+      if (isNaN(g) || g <= 0 || isNaN(k) || k < 0) return;
+      computedKcalPerG = k / g;
     } else {
       const k = parseInt(d.kcal, 10);
       if (isNaN(k) || k < 0) return;
@@ -1125,7 +1130,7 @@ function App() {
             portion: d.portion.trim() || "g",
             kcal: 0,
             variable: true,
-            kcalPerG: parseFloat(d.kcalPerG)
+            kcalPerG: computedKcalPerG
           };
         }
         return {
@@ -1162,9 +1167,12 @@ function App() {
   const addNewItem = catIdx => {
     const form = adminNewItem;
     if (!form || !form.name.trim()) return;
+    let computedKcalPerG = null;
     if (form.variable) {
-      const p = parseFloat(form.kcalPerG);
-      if (isNaN(p) || p <= 0) return;
+      const g = parseFloat(form.refGrams);
+      const k = parseFloat(form.refKcal);
+      if (isNaN(g) || g <= 0 || isNaN(k) || k < 0) return;
+      computedKcalPerG = k / g;
     } else {
       const k = parseInt(form.kcal, 10);
       if (isNaN(k) || k < 0) return;
@@ -1176,7 +1184,7 @@ function App() {
       portion: form.portion.trim() || "g",
       kcal: 0,
       variable: true,
-      kcalPerG: parseFloat(form.kcalPerG)
+      kcalPerG: computedKcalPerG
     } : {
       id: newId,
       name: form.name.trim(),
@@ -2019,7 +2027,7 @@ function App() {
         if (e.key === "Escape") setAdminEditId(null);
       },
       autoFocus: true
-    }), /*#__PURE__*/React.createElement("input", {
+    }), !adminEditDraft.variable && /*#__PURE__*/React.createElement("input", {
       className: "admin-input admin-input-portion",
       "aria-label": "Porzione",
       placeholder: "Porzione",
@@ -2035,21 +2043,40 @@ function App() {
       checked: adminEditDraft.variable,
       onChange: e => setAdminEditDraft(d => ({
         ...d,
-        variable: e.target.checked
+        variable: e.target.checked,
+        ...(e.target.checked ? {
+          portion: ""
+        } : {})
       }))
-    }), "Variabile"), adminEditDraft.variable ? /*#__PURE__*/React.createElement("input", {
-      className: "admin-input admin-input-kcal",
+    }), "Variabile"), adminEditDraft.variable ? /*#__PURE__*/React.createElement("div", {
+      className: "admin-ref-wrap"
+    }, /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-ref-g",
       type: "number",
-      "aria-label": "Kcal per grammo",
-      placeholder: "kcal/g",
-      value: adminEditDraft.kcalPerG,
+      "aria-label": "Grammi di riferimento",
+      placeholder: "g",
+      value: adminEditDraft.refGrams,
       onChange: e => setAdminEditDraft(d => ({
         ...d,
-        kcalPerG: e.target.value
+        refGrams: e.target.value
       })),
-      min: "0",
-      step: "0.01"
-    }) : /*#__PURE__*/React.createElement("input", {
+      min: "1"
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "admin-ref-sep"
+    }, "g ="), /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-ref-kcal",
+      type: "number",
+      "aria-label": "Calorie per i grammi di riferimento",
+      placeholder: "kcal",
+      value: adminEditDraft.refKcal,
+      onChange: e => setAdminEditDraft(d => ({
+        ...d,
+        refKcal: e.target.value
+      })),
+      min: "0"
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "admin-ref-sep"
+    }, "kcal")) : /*#__PURE__*/React.createElement("input", {
       className: "admin-input admin-input-kcal",
       type: "number",
       "aria-label": "Calorie",
@@ -2081,7 +2108,7 @@ function App() {
       className: "admin-item-name"
     }, item.name), /*#__PURE__*/React.createElement("span", {
       className: "admin-item-meta"
-    }, item.variable ? `${item.kcalPerG} kcal/g` : `${item.kcal} kcal`, item.portion ? ` · ${item.portion}` : "")), /*#__PURE__*/React.createElement("div", {
+    }, item.variable ? `${Math.round(item.kcalPerG * 100)} kcal/100g` : `${item.kcal} kcal`, item.portion ? ` · ${item.portion}` : "")), /*#__PURE__*/React.createElement("div", {
       className: "admin-item-actions"
     }, /*#__PURE__*/React.createElement("button", {
       className: "admin-icon-btn",
@@ -2107,7 +2134,7 @@ function App() {
         if (e.key === "Escape") setAdminNewItem(null);
       },
       autoFocus: true
-    }), /*#__PURE__*/React.createElement("input", {
+    }), !adminNewItem.variable && /*#__PURE__*/React.createElement("input", {
       className: "admin-input admin-input-portion",
       "aria-label": "Porzione",
       placeholder: "Porzione",
@@ -2123,21 +2150,40 @@ function App() {
       checked: adminNewItem.variable,
       onChange: e => setAdminNewItem(d => ({
         ...d,
-        variable: e.target.checked
+        variable: e.target.checked,
+        ...(e.target.checked ? {
+          portion: ""
+        } : {})
       }))
-    }), "Variabile"), adminNewItem.variable ? /*#__PURE__*/React.createElement("input", {
-      className: "admin-input admin-input-kcal",
+    }), "Variabile"), adminNewItem.variable ? /*#__PURE__*/React.createElement("div", {
+      className: "admin-ref-wrap"
+    }, /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-ref-g",
       type: "number",
-      "aria-label": "Kcal per grammo",
-      placeholder: "kcal/g",
-      value: adminNewItem.kcalPerG,
+      "aria-label": "Grammi di riferimento",
+      placeholder: "g",
+      value: adminNewItem.refGrams,
       onChange: e => setAdminNewItem(d => ({
         ...d,
-        kcalPerG: e.target.value
+        refGrams: e.target.value
       })),
-      min: "0",
-      step: "0.01"
-    }) : /*#__PURE__*/React.createElement("input", {
+      min: "1"
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "admin-ref-sep"
+    }, "g ="), /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-ref-kcal",
+      type: "number",
+      "aria-label": "Calorie per i grammi di riferimento",
+      placeholder: "kcal",
+      value: adminNewItem.refKcal,
+      onChange: e => setAdminNewItem(d => ({
+        ...d,
+        refKcal: e.target.value
+      })),
+      min: "0"
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "admin-ref-sep"
+    }, "kcal")) : /*#__PURE__*/React.createElement("input", {
       className: "admin-input admin-input-kcal",
       type: "number",
       "aria-label": "Calorie",
@@ -2168,7 +2214,9 @@ function App() {
           kcal: "",
           portion: "",
           variable: false,
-          kcalPerG: ""
+          kcalPerG: "",
+          refGrams: "100",
+          refKcal: ""
         });
       },
       "aria-label": `Aggiungi alimento a ${cat.category}`
