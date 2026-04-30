@@ -890,7 +890,7 @@ function App() {
       <header className="header">
         <div style={{ maxWidth: 520, margin: "0 auto" }}>
           <div className="header-top">
-            <img src="logo4.png" alt="kcalTracker" className="app-logo" />
+            <img src="logo2.png" alt="kcalTracker" className="app-logo" />
             <div className="header-top-right">
               <button className="reset-btn" onClick={handleReset} aria-label="Azzera le calorie di oggi">Reset</button>
               <button className="theme-btn" onClick={() => setLightTheme(t => !t)} aria-label={lightTheme ? "Passa al tema scuro" : "Passa al tema chiaro"}>

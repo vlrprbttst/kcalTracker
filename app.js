@@ -1296,7 +1296,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "header-top"
   }, /*#__PURE__*/React.createElement("img", {
-    src: "logo4.png",
+    src: "logo2.png",
     alt: "kcalTracker",
     className: "app-logo"
   }), /*#__PURE__*/React.createElement("div", {
