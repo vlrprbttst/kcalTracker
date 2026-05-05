@@ -676,10 +676,12 @@ function App() {
     name: "",
     icon: ""
   });
-  const [adminOpenCat, setAdminOpenCat] = useState(null);
-  const sortableListRef = useRef(null);
+  const [adminOpenCats, setAdminOpenCats] = useState(new Set());
   const sortableCatsRef = useRef(null);
-  const adminOpenCatRef = useRef(null);
+  const sortableItemRefs = useRef({});
+  const sortableItemInstances = useRef({});
+  const isDraggingRef = useRef(false);
+  const hoverOpenTimerRef = useRef(null);
   const userRef = useRef(null);
 
   // Derived lookup maps — recomputed whenever dietData changes
@@ -877,51 +879,81 @@ function App() {
     }).catch(() => setHistoryLoading(false));
   }, [activeTab, user]);
   useEffect(() => {
-    adminOpenCatRef.current = adminOpenCat;
-  }, [adminOpenCat]);
-  useEffect(() => {
     userRef.current = user;
   }, [user]);
   useEffect(() => {
-    if (typeof Sortable === 'undefined' || adminOpenCat === null || activeTab !== "alimenti" || !sortableListRef.current) return;
-    const sortable = Sortable.create(sortableListRef.current, {
-      animation: 150,
-      handle: '.admin-drag-handle',
-      ghostClass: 'admin-drag-ghost',
-      onEnd: evt => {
-        const {
-          oldIndex,
-          newIndex
-        } = evt;
-        if (oldIndex === newIndex) return;
-        const catIdx = adminOpenCatRef.current;
-        const u = userRef.current;
-        setDietData(prev => {
-          const newData = prev.map((cat, ci) => {
-            if (ci !== catIdx) return cat;
-            const items = [...cat.items];
-            const [moved] = items.splice(oldIndex, 1);
-            items.splice(newIndex, 0, moved);
-            return {
-              ...cat,
-              items
-            };
-          });
-          if (u) {
-            db.collection("users").doc(u.uid).collection("config").doc("foods").set({
-              dietData: newData
-            }).catch(e => console.error("Diet save error:", e));
+    if (typeof Sortable === 'undefined' || activeTab !== "alimenti") return;
+    // Crea sortable solo per le categorie appena aperte (non tocca quelle già attive)
+    adminOpenCats.forEach(catName => {
+      if (sortableItemInstances.current[catName]) return;
+      const el = sortableItemRefs.current[catName];
+      if (!el) return;
+      sortableItemInstances.current[catName] = Sortable.create(el, {
+        animation: 150,
+        handle: '.admin-drag-handle',
+        ghostClass: 'admin-drag-ghost',
+        group: 'items',
+        onStart: () => {
+          isDraggingRef.current = true;
+        },
+        onEnd: evt => {
+          isDraggingRef.current = false;
+          clearTimeout(hoverOpenTimerRef.current);
+          const {
+            oldIndex,
+            newIndex,
+            from,
+            to
+          } = evt;
+          const fromCat = from.dataset.category;
+          const toCat = to.dataset.category;
+          if (fromCat === toCat && oldIndex === newIndex) return;
+          if (from !== to) {
+            from.insertBefore(evt.item, from.children[oldIndex] || null);
           }
-          return newData;
-        });
+          const u = userRef.current;
+          setDietData(prev => {
+            const newData = prev.map(cat => ({
+              ...cat,
+              items: [...cat.items]
+            }));
+            const srcCat = newData.find(c => c.category === fromCat);
+            const dstCat = newData.find(c => c.category === toCat);
+            if (!srcCat || !dstCat) return prev;
+            const [moved] = srcCat.items.splice(oldIndex, 1);
+            dstCat.items.splice(newIndex, 0, moved);
+            if (u) {
+              db.collection("users").doc(u.uid).collection("config").doc("foods").set({
+                dietData: newData
+              }).catch(e => console.error("Diet save error:", e));
+            }
+            return newData;
+          });
+        }
+      });
+    });
+    // Distrugge sortable solo per le categorie che sono state chiuse
+    Object.keys(sortableItemInstances.current).forEach(catName => {
+      if (!adminOpenCats.has(catName)) {
+        try {
+          sortableItemInstances.current[catName].destroy();
+        } catch {}
+        delete sortableItemInstances.current[catName];
       }
     });
+  }, [adminOpenCats, activeTab]);
+
+  // Cleanup totale solo al cambio di tab (effect separato per non toccare i sortable durante il drag)
+  useEffect(() => {
     return () => {
-      try {
-        sortable.destroy();
-      } catch {}
+      Object.values(sortableItemInstances.current).forEach(s => {
+        try {
+          s.destroy();
+        } catch {}
+      });
+      sortableItemInstances.current = {};
     };
-  }, [adminOpenCat, activeTab]);
+  }, [activeTab]);
   useEffect(() => {
     if (typeof Sortable === 'undefined' || activeTab !== "alimenti" || !sortableCatsRef.current) return;
     const sortable = Sortable.create(sortableCatsRef.current, {
@@ -945,16 +977,6 @@ function App() {
             }).catch(e => console.error("Diet save error:", e));
           }
           return newData;
-        });
-        setAdminOpenCat(prev => {
-          if (prev === null) return null;
-          if (prev === oldIndex) return newIndex;
-          if (oldIndex < newIndex) {
-            if (prev > oldIndex && prev <= newIndex) return prev - 1;
-          } else {
-            if (prev >= newIndex && prev < oldIndex) return prev + 1;
-          }
-          return prev;
         });
       }
     });
@@ -1270,7 +1292,11 @@ function App() {
         const newDietData = dietData.filter((_, i) => i !== catIdx);
         setDietData(newDietData);
         saveDietToFirestore(newDietData);
-        if (adminOpenCat === catIdx) setAdminOpenCat(null);else if (adminOpenCat > catIdx) setAdminOpenCat(adminOpenCat - 1);
+        setAdminOpenCats(prev => {
+          const next = new Set(prev);
+          next.delete(cat.category);
+          return next;
+        });
       }
     });
   };
@@ -2031,18 +2057,49 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     ref: sortableCatsRef
   }, dietData.map((cat, catIdx) => {
-    const isOpen = adminOpenCat === catIdx;
+    const isOpen = adminOpenCats.has(cat.category);
     return /*#__PURE__*/React.createElement("div", {
       key: cat.category,
       className: "category-card"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "admin-cat-row"
+      className: "admin-cat-row",
+      onPointerEnter: () => {
+        if (!isDraggingRef.current || isOpen) return;
+        clearTimeout(hoverOpenTimerRef.current);
+        hoverOpenTimerRef.current = setTimeout(() => {
+          setAdminOpenCats(prev => {
+            const next = new Set(prev);
+            next.add(cat.category);
+            return next;
+          });
+        }, 600);
+      },
+      onPointerLeave: () => clearTimeout(hoverOpenTimerRef.current),
+      onDragEnter: () => {
+        if (isOpen) return;
+        clearTimeout(hoverOpenTimerRef.current);
+        hoverOpenTimerRef.current = setTimeout(() => {
+          setAdminOpenCats(prev => {
+            const next = new Set(prev);
+            next.add(cat.category);
+            return next;
+          });
+        }, 600);
+      },
+      onDragLeave: e => {
+        if (e.currentTarget.contains(e.relatedTarget)) return;
+        clearTimeout(hoverOpenTimerRef.current);
+      }
     }, /*#__PURE__*/React.createElement("span", {
       className: "admin-cat-drag-handle",
       "aria-hidden": "true"
     }, "\u283F"), /*#__PURE__*/React.createElement("button", {
       className: "category-btn",
-      onClick: () => setAdminOpenCat(isOpen ? null : catIdx),
+      onClick: () => setAdminOpenCats(prev => {
+        const next = new Set(prev);
+        next.has(cat.category) ? next.delete(cat.category) : next.add(cat.category);
+        return next;
+      }),
       "aria-expanded": isOpen,
       "aria-controls": `admin-cat-${catIdx}`
     }, /*#__PURE__*/React.createElement("span", {
@@ -2058,7 +2115,10 @@ function App() {
       id: `admin-cat-${catIdx}`,
       className: "admin-items-list"
     }, /*#__PURE__*/React.createElement("div", {
-      ref: isOpen ? sortableListRef : null
+      ref: el => {
+        if (el) sortableItemRefs.current[cat.category] = el;else delete sortableItemRefs.current[cat.category];
+      },
+      "data-category": cat.category
     }, cat.items.map(item => /*#__PURE__*/React.createElement("div", {
       key: item.id
     }, adminEditId === item.id ? /*#__PURE__*/React.createElement("div", {
