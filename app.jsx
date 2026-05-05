@@ -379,6 +379,7 @@ function App() {
   const [adminNewCatDraft, setAdminNewCatDraft] = useState({ name: "", icon: "" });
   const [adminOpenCat, setAdminOpenCat] = useState(null);
   const sortableListRef = useRef(null);
+  const sortableCatsRef = useRef(null);
   const adminOpenCatRef = useRef(null);
   const userRef = useRef(null);
 
@@ -597,6 +598,42 @@ function App() {
     });
     return () => { try { sortable.destroy(); } catch {} };
   }, [adminOpenCat, activeTab]);
+
+  useEffect(() => {
+    if (typeof Sortable === 'undefined' || activeTab !== "alimenti" || !sortableCatsRef.current) return;
+    const sortable = Sortable.create(sortableCatsRef.current, {
+      animation: 150,
+      handle: '.admin-cat-drag-handle',
+      ghostClass: 'admin-drag-ghost',
+      onEnd: (evt) => {
+        const { oldIndex, newIndex } = evt;
+        if (oldIndex === newIndex) return;
+        const u = userRef.current;
+        setDietData(prev => {
+          const newData = [...prev];
+          const [moved] = newData.splice(oldIndex, 1);
+          newData.splice(newIndex, 0, moved);
+          if (u) {
+            db.collection("users").doc(u.uid).collection("config").doc("foods")
+              .set({ dietData: newData })
+              .catch(e => console.error("Diet save error:", e));
+          }
+          return newData;
+        });
+        setAdminOpenCat(prev => {
+          if (prev === null) return null;
+          if (prev === oldIndex) return newIndex;
+          if (oldIndex < newIndex) {
+            if (prev > oldIndex && prev <= newIndex) return prev - 1;
+          } else {
+            if (prev >= newIndex && prev < oldIndex) return prev + 1;
+          }
+          return prev;
+        });
+      },
+    });
+    return () => { try { sortable.destroy(); } catch {} };
+  }, [activeTab]);
 
   // Reset admin forms when leaving the tab
   useEffect(() => {
@@ -1393,21 +1430,25 @@ function App() {
 
         {user && activeTab === "alimenti" && (
           <div className="admin-tab">
+            <div ref={sortableCatsRef}>
             {dietData.map((cat, catIdx) => {
               const isOpen = adminOpenCat === catIdx;
               return (
-                <div key={catIdx} className="category-card">
-                  <button
-                    className="category-btn"
-                    onClick={() => setAdminOpenCat(isOpen ? null : catIdx)}
-                    aria-expanded={isOpen}
-                    aria-controls={`admin-cat-${catIdx}`}
-                  >
-                    <span className="cat-icon" aria-hidden="true">{cat.icon}</span>
-                    <span className="cat-name">{cat.category}</span>
-                    <span className="cat-meta">{cat.items.length} {cat.items.length === 1 ? "alimento" : "alimenti"}</span>
-                    <span className={`cat-arrow${isOpen ? " open" : ""}`}>▼</span>
-                  </button>
+                <div key={cat.category} className="category-card">
+                  <div className="admin-cat-row">
+                    <span className="admin-cat-drag-handle" aria-hidden="true">⠿</span>
+                    <button
+                      className="category-btn"
+                      onClick={() => setAdminOpenCat(isOpen ? null : catIdx)}
+                      aria-expanded={isOpen}
+                      aria-controls={`admin-cat-${catIdx}`}
+                    >
+                      <span className="cat-icon" aria-hidden="true">{cat.icon}</span>
+                      <span className="cat-name">{cat.category}</span>
+                      <span className="cat-meta">{cat.items.length} {cat.items.length === 1 ? "alimento" : "alimenti"}</span>
+                      <span className={`cat-arrow${isOpen ? " open" : ""}`}>▼</span>
+                    </button>
+                  </div>
                   {isOpen && (
                     <div id={`admin-cat-${catIdx}`} className="admin-items-list">
                       <div ref={isOpen ? sortableListRef : null}>
@@ -1587,6 +1628,7 @@ function App() {
                 </div>
               );
             })}
+            </div>
 
             {adminNewCat ? (
               <div className="admin-new-cat-card">

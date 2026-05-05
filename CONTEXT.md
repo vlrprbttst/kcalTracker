@@ -155,7 +155,8 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - **Aggiunta item:** bottone "+ Aggiungi alimento" in fondo a ogni categoria aperta
 - **Aggiunta categoria:** bottone "+ Aggiungi categoria" in fondo alla lista
 - **Eliminazione categoria:** bottone "Elimina categoria" in fondo all'accordion aperto
-- **Drag & drop** (SortableJS): handle `⠿` su ogni riga per riordinare gli item all'interno della stessa categoria — funziona su mouse e touch
+- **Drag & drop item** (SortableJS): handle `⠿` su ogni riga per riordinare gli item all'interno della stessa categoria — funziona su mouse e touch
+- **Drag & drop categorie** (SortableJS): handle `⠿` a sinistra del titolo categoria per riordinare le categorie — insertion sort classico, salvataggio immediato su Firestore
 - **Salvataggio:** ogni modifica (add/edit/delete/reorder) salva immediatamente su Firestore `config/foods`
 - **Prima apertura post-deploy:** se `config/foods` non esiste, viene seminato da `SEED_DIET_DATA`
 - **Auto-merge al login:** se `config/foods` esiste ma mancano item/categorie presenti in `SEED_DIET_DATA`, vengono aggiunti automaticamente. Garantisce che nuovi alimenti aggiunti via codice appaiano anche per utenti già onboardati
@@ -289,7 +290,11 @@ const ACTIVE_DAY = () => {
 Non usare `toISOString()` — restituisce UTC e causa sfasamenti.
 
 ### SortableJS nel tab Alimenti
-Inizializzato via `useEffect([adminOpenCat, activeTab])`. Dipende da `activeTab` perché il tab Alimenti viene smontato/rimontato al cambio tab — senza questa dipendenza, Sortable non verrebbe ricreato al ritorno sul tab. Usa `adminOpenCatRef` e `userRef` per accesso closure-safe a valori correnti dentro `onEnd`.
+Due istanze Sortable distinte:
+
+**Item sortable** — `useEffect([adminOpenCat, activeTab])`, container = div interno alla categoria aperta (`sortableListRef`), handle `.admin-drag-handle`. Dipende da `adminOpenCat` e `activeTab` perché il container si monta/smonta. Usa `adminOpenCatRef` e `userRef` per closure-safe access in `onEnd`.
+
+**Category sortable** — `useEffect([activeTab])`, container = div che racchiude solo le `.category-card` (sotto-div di `.admin-tab`, prima del bottone "+ Aggiungi categoria") (`sortableCatsRef`), handle `.admin-cat-drag-handle`. Il container non include il bottone "+ Aggiungi categoria" per evitare sfasamenti sugli indici. Le category-card usano `key={cat.category}` (non `key={catIdx}`) per evitare la collisione React+SortableJS: con chiavi stabili React segue il nodo DOM per identità invece di riconciliare per posizione. In `onEnd` aggiorna sia `dietData` (splice) sia `adminOpenCat` (mantiene la categoria aperta nella nuova posizione).
 
 ### genId
 ```js

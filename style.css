@@ -849,3 +849,21 @@ body.light .admin-btn-primary { color: #fff; }
 }
 .admin-drag-handle:active { cursor: grabbing; }
 .admin-drag-ghost { opacity: 0.4; background: var(--accent-bg) !important; }
+
+.admin-cat-row {
+  display: flex;
+  align-items: center;
+}
+.admin-cat-row .category-btn { flex: 1; min-width: 0; }
+.admin-cat-drag-handle {
+  font-size: 16px;
+  color: var(--text-dimmest);
+  cursor: grab;
+  padding: 14px 6px 14px 14px;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  line-height: 1;
+}
+.admin-cat-drag-handle:active { cursor: grabbing; }
