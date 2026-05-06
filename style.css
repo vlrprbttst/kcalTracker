@@ -225,7 +225,7 @@ input { font-family: inherit; }
   pointer-events: none;
 }
 
-.content { max-width: 520px; margin: 0 auto; padding: 16px 12px 0; min-height: calc(100dvh - 180px); }
+.content { max-width: 520px; margin: 0 auto; padding: 0 12px 0; min-height: calc(100dvh - 180px); }
 
 .category-card {
   background: var(--surface);
@@ -575,10 +575,17 @@ body:not(.light) .week-incomplete-note { color: #ca8a04; }
 }
 .shake { animation: shake 0.4s ease; }
 
+.sticky-search {
+  background: var(--bg);
+  padding: 8px 0 8px;
+  border-bottom: 1px solid var(--border);
+  transition: background .25s ease;
+}
 .search-wrap {
   position: relative;
   margin-bottom: 10px;
 }
+.sticky-search .search-wrap { max-width: 520px; margin: 0 auto; padding: 0 12px; margin-bottom: 0; }
 .search-input {
   width: 100%;
   background: var(--surface);

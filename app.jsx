@@ -1200,36 +1200,6 @@ function App() {
             <div className="progress-bar" style={{ width: `${pct}%`, background: barColor }} />
           </div>
 
-          {(user && activeTab === "oggi") && (
-            <div className="search-wrap" style={{ marginTop: 10, marginBottom: 0 }}>
-              <input
-                className="search-input"
-                type="search"
-                aria-label="Cerca alimento"
-                placeholder="Cerca alimento…"
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); setOpenIdx(null); }}
-              />
-              {searchQuery && (
-                <button className="search-clear" onClick={() => setSearchQuery("")} aria-label="Cancella ricerca">×</button>
-              )}
-            </div>
-          )}
-          {(user && activeTab === "alimenti") && (
-            <div className="search-wrap" style={{ marginTop: 10, marginBottom: 0 }}>
-              <input
-                className="search-input"
-                type="search"
-                aria-label="Cerca alimento"
-                placeholder="Cerca alimento…"
-                value={adminSearchQuery}
-                onChange={e => { setAdminSearchQuery(e.target.value); setAdminEditId(null); setAdminNewItem(null); }}
-              />
-              {adminSearchQuery && (
-                <button className="search-clear" onClick={() => setAdminSearchQuery("")} aria-label="Cancella ricerca">×</button>
-              )}
-            </div>
-          )}
         </div>
       </header>
 
@@ -1242,6 +1212,40 @@ function App() {
             <button ref={el => tabRefs.current["alimenti"] = el} data-wizard="alimenti-tab" className={`tab-btn${activeTab === "alimenti" ? " active" : ""}`} onClick={() => setActiveTab("alimenti")}>Alimenti</button>
             <button ref={el => tabRefs.current["orari"] = el} data-wizard="orari-tab" className={`tab-btn${activeTab === "orari" ? " active" : ""}`} onClick={() => setActiveTab("orari")}>Orari</button>
             <div className="tab-indicator" style={{ left: indicatorStyle.left, width: indicatorStyle.width }} />
+          </div>
+        </div>
+      )}
+      {(user && activeTab === "oggi") && (
+        <div className="sticky-search">
+          <div className="search-wrap">
+            <input
+              className="search-input"
+              type="search"
+              aria-label="Cerca alimento"
+              placeholder="Cerca alimento…"
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setOpenIdx(null); }}
+            />
+            {searchQuery && (
+              <button className="search-clear" onClick={() => setSearchQuery("")} aria-label="Cancella ricerca">×</button>
+            )}
+          </div>
+        </div>
+      )}
+      {(user && activeTab === "alimenti") && (
+        <div className="sticky-search">
+          <div className="search-wrap">
+            <input
+              className="search-input"
+              type="search"
+              aria-label="Cerca alimento"
+              placeholder="Cerca alimento…"
+              value={adminSearchQuery}
+              onChange={e => { setAdminSearchQuery(e.target.value); setAdminEditId(null); setAdminNewItem(null); }}
+            />
+            {adminSearchQuery && (
+              <button className="search-clear" onClick={() => setAdminSearchQuery("")} aria-label="Cancella ricerca">×</button>
+            )}
           </div>
         </div>
       )}
@@ -1738,6 +1742,7 @@ function App() {
               })()
             ) : (
               <>
+            <button className="close-all-btn" style={{ visibility: adminOpenCats.size > 0 ? 'visible' : 'hidden' }} onClick={() => setAdminOpenCats(new Set())}>chiudi tutto</button>
             <div ref={sortableCatsRef}>
             {dietData.map((cat, catIdx) => {
               const isOpen = adminOpenCats.has(cat.category);

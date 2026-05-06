@@ -1700,48 +1700,7 @@ function App() {
       width: `${pct}%`,
       background: barColor
     }
-  })), user && activeTab === "oggi" && /*#__PURE__*/React.createElement("div", {
-    className: "search-wrap",
-    style: {
-      marginTop: 10,
-      marginBottom: 0
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    className: "search-input",
-    type: "search",
-    "aria-label": "Cerca alimento",
-    placeholder: "Cerca alimento\u2026",
-    value: searchQuery,
-    onChange: e => {
-      setSearchQuery(e.target.value);
-      setOpenIdx(null);
-    }
-  }), searchQuery && /*#__PURE__*/React.createElement("button", {
-    className: "search-clear",
-    onClick: () => setSearchQuery(""),
-    "aria-label": "Cancella ricerca"
-  }, "\xD7")), user && activeTab === "alimenti" && /*#__PURE__*/React.createElement("div", {
-    className: "search-wrap",
-    style: {
-      marginTop: 10,
-      marginBottom: 0
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    className: "search-input",
-    type: "search",
-    "aria-label": "Cerca alimento",
-    placeholder: "Cerca alimento\u2026",
-    value: adminSearchQuery,
-    onChange: e => {
-      setAdminSearchQuery(e.target.value);
-      setAdminEditId(null);
-      setAdminNewItem(null);
-    }
-  }), adminSearchQuery && /*#__PURE__*/React.createElement("button", {
-    className: "search-clear",
-    onClick: () => setAdminSearchQuery(""),
-    "aria-label": "Cancella ricerca"
-  }, "\xD7")))), user && /*#__PURE__*/React.createElement("div", {
+  })))), user && /*#__PURE__*/React.createElement("div", {
     className: "tabs-bar",
     role: "navigation",
     "aria-label": "Sezioni principali"
@@ -1776,7 +1735,44 @@ function App() {
       left: indicatorStyle.left,
       width: indicatorStyle.width
     }
-  })))), /*#__PURE__*/React.createElement("main", {
+  }))), user && activeTab === "oggi" && /*#__PURE__*/React.createElement("div", {
+    className: "sticky-search"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "search-wrap"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "search-input",
+    type: "search",
+    "aria-label": "Cerca alimento",
+    placeholder: "Cerca alimento\u2026",
+    value: searchQuery,
+    onChange: e => {
+      setSearchQuery(e.target.value);
+      setOpenIdx(null);
+    }
+  }), searchQuery && /*#__PURE__*/React.createElement("button", {
+    className: "search-clear",
+    onClick: () => setSearchQuery(""),
+    "aria-label": "Cancella ricerca"
+  }, "\xD7"))), user && activeTab === "alimenti" && /*#__PURE__*/React.createElement("div", {
+    className: "sticky-search"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "search-wrap"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "search-input",
+    type: "search",
+    "aria-label": "Cerca alimento",
+    placeholder: "Cerca alimento\u2026",
+    value: adminSearchQuery,
+    onChange: e => {
+      setAdminSearchQuery(e.target.value);
+      setAdminEditId(null);
+      setAdminNewItem(null);
+    }
+  }), adminSearchQuery && /*#__PURE__*/React.createElement("button", {
+    className: "search-clear",
+    onClick: () => setAdminSearchQuery(""),
+    "aria-label": "Cancella ricerca"
+  }, "\xD7")))), /*#__PURE__*/React.createElement("main", {
     id: "main-content",
     className: "content",
     onTouchStart: onTouchStart,
@@ -2439,7 +2435,13 @@ function App() {
       onClick: () => deleteItem(item.id),
       "aria-label": `Elimina ${item.name}`
     }, "\uD83D\uDDD1\uFE0F")))))));
-  })() : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  })() : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    className: "close-all-btn",
+    style: {
+      visibility: adminOpenCats.size > 0 ? 'visible' : 'hidden'
+    },
+    onClick: () => setAdminOpenCats(new Set())
+  }, "chiudi tutto"), /*#__PURE__*/React.createElement("div", {
     ref: sortableCatsRef
   }, dietData.map((cat, catIdx) => {
     const isOpen = adminOpenCats.has(cat.category);
