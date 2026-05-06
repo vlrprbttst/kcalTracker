@@ -682,6 +682,9 @@ function App() {
   const sortableItemInstances = useRef({});
   const isDraggingRef = useRef(false);
   const hoverOpenTimerRef = useRef(null);
+  const hoverOpenCatRef = useRef(null);
+  const adminOpenCatsRef = useRef(adminOpenCats);
+  const handleTouchMoveRef = useRef(null);
   const userRef = useRef(null);
 
   // Derived lookup maps — recomputed whenever dietData changes
@@ -882,6 +885,9 @@ function App() {
     userRef.current = user;
   }, [user]);
   useEffect(() => {
+    adminOpenCatsRef.current = adminOpenCats;
+  }, [adminOpenCats]);
+  useEffect(() => {
     if (typeof Sortable === 'undefined' || activeTab !== "alimenti") return;
     // Crea sortable solo per le categorie appena aperte (non tocca quelle già attive)
     adminOpenCats.forEach(catName => {
@@ -895,10 +901,37 @@ function App() {
         group: 'items',
         onStart: () => {
           isDraggingRef.current = true;
+          handleTouchMoveRef.current = e => {
+            const touch = e.touches[0];
+            if (!touch) return;
+            const els = document.elementsFromPoint(touch.clientX, touch.clientY);
+            const catRow = els.find(el => el.dataset && el.dataset.hoverCat);
+            const catName = catRow ? catRow.dataset.hoverCat : null;
+            if (catName === hoverOpenCatRef.current) return;
+            clearTimeout(hoverOpenTimerRef.current);
+            hoverOpenCatRef.current = catName;
+            if (catName && !adminOpenCatsRef.current.has(catName)) {
+              hoverOpenTimerRef.current = setTimeout(() => {
+                setAdminOpenCats(prev => {
+                  const next = new Set(prev);
+                  next.add(catName);
+                  return next;
+                });
+              }, 600);
+            }
+          };
+          document.addEventListener('touchmove', handleTouchMoveRef.current, {
+            passive: true
+          });
         },
         onEnd: evt => {
           isDraggingRef.current = false;
           clearTimeout(hoverOpenTimerRef.current);
+          hoverOpenCatRef.current = null;
+          if (handleTouchMoveRef.current) {
+            document.removeEventListener('touchmove', handleTouchMoveRef.current);
+            handleTouchMoveRef.current = null;
+          }
           const {
             oldIndex,
             newIndex,
@@ -2063,6 +2096,7 @@ function App() {
       className: "category-card"
     }, /*#__PURE__*/React.createElement("div", {
       className: "admin-cat-row",
+      "data-hover-cat": cat.category,
       onPointerEnter: () => {
         if (!isDraggingRef.current || isOpen) return;
         clearTimeout(hoverOpenTimerRef.current);
