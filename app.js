@@ -676,6 +676,11 @@ function App() {
     name: "",
     icon: ""
   });
+  const [adminEditCat, setAdminEditCat] = useState(null);
+  const [adminEditCatDraft, setAdminEditCatDraft] = useState({
+    name: "",
+    icon: ""
+  });
   const [adminOpenCats, setAdminOpenCats] = useState(new Set());
   const sortableCatsRef = useRef(null);
   const sortableItemRefs = useRef({});
@@ -1026,6 +1031,7 @@ function App() {
       setAdminEditId(null);
       setAdminNewItem(null);
       setAdminNewCat(false);
+      setAdminEditCat(null);
     }
   }, [activeTab]);
   const login = () => {
@@ -1314,6 +1320,36 @@ function App() {
       icon: ""
     });
   };
+  const startEditCategory = cat => {
+    setAdminEditCat(cat.category);
+    setAdminEditCatDraft({
+      name: cat.category,
+      icon: cat.icon
+    });
+  };
+  const saveEditedCategory = () => {
+    const name = adminEditCatDraft.name.trim();
+    if (!name) return;
+    const icon = adminEditCatDraft.icon.trim() || "🍽️";
+    const oldName = adminEditCat;
+    const newDietData = dietData.map(cat => cat.category !== oldName ? cat : {
+      ...cat,
+      category: name,
+      icon
+    });
+    if (oldName !== name) {
+      setAdminOpenCats(prev => {
+        if (!prev.has(oldName)) return prev;
+        const next = new Set(prev);
+        next.delete(oldName);
+        next.add(name);
+        return next;
+      });
+    }
+    setDietData(newDietData);
+    saveDietToFirestore(newDietData);
+    setAdminEditCat(null);
+  };
   const deleteCategory = catIdx => {
     const cat = dietData[catIdx];
     const message = cat.items.length > 0 ? `La categoria "${cat.category}" contiene ${cat.items.length} aliment${cat.items.length === 1 ? "o" : "i"}. Eliminare tutto?` : `Eliminare la categoria "${cat.category}"?`;
@@ -1330,6 +1366,7 @@ function App() {
           next.delete(cat.category);
           return next;
         });
+        if (adminEditCat === cat.category) setAdminEditCat(null);
       }
     });
   };
@@ -2094,7 +2131,44 @@ function App() {
     return /*#__PURE__*/React.createElement("div", {
       key: cat.category,
       className: "category-card"
-    }, /*#__PURE__*/React.createElement("div", {
+    }, adminEditCat === cat.category ? /*#__PURE__*/React.createElement("div", {
+      className: "admin-form",
+      style: {
+        margin: "6px 10px"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-name",
+      "aria-label": "Nome categoria",
+      placeholder: "Nome categoria",
+      value: adminEditCatDraft.name,
+      onChange: e => setAdminEditCatDraft(d => ({
+        ...d,
+        name: e.target.value
+      })),
+      onKeyDown: e => {
+        if (e.key === "Enter") saveEditedCategory();
+        if (e.key === "Escape") setAdminEditCat(null);
+      },
+      autoFocus: true
+    }), /*#__PURE__*/React.createElement("input", {
+      className: "admin-input admin-input-icon",
+      "aria-label": "Emoji icona categoria",
+      placeholder: "Emoji",
+      value: adminEditCatDraft.icon,
+      onChange: e => setAdminEditCatDraft(d => ({
+        ...d,
+        icon: e.target.value
+      })),
+      maxLength: 2
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "admin-form-actions"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "admin-btn admin-btn-primary",
+      onClick: saveEditedCategory
+    }, "Salva"), /*#__PURE__*/React.createElement("button", {
+      className: "admin-btn admin-btn-ghost",
+      onClick: () => setAdminEditCat(null)
+    }, "Annulla"))) : /*#__PURE__*/React.createElement("div", {
       className: "admin-cat-row",
       "data-hover-cat": cat.category,
       onPointerEnter: () => {
@@ -2145,7 +2219,21 @@ function App() {
       className: "cat-meta"
     }, cat.items.length, " ", cat.items.length === 1 ? "alimento" : "alimenti"), /*#__PURE__*/React.createElement("span", {
       className: `cat-arrow${isOpen ? " open" : ""}`
-    }, "\u25BC"))), isOpen && /*#__PURE__*/React.createElement("div", {
+    }, "\u25BC")), /*#__PURE__*/React.createElement("button", {
+      className: "admin-icon-btn",
+      onClick: e => {
+        e.stopPropagation();
+        startEditCategory(cat);
+      },
+      "aria-label": `Modifica categoria ${cat.category}`
+    }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
+      className: "admin-icon-btn admin-icon-btn-delete",
+      onClick: e => {
+        e.stopPropagation();
+        deleteCategory(catIdx);
+      },
+      "aria-label": `Elimina categoria ${cat.category}`
+    }, "\uD83D\uDDD1\uFE0F")), isOpen && /*#__PURE__*/React.createElement("div", {
       id: `admin-cat-${catIdx}`,
       className: "admin-items-list"
     }, /*#__PURE__*/React.createElement("div", {
@@ -2364,13 +2452,7 @@ function App() {
         });
       },
       "aria-label": `Aggiungi alimento a ${cat.category}`
-    }, "+ Aggiungi alimento"), /*#__PURE__*/React.createElement("div", {
-      className: "admin-cat-footer"
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "admin-delete-cat-btn",
-      onClick: () => deleteCategory(catIdx),
-      "aria-label": `Elimina categoria ${cat.category}`
-    }, "Elimina categoria"))));
+    }, "+ Aggiungi alimento")));
   })), adminNewCat ? /*#__PURE__*/React.createElement("div", {
     className: "admin-new-cat-card"
   }, /*#__PURE__*/React.createElement("div", {

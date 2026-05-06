@@ -377,6 +377,8 @@ function App() {
   const [adminNewItem, setAdminNewItem] = useState(null);
   const [adminNewCat, setAdminNewCat] = useState(false);
   const [adminNewCatDraft, setAdminNewCatDraft] = useState({ name: "", icon: "" });
+  const [adminEditCat, setAdminEditCat] = useState(null);
+  const [adminEditCatDraft, setAdminEditCatDraft] = useState({ name: "", icon: "" });
   const [adminOpenCats, setAdminOpenCats] = useState(new Set());
   const sortableCatsRef = useRef(null);
   const sortableItemRefs = useRef({});
@@ -686,6 +688,7 @@ function App() {
       setAdminEditId(null);
       setAdminNewItem(null);
       setAdminNewCat(false);
+      setAdminEditCat(null);
     }
   }, [activeTab]);
 
@@ -917,6 +920,33 @@ function App() {
     setAdminNewCatDraft({ name: "", icon: "" });
   };
 
+  const startEditCategory = (cat) => {
+    setAdminEditCat(cat.category);
+    setAdminEditCatDraft({ name: cat.category, icon: cat.icon });
+  };
+
+  const saveEditedCategory = () => {
+    const name = adminEditCatDraft.name.trim();
+    if (!name) return;
+    const icon = adminEditCatDraft.icon.trim() || "🍽️";
+    const oldName = adminEditCat;
+    const newDietData = dietData.map(cat =>
+      cat.category !== oldName ? cat : { ...cat, category: name, icon }
+    );
+    if (oldName !== name) {
+      setAdminOpenCats(prev => {
+        if (!prev.has(oldName)) return prev;
+        const next = new Set(prev);
+        next.delete(oldName);
+        next.add(name);
+        return next;
+      });
+    }
+    setDietData(newDietData);
+    saveDietToFirestore(newDietData);
+    setAdminEditCat(null);
+  };
+
   const deleteCategory = (catIdx) => {
     const cat = dietData[catIdx];
     const message = cat.items.length > 0
@@ -931,6 +961,7 @@ function App() {
         setDietData(newDietData);
         saveDietToFirestore(newDietData);
         setAdminOpenCats(prev => { const next = new Set(prev); next.delete(cat.category); return next; });
+        if (adminEditCat === cat.category) setAdminEditCat(null);
       },
     });
   };
@@ -1479,42 +1510,70 @@ function App() {
               const isOpen = adminOpenCats.has(cat.category);
               return (
                 <div key={cat.category} className="category-card">
-                  <div
-                    className="admin-cat-row"
-                    data-hover-cat={cat.category}
-                    onPointerEnter={() => {
-                      if (!isDraggingRef.current || isOpen) return;
-                      clearTimeout(hoverOpenTimerRef.current);
-                      hoverOpenTimerRef.current = setTimeout(() => {
-                        setAdminOpenCats(prev => { const next = new Set(prev); next.add(cat.category); return next; });
-                      }, 600);
-                    }}
-                    onPointerLeave={() => clearTimeout(hoverOpenTimerRef.current)}
-                    onDragEnter={() => {
-                      if (isOpen) return;
-                      clearTimeout(hoverOpenTimerRef.current);
-                      hoverOpenTimerRef.current = setTimeout(() => {
-                        setAdminOpenCats(prev => { const next = new Set(prev); next.add(cat.category); return next; });
-                      }, 600);
-                    }}
-                    onDragLeave={e => {
-                      if (e.currentTarget.contains(e.relatedTarget)) return;
-                      clearTimeout(hoverOpenTimerRef.current);
-                    }}
-                  >
-                    <span className="admin-cat-drag-handle" aria-hidden="true">⠿</span>
-                    <button
-                      className="category-btn"
-                      onClick={() => setAdminOpenCats(prev => { const next = new Set(prev); next.has(cat.category) ? next.delete(cat.category) : next.add(cat.category); return next; })}
-                      aria-expanded={isOpen}
-                      aria-controls={`admin-cat-${catIdx}`}
+                  {adminEditCat === cat.category ? (
+                    <div className="admin-form" style={{ margin: "6px 10px" }}>
+                      <input
+                        className="admin-input admin-input-name"
+                        aria-label="Nome categoria"
+                        placeholder="Nome categoria"
+                        value={adminEditCatDraft.name}
+                        onChange={e => setAdminEditCatDraft(d => ({ ...d, name: e.target.value }))}
+                        onKeyDown={e => { if (e.key === "Enter") saveEditedCategory(); if (e.key === "Escape") setAdminEditCat(null); }}
+                        autoFocus
+                      />
+                      <input
+                        className="admin-input admin-input-icon"
+                        aria-label="Emoji icona categoria"
+                        placeholder="Emoji"
+                        value={adminEditCatDraft.icon}
+                        onChange={e => setAdminEditCatDraft(d => ({ ...d, icon: e.target.value }))}
+                        maxLength={2}
+                      />
+                      <div className="admin-form-actions">
+                        <button className="admin-btn admin-btn-primary" onClick={saveEditedCategory}>Salva</button>
+                        <button className="admin-btn admin-btn-ghost" onClick={() => setAdminEditCat(null)}>Annulla</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="admin-cat-row"
+                      data-hover-cat={cat.category}
+                      onPointerEnter={() => {
+                        if (!isDraggingRef.current || isOpen) return;
+                        clearTimeout(hoverOpenTimerRef.current);
+                        hoverOpenTimerRef.current = setTimeout(() => {
+                          setAdminOpenCats(prev => { const next = new Set(prev); next.add(cat.category); return next; });
+                        }, 600);
+                      }}
+                      onPointerLeave={() => clearTimeout(hoverOpenTimerRef.current)}
+                      onDragEnter={() => {
+                        if (isOpen) return;
+                        clearTimeout(hoverOpenTimerRef.current);
+                        hoverOpenTimerRef.current = setTimeout(() => {
+                          setAdminOpenCats(prev => { const next = new Set(prev); next.add(cat.category); return next; });
+                        }, 600);
+                      }}
+                      onDragLeave={e => {
+                        if (e.currentTarget.contains(e.relatedTarget)) return;
+                        clearTimeout(hoverOpenTimerRef.current);
+                      }}
                     >
-                      <span className="cat-icon" aria-hidden="true">{cat.icon}</span>
-                      <span className="cat-name">{cat.category}</span>
-                      <span className="cat-meta">{cat.items.length} {cat.items.length === 1 ? "alimento" : "alimenti"}</span>
-                      <span className={`cat-arrow${isOpen ? " open" : ""}`}>▼</span>
-                    </button>
-                  </div>
+                      <span className="admin-cat-drag-handle" aria-hidden="true">⠿</span>
+                      <button
+                        className="category-btn"
+                        onClick={() => setAdminOpenCats(prev => { const next = new Set(prev); next.has(cat.category) ? next.delete(cat.category) : next.add(cat.category); return next; })}
+                        aria-expanded={isOpen}
+                        aria-controls={`admin-cat-${catIdx}`}
+                      >
+                        <span className="cat-icon" aria-hidden="true">{cat.icon}</span>
+                        <span className="cat-name">{cat.category}</span>
+                        <span className="cat-meta">{cat.items.length} {cat.items.length === 1 ? "alimento" : "alimenti"}</span>
+                        <span className={`cat-arrow${isOpen ? " open" : ""}`}>▼</span>
+                      </button>
+                      <button className="admin-icon-btn" onClick={e => { e.stopPropagation(); startEditCategory(cat); }} aria-label={`Modifica categoria ${cat.category}`}>✏️</button>
+                      <button className="admin-icon-btn admin-icon-btn-delete" onClick={e => { e.stopPropagation(); deleteCategory(catIdx); }} aria-label={`Elimina categoria ${cat.category}`}>🗑️</button>
+                    </div>
+                  )}
                   {isOpen && (
                     <div id={`admin-cat-${catIdx}`} className="admin-items-list">
                       <div
@@ -1687,11 +1746,6 @@ function App() {
                         </button>
                       )}
 
-                      <div className="admin-cat-footer">
-                        <button className="admin-delete-cat-btn" onClick={() => deleteCategory(catIdx)} aria-label={`Elimina categoria ${cat.category}`}>
-                          Elimina categoria
-                        </button>
-                      </div>
                     </div>
                   )}
                 </div>
