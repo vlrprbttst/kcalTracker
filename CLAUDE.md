@@ -212,6 +212,7 @@ Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col de
 
 ### Wizard guidato (solo loggati)
 - Pulsante 🧙 nell'header (visibile solo da loggato) che apre una guida a step
+- **Auto-apertura al primo login:** se `config/foods` non esiste su Firestore (primo accesso), il wizard si apre automaticamente dopo `setDataReady(true)` tramite il flag `autoOpenWizard`. Vale per tutti gli utenti (owner incluso). Dalle visite successive `config/foods` esiste già, quindi il wizard non si riapre da solo.
 - `WIZARD_STEPS` — array di step definito fuori da `App()`, con campi `tab`, `selector`, `title`, `text`, `last`
 - Ogni step può cambiare il tab attivo e mettere in spotlight un elemento DOM (tramite `selector`)
 - **Spotlight:** 4 div `.wiz-mask` che mascherano l'area fuori dall'elemento; bordo pulsante `.wizard-spotlight-border` (animazione `wizardPulse`)
