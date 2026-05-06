@@ -98,11 +98,14 @@ input { font-family: inherit; }
   justify-content: space-between;
   margin-bottom: 10px;
 }
-.header-top-right { display: flex; gap: 8px; align-items: center; }
+.header-top-right { display: flex; gap: 6px; align-items: center; }
+@media (min-width: 390px) { .header-top-right { gap: 8px; } }
 .app-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
-.app-logo { height: 40px; width: auto; max-width: 180px; position: relative; top: -3px;}
-@media (min-width: 375px) { .app-logo { height: 52px; max-width: 220px; } }
-@media (min-width: 768px) { .app-logo { height: 64px; max-width: 280px; } }
+.app-logo { height: 36px; width: auto; max-width: 155px; position: relative; top: -2px; flex-shrink: 1; }
+@media (min-width: 390px) { .app-logo { height: 44px; max-width: 210px; top: -3px; } }
+@media (min-width: 768px) { .app-logo { height: 56px; max-width: 270px; } }
+.auth-btn-label { display: none; }
+@media (min-width: 390px) { .auth-btn-label { display: inline; } }
 
 .reset-btn {
   font-size: 12px;

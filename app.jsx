@@ -1158,7 +1158,7 @@ function App() {
               {user === undefined ? null : user ? (
                 <button className="auth-btn logged" onClick={logout} aria-label={`Esci dall'account ${user.displayName || ''}`}>
                   {user.photoURL && <img src={user.photoURL} className="auth-avatar" alt="" />}
-                  Esci
+                  <span className="auth-btn-label">Esci</span>
                 </button>
               ) : (
                 <button className="auth-btn" onClick={login}>Accedi</button>

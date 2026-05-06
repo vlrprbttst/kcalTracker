@@ -1641,7 +1641,9 @@ function App() {
     src: user.photoURL,
     className: "auth-avatar",
     alt: ""
-  }), "Esci") : /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "auth-btn-label"
+  }, "Esci")) : /*#__PURE__*/React.createElement("button", {
     className: "auth-btn",
     onClick: login
   }, "Accedi"))), /*#__PURE__*/React.createElement("div", {
