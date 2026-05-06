@@ -144,6 +144,11 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - **Fasce orarie:** Fuori Orario / Colazione / Merenda metà mattina / Pranzo / Merenda pomeriggio / Cena
 - **Sezione 🍺 Extra:** tutti gli alcolici (categoria "Alcol") appaiono qui indipendentemente dall'orario
 
+### Tab Orari (solo loggati)
+- Permette di modificare le fasce orarie dei pasti (Colazione, Pranzo, Cena, Merenda, ecc.) e i relativi orari di fine
+- I dati sono salvati su Firestore sotto `config/schedule`
+- Sempre visibile quando loggato
+
 ### Tab Alimenti (solo loggati)
 - Gestione completa della lista alimenti direttamente nell'app
 - **Struttura:** categorie come accordion, ognuna con la lista degli item interni
@@ -269,7 +274,7 @@ Al load da Firestore: se un alimento variabile ha `count > 0` ma `varGrams = 0`,
 400ms per i dati giornalieri. Il salvataggio di `config/foods` è sincrono (immediato).
 
 ### dataReady flag
-Bloccato finché non sono caricati **sia** i dati del giorno **sia** la lista alimenti (`config/foods`). Se uno dei due fetch fallisce, `setDataReady(true)` non viene chiamato — il salvataggio non parte.
+Bloccato finché non sono caricati **tre** risorse in parallelo: dati del giorno, lista alimenti (`config/foods`), e schedule (`config/schedule`). Se uno dei fetch fallisce, `setDataReady(true)` non viene chiamato — il salvataggio non parte.
 
 ### ACTIVE_DAY() — giornata dietetica
 La giornata dietetica inizia alle **05:30**.
@@ -292,9 +297,9 @@ Non usare `toISOString()` — restituisce UTC e causa sfasamenti.
 ### SortableJS nel tab Alimenti
 Due istanze Sortable distinte:
 
-**Item sortable** — `useEffect([adminOpenCat, activeTab])`, container = div interno alla categoria aperta (`sortableListRef`), handle `.admin-drag-handle`. Dipende da `adminOpenCat` e `activeTab` perché il container si monta/smonta. Usa `adminOpenCatRef` e `userRef` per closure-safe access in `onEnd`.
+**Item sortable** — `useEffect([adminOpenCats, activeTab])`, container = div interno alla categoria aperta. Refs: `sortableItemRefs` (dict keyed per nome categoria) e `sortableItemInstances`. Handle `.admin-drag-handle`. Dipende da `adminOpenCats` (Set, plurale) e `activeTab` perché il container si monta/smonta. Usa `adminOpenCatsRef` e `userRef` per closure-safe access in `onEnd`. In `onEnd` chiama solo `setDietData` (splice).
 
-**Category sortable** — `useEffect([activeTab])`, container = div che racchiude solo le `.category-card` (sotto-div di `.admin-tab`, prima del bottone "+ Aggiungi categoria") (`sortableCatsRef`), handle `.admin-cat-drag-handle`. Il container non include il bottone "+ Aggiungi categoria" per evitare sfasamenti sugli indici. Le category-card usano `key={cat.category}` (non `key={catIdx}`) per evitare la collisione React+SortableJS: con chiavi stabili React segue il nodo DOM per identità invece di riconciliare per posizione. In `onEnd` aggiorna sia `dietData` (splice) sia `adminOpenCat` (mantiene la categoria aperta nella nuova posizione).
+**Category sortable** — `useEffect([activeTab])`, container = div che racchiude solo le `.category-card` (sotto-div di `.admin-tab`, prima del bottone "+ Aggiungi categoria") (`sortableCatsRef`), handle `.admin-cat-drag-handle`. Il container non include il bottone "+ Aggiungi categoria" per evitare sfasamenti sugli indici. Le category-card usano `key={cat.category}` (non `key={catIdx}`) per evitare la collisione React+SortableJS: con chiavi stabili React segue il nodo DOM per identità invece di riconciliare per posizione. In `onEnd` aggiorna `dietData` (splice).
 
 ### genId
 ```js
@@ -345,11 +350,11 @@ Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 - `manifest.json` — PWA manifest
 - `logo-main.png` — icona app PWA (favicon, apple-touch-icon, manifest)
 - `logo-main-horizontal.png` — logo testuale nell'header (img in app.jsx)
-- `logo3.png` — icona precedente (non più usata)
-- `logo4.png` — logo header precedente (non più usato)
+- `logo.png` — icona precedente (non più usata)
+- `logo2.png` — logo precedente (non più usato)
 - `no.gif` — gif accesso negato
-- `.gitignore` — esclude `.claude/`, `CLAUDE.md`, `node_modules/`
-- `CONTEXT.md` — questo file
+- `.gitignore` — esclude `.claude/`, `node_modules/`
+- `CLAUDE.md` — questo file
 
 ---
 
