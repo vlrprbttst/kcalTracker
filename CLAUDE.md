@@ -199,7 +199,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - **Salvataggio:** ogni modifica (add/edit/delete/reorder) salva immediatamente su Firestore `config/foods`
 - **Prima apertura post-deploy (owner):** se `config/foods` non esiste, viene seminato da `SEED_DIET_DATA`
 - **Prima apertura (altri utenti):** se `config/foods` non esiste, parte da lista vuota (`[]`)
-- **Auto-merge al login:** solo per l'owner — se `config/foods` esiste ma mancano item/categorie presenti in `SEED_DIET_DATA`, vengono aggiunti automaticamente. Garantisce che nuovi alimenti aggiunti via codice appaiano anche dopo aggiornamenti
+- **Auto-merge al login:** solo per l'owner — se `config/foods` esiste ma mancano item/categorie presenti in `SEED_DIET_DATA`, vengono aggiunti automaticamente. Garantisce che nuovi alimenti aggiunti via codice appaiano anche dopo aggiornamenti. **ATTENZIONE:** per le categorie SEED mancanti da Firestore, gli item vengono filtrati per `firestoreIds` prima di aggiungerli: questo previene la duplicazione di item che l'utente aveva spostato in un'altra categoria prima di eliminare quella originale.
 - Eliminare un item con conteggi attivi oggi mostra un warning — il conteggio giornaliero non viene modificato
 
 ### Modali di conferma
@@ -345,9 +345,11 @@ Non usare `toISOString()` — restituisce UTC e causa sfasamenti.
 ### SortableJS nel tab Alimenti
 Due istanze Sortable distinte:
 
-**Item sortable** — `useEffect([adminOpenCats, activeTab])`, container = div interno alla categoria aperta. Refs: `sortableItemRefs` (dict keyed per nome categoria) e `sortableItemInstances`. Handle `.admin-drag-handle`. Dipende da `adminOpenCats` (Set, plurale) e `activeTab` perché il container si monta/smonta. Usa `adminOpenCatsRef` e `userRef` per closure-safe access in `onEnd`. In `onEnd` chiama solo `setDietData` (splice).
+**Item sortable** — `useEffect([adminOpenCats, activeTab])`, container = div interno alla categoria aperta. Refs: `sortableItemRefs` (dict keyed per nome categoria) e `sortableItemInstances`. Handle `.admin-drag-handle`. Dipende da `adminOpenCats` (Set, plurale) e `activeTab` perché il container si monta/smonta. Usa `adminOpenCatsRef`, `userRef` e `dietDataRef` per closure-safe access in `onEnd`.
 
-**Category sortable** — `useEffect([activeTab])`, container = div che racchiude solo le `.category-card` (sotto-div di `.admin-tab`, prima del bottone "+ Aggiungi categoria") (`sortableCatsRef`), handle `.admin-cat-drag-handle`. Il container non include il bottone "+ Aggiungi categoria" per evitare sfasamenti sugli indici. Le category-card usano `key={cat.category}` (non `key={catIdx}`) per evitare la collisione React+SortableJS: con chiavi stabili React segue il nodo DOM per identità invece di riconciliare per posizione. In `onEnd` aggiorna `dietData` (splice).
+**Note sul `onEnd` con `group: 'items'`:** Verificato sulla source di SortableJS 1.15.2 — `onEnd` spara **solo sul sortable sorgente** (non sulla destinazione). Il guard `if (from !== el) return;` è una misura difensiva innocua (no-op per il sorgente). Il salvataggio Firestore è fuori dal callback `setDietData` (non dentro) per evitare race condition con write successive: se il save del drag completasse dopo il save di un delete, Firestore verrebbe riscritto con lo stato pre-cancellazione.
+
+**Category sortable** — `useEffect([activeTab])`, container = div che racchiude solo le `.category-card` (sotto-div di `.admin-tab`, prima del bottone "+ Aggiungi categoria") (`sortableCatsRef`), handle `.admin-cat-drag-handle`. Il container non include il bottone "+ Aggiungi categoria" per evitare sfasamenti sugli indici. Le category-card usano `key={cat.category}` (non `key={catIdx}`) per evitare la collisione React+SortableJS: con chiavi stabili React segue il nodo DOM per identità invece di riconciliare per posizione. In `onEnd` aggiorna `dietData` tramite `dietDataRef.current` (non functional update) e salva su Firestore fuori dal callback.
 
 ### genId
 ```js

@@ -455,6 +455,7 @@ function App() {
   const hoverOpenCatRef = useRef(null);
   const adminOpenCatsRef = useRef(adminOpenCats);
   const handleTouchMoveRef = useRef(null);
+  const dietDataRef = useRef(dietData);
   const userRef = useRef(null);
 
   // Derived lookup maps — recomputed whenever dietData changes
@@ -556,8 +557,13 @@ function App() {
               const firestoreCats = new Set(loadedDietData.map(c => c.category));
               SEED_DIET_DATA.forEach(seedCat => {
                 if (!firestoreCats.has(seedCat.category)) {
-                  mergedData.push(seedCat);
-                  needsMerge = true;
+                  // Only add items whose IDs are not already present in any other category
+                  // (prevents re-adding items that the user moved elsewhere before deleting the category)
+                  const newItems = seedCat.items.filter(si => !firestoreIds.has(si.id));
+                  if (newItems.length > 0) {
+                    mergedData.push({ ...seedCat, items: newItems });
+                    needsMerge = true;
+                  }
                 }
               });
               if (needsMerge) {
@@ -666,6 +672,7 @@ function App() {
 
   useEffect(() => { userRef.current = user; }, [user]);
   useEffect(() => { adminOpenCatsRef.current = adminOpenCats; }, [adminOpenCats]);
+  useEffect(() => { dietDataRef.current = dietData; }, [dietData]);
 
   useEffect(() => {
     if (typeof Sortable === 'undefined' || activeTab !== "alimenti") return;
@@ -707,6 +714,9 @@ function App() {
             handleTouchMoveRef.current = null;
           }
           const { oldIndex, newIndex, from, to } = evt;
+          // SortableJS fires onEnd on both source and destination sortables when using
+          // group mode. Only the source sortable (from === el) should process the move.
+          if (from !== el) return;
           const fromCat = from.dataset.category;
           const toCat = to.dataset.category;
           if (fromCat === toCat && oldIndex === newIndex) return;
@@ -714,20 +724,18 @@ function App() {
             from.insertBefore(evt.item, from.children[oldIndex] || null);
           }
           const u = userRef.current;
-          setDietData(prev => {
-            const newData = prev.map(cat => ({ ...cat, items: [...cat.items] }));
-            const srcCat = newData.find(c => c.category === fromCat);
-            const dstCat = newData.find(c => c.category === toCat);
-            if (!srcCat || !dstCat) return prev;
-            const [moved] = srcCat.items.splice(oldIndex, 1);
-            dstCat.items.splice(newIndex, 0, moved);
-            if (u) {
-              db.collection("users").doc(u.uid).collection("config").doc("foods")
-                .set({ dietData: newData })
-                .catch(e => console.error("Diet save error:", e));
-            }
-            return newData;
-          });
+          const newData = dietDataRef.current.map(cat => ({ ...cat, items: [...cat.items] }));
+          const srcCat = newData.find(c => c.category === fromCat);
+          const dstCat = newData.find(c => c.category === toCat);
+          if (!srcCat || !dstCat) return;
+          const [moved] = srcCat.items.splice(oldIndex, 1);
+          dstCat.items.splice(newIndex, 0, moved);
+          setDietData(newData);
+          if (u) {
+            db.collection("users").doc(u.uid).collection("config").doc("foods")
+              .set({ dietData: newData })
+              .catch(e => console.error("Diet save error:", e));
+          }
         },
       });
     });
@@ -758,17 +766,15 @@ function App() {
         const { oldIndex, newIndex } = evt;
         if (oldIndex === newIndex) return;
         const u = userRef.current;
-        setDietData(prev => {
-          const newData = [...prev];
-          const [moved] = newData.splice(oldIndex, 1);
-          newData.splice(newIndex, 0, moved);
-          if (u) {
-            db.collection("users").doc(u.uid).collection("config").doc("foods")
-              .set({ dietData: newData })
-              .catch(e => console.error("Diet save error:", e));
-          }
-          return newData;
-        });
+        const newData = [...dietDataRef.current];
+        const [moved] = newData.splice(oldIndex, 1);
+        newData.splice(newIndex, 0, moved);
+        setDietData(newData);
+        if (u) {
+          db.collection("users").doc(u.uid).collection("config").doc("foods")
+            .set({ dietData: newData })
+            .catch(e => console.error("Diet save error:", e));
+        }
       },
     });
     return () => { try { sortable.destroy(); } catch {} };
