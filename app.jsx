@@ -361,17 +361,12 @@ const WIZARD_STEPS = [
   {
     tab: null, selector: ".header-top-right", last: false,
     title: "I controlli dell'app",
-    text: "Da sinistra: ❌ azzera le calorie del giorno, 🌙 cambia tema, 🧙 riapri questa guida, e il pulsante per uscire dall'account.",
+    text: "Da sinistra: ❌ azzera le calorie del giorno, {themeIcon} cambia tema, 🧙 riapri questa guida, e il pulsante per uscire dall'account.",
   },
   {
     tab: null, selector: ".kcal-row", last: false,
     title: "Il contatore calorie",
-    text: "Il numero grande sono le kcal consumate oggi. A destra il tuo obiettivo giornaliero. La differenza ti dice quante kcal ti rimangono (o di quanto hai sforato).",
-  },
-  {
-    tab: null, selector: ".progress-track", last: false,
-    title: "La barra di progresso",
-    text: "Si riempie man mano che consumi calorie. Diventa gialla avvicinandoti all'obiettivo e rossa se lo superi.",
+    text: "Il numero grande sono le kcal assunte oggi. A destra il tuo obiettivo; la differenza ti dice quante kcal ti rimangono (o di quanto hai sforato). La barra sotto si riempie man mano che mangi: diventa gialla avvicinandoti all'obiettivo e rossa se lo superi.",
   },
   {
     tab: "oggi", selector: ".category-card", last: false,
@@ -1966,14 +1961,18 @@ function App() {
                     <span className="orari-start">{minutesToTime(startMin)}</span>
                     <span className="orari-sep">—</span>
                     <input
-                      type="time"
+                      key={`time-${slot.key}-${slot.end}`}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="HH:MM"
                       className="orari-time-input"
                       aria-label={`Fine fascia ${slot.label}`}
-                      value={minutesToTime(slot.end)}
-                      onChange={e => {
-                        if (!e.target.value) return;
-                        const newEnd = timeToMinutes(e.target.value);
-                        if (newEnd <= prevEnd || newEnd >= nextEnd) return;
+                      defaultValue={minutesToTime(slot.end)}
+                      onBlur={e => {
+                        const raw = e.target.value.trim();
+                        if (!raw.match(/^\d{1,2}:\d{2}$/)) { e.target.value = minutesToTime(slot.end); return; }
+                        const newEnd = timeToMinutes(raw);
+                        if (isNaN(newEnd) || newEnd <= prevEnd || newEnd >= nextEnd) { e.target.value = minutesToTime(slot.end); return; }
                         const newSchedule = schedule.map((s, j) => j === i ? { ...s, end: newEnd } : s);
                         setSchedule(newSchedule);
                         saveScheduleToFirestore(newSchedule);
@@ -2013,7 +2012,7 @@ function App() {
             <div className="wizard-step-body">
             <div className="wizard-step-indicator">{wizardStep + 1} / {WIZARD_STEPS.length}</div>
             <div id="wizard-title" className="wizard-title">{WIZARD_STEPS[wizardStep].title}</div>
-            <div className="wizard-text">{WIZARD_STEPS[wizardStep].text}</div>
+            <div className="wizard-text">{WIZARD_STEPS[wizardStep].text.replace('{themeIcon}', lightTheme ? '🌙' : '☀️')}</div>
             <div className="wizard-actions">
               <div className="wizard-actions-left">
                 {wizardStep > 0 && (
@@ -2027,7 +2026,7 @@ function App() {
                     <button className="wizard-btn-next" onClick={() => setWizardStep(s => s + 1)}>Avanti →</button>
                   </>
                 ) : (
-                  <button className="wizard-btn-next" onClick={() => setWizardOpen(false)}>Fatto!</button>
+                  <button className="wizard-btn-next" onClick={() => { setWizardOpen(false); setActiveTab("oggi"); }}>Fatto!</button>
                 )}
               </div>
             </div>

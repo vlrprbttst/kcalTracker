@@ -180,6 +180,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - Permette di modificare le fasce orarie dei pasti (Colazione, Pranzo, Cena, Merenda, ecc.) e i relativi orari di fine
 - I dati sono salvati su Firestore sotto `config/schedule`
 - Sempre visibile quando loggato
+- L'input orario è un **text input HH:MM** (non `type="time"`) — garantisce formato 24 ore indipendentemente dalla lingua del browser
 
 ### Tab Alimenti (solo loggati)
 - Gestione completa della lista alimenti direttamente nell'app
@@ -207,9 +208,22 @@ Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col de
 - Stato: `confirmModal = { title, message, onConfirm, danger? } | null`
 - Escape chiude la modale
 
+### Wizard guidato (solo loggati)
+- Pulsante 🧙 nell'header (visibile solo da loggato) che apre una guida a step
+- `WIZARD_STEPS` — array di step definito fuori da `App()`, con campi `tab`, `selector`, `title`, `text`, `last`
+- Ogni step può cambiare il tab attivo e mettere in spotlight un elemento DOM (tramite `selector`)
+- **Spotlight:** 4 div `.wiz-mask` che mascherano l'area fuori dall'elemento; bordo pulsante `.wizard-spotlight-border` (animazione `wizardPulse`)
+- **Tab switching:** `useEffect([wizardOpen, wizardStep])` imposta `activeTab` se lo step ha un `tab`
+- **Misurazione spotlight:** `useEffect([wizardOpen, wizardStep, activeTab])` con doppio `requestAnimationFrame` + `scrollIntoView` per garantire che il DOM sia stabile prima di misurare
+- **Tooltip:** posizionato con `top` fisso calcolato a partire dal rettangolo spotlight — sempre sotto l'elemento se c'è spazio, altrimenti sopra
+- **Emoji tema dinamica:** il testo dello step 1 contiene `{themeIcon}` che viene sostituito a render time con `🌙` (tema light) o `☀️` (tema dark)
+- **Fine wizard:** il bottone "Fatto!" chiude il wizard **e** riporta al tab "oggi**
+- **Selector `data-wizard`:** i pulsanti dei tab Alimenti, Orari, Storico hanno `data-wizard="alimenti-tab"` etc. per essere targettati dagli step che mostrano il tab stesso in spotlight
+- Steps attuali (10 totali): Benvenuto → Controlli header → Contatore+barra kcal → Tracker calorie → Extra → Alimenti (tab) → Aggiungi alimenti → Orari (tab) → Configura orari → Storico
+
 ### Autenticazione
 - Bottone "Accedi" nell'header (Google OAuth)
-- Solo l'ALLOWED_UID può loggarsi
+- Accesso multi-utente dinamico via `config/access` (vedi sezione Firebase): max 5 utenti, primo-arriva-primo-servito
 - Da loggato: sync Firestore (debounced 400ms per dati giornalieri, immediato per lista alimenti)
 - Da non loggato: localStorage, nessuno storico, reset automatico al cambio giorno
 - Al logout: counts, extras, varGrams, log si azzerano; dietData torna a SEED_DIET_DATA
