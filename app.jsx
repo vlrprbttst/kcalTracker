@@ -432,6 +432,7 @@ function App() {
   const [openWeeks, setOpenWeeks] = useState(new Set());
   const [dataReady, setDataReady] = useState(false);
   const [shakeTarget, setShakeTarget] = useState(false);
+  const [autoOpenWizard, setAutoOpenWizard] = useState(false);
   const [lightTheme, setLightTheme] = useState(() => localStorage.getItem("kcal_theme") === "light");
   const [confirmModal, setConfirmModal] = useState(null);
 
@@ -540,6 +541,7 @@ function App() {
           }
 
           // Handle food list: use Firestore version if present, otherwise seed
+          const isFirstLogin = !foodsSnap.exists;
           let loadedDietData;
           if (foodsSnap.exists && foodsSnap.data().dietData) {
             loadedDietData = foodsSnap.data().dietData;
@@ -607,6 +609,7 @@ function App() {
             }
           }
           setDataReady(true);
+          if (isFirstLogin) setAutoOpenWizard(true);
         } catch (e) {
           console.error("Firestore load error — save disabled to prevent data loss:", e);
         }
@@ -795,6 +798,14 @@ function App() {
       setAdminSearchQuery("");
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (dataReady && autoOpenWizard) {
+      setWizardStep(0);
+      setWizardOpen(true);
+      setAutoOpenWizard(false);
+    }
+  }, [dataReady, autoOpenWizard]);
 
   useEffect(() => {
     if (!wizardOpen) return;
