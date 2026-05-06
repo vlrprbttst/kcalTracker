@@ -194,6 +194,7 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - **Aggiunta item:** bottone "+ Aggiungi alimento" in fondo a ogni categoria aperta
 - **Aggiunta categoria:** bottone "+ Aggiungi categoria" in fondo alla lista
 - **Eliminazione categoria:** bottone "Elimina categoria" in fondo all'accordion aperto
+- **Ricerca:** barra di ricerca nell'header (visibile quando `activeTab === "alimenti"`), stato `adminSearchQuery`. In search mode mostra una vista flat filtrata (niente accordion, niente drag handle) con highlight del testo. Cliccando ✏️ dai risultati si cancella la query, si apre la categoria corrispondente e si avvia il form di modifica. 🗑️ funziona direttamente. La query viene resettata quando si cambia tab.
 - **Drag & drop item** (SortableJS): handle `⠿` su ogni riga per riordinare gli item all'interno della stessa categoria — funziona su mouse e touch
 - **Drag & drop categorie** (SortableJS): handle `⠿` a sinistra del titolo categoria per riordinare le categorie — insertion sort classico, salvataggio immediato su Firestore
 - **Salvataggio:** ogni modifica (add/edit/delete/reorder) salva immediatamente su Firestore `config/foods`
@@ -286,6 +287,9 @@ const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2); // kg
 ### Navigazione tab
 - Swipe orizzontale sul `<main>` per passare tra i tab
 - Indicatore tab animato con `cubic-bezier`
+- Header e `.tabs-bar` sono avvolti in `<div className="sticky-top">` (`position: sticky; top: 0; z-index: 10`) — stickano insieme. Il `.header` non ha più `position: sticky` proprio; il bordo inferiore è su `.tabs-bar`; quando l'utente non è loggato (nessuna `.tabs-bar`) il bordo viene ripristinato via `.sticky-top:not(:has(.tabs-bar)) .header`.
+- Tutti i tab fluiscono da sinistra, nessun spacer `flex: 1` — Alimenti e Orari non sono più giustificati a destra
+- `.tabs-inner` ha `overflow-x: auto; overflow-y: clip; scrollbar-width: none` per consentire lo scroll orizzontale su schermi molto piccoli senza clippare l'indicatore attivo (`bottom: -1px`, tollerato da `padding-bottom: 1px`)
 
 ### Tema
 - Toggle ☀️/🌙 nell'header
@@ -345,11 +349,11 @@ Non usare `toISOString()` — restituisce UTC e causa sfasamenti.
 ### SortableJS nel tab Alimenti
 Due istanze Sortable distinte:
 
-**Item sortable** — `useEffect([adminOpenCats, activeTab])`, container = div interno alla categoria aperta. Refs: `sortableItemRefs` (dict keyed per nome categoria) e `sortableItemInstances`. Handle `.admin-drag-handle`. Dipende da `adminOpenCats` (Set, plurale) e `activeTab` perché il container si monta/smonta. Usa `adminOpenCatsRef`, `userRef` e `dietDataRef` per closure-safe access in `onEnd`.
+**Item sortable** — `useEffect([adminOpenCats, activeTab, adminSearchQuery])`, container = div interno alla categoria aperta. Refs: `sortableItemRefs` (dict keyed per nome categoria) e `sortableItemInstances`. Handle `.admin-drag-handle`. Dipende da `adminOpenCats` (Set, plurale), `activeTab` e `adminSearchQuery` perché il container si monta/smonta (la search view è un ramo else che smonta i ref). All'inizio del loop su `adminOpenCats` controlla se `instance.el !== el` (istanza stantia su nodo smontato): se sì, destroy + delete prima di ricreare. Usa `adminOpenCatsRef`, `userRef` e `dietDataRef` per closure-safe access in `onEnd`.
 
 **Note sul `onEnd` con `group: 'items'`:** Verificato sulla source di SortableJS 1.15.2 — `onEnd` spara **solo sul sortable sorgente** (non sulla destinazione). Il guard `if (from !== el) return;` è una misura difensiva innocua (no-op per il sorgente). Il salvataggio Firestore è fuori dal callback `setDietData` (non dentro) per evitare race condition con write successive: se il save del drag completasse dopo il save di un delete, Firestore verrebbe riscritto con lo stato pre-cancellazione.
 
-**Category sortable** — `useEffect([activeTab])`, container = div che racchiude solo le `.category-card` (sotto-div di `.admin-tab`, prima del bottone "+ Aggiungi categoria") (`sortableCatsRef`), handle `.admin-cat-drag-handle`. Il container non include il bottone "+ Aggiungi categoria" per evitare sfasamenti sugli indici. Le category-card usano `key={cat.category}` (non `key={catIdx}`) per evitare la collisione React+SortableJS: con chiavi stabili React segue il nodo DOM per identità invece di riconciliare per posizione. In `onEnd` aggiorna `dietData` tramite `dietDataRef.current` (non functional update) e salva su Firestore fuori dal callback.
+**Category sortable** — `useEffect([activeTab, adminSearchQuery])`, container = div che racchiude solo le `.category-card` (sotto-div di `.admin-tab`, prima del bottone "+ Aggiungi categoria") (`sortableCatsRef`), handle `.admin-cat-drag-handle`. Il container non include il bottone "+ Aggiungi categoria" per evitare sfasamenti sugli indici. Le category-card usano `key={cat.category}` (non `key={catIdx}`) per evitare la collisione React+SortableJS: con chiavi stabili React segue il nodo DOM per identità invece di riconciliare per posizione. In `onEnd` aggiorna `dietData` tramite `dietDataRef.current` (non functional update) e salva su Firestore fuori dal callback.
 
 ### genId
 ```js

@@ -719,6 +719,7 @@ function App() {
   const [varGrams, setVarGrams] = useState(() => loadLocalData().varGrams);
   const [log, setLog] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [adminSearchQuery, setAdminSearchQuery] = useState("");
   const [extraName, setExtraName] = useState("");
   const [extraInput, setExtraInput] = useState("");
   const [target, setTarget] = useState(loadTarget);
@@ -1011,9 +1012,15 @@ function App() {
     if (typeof Sortable === 'undefined' || activeTab !== "alimenti") return;
     // Crea sortable solo per le categorie appena aperte (non tocca quelle già attive)
     adminOpenCats.forEach(catName => {
-      if (sortableItemInstances.current[catName]) return;
       const el = sortableItemRefs.current[catName];
       if (!el) return;
+      if (sortableItemInstances.current[catName] && sortableItemInstances.current[catName].el !== el) {
+        try {
+          sortableItemInstances.current[catName].destroy();
+        } catch {}
+        delete sortableItemInstances.current[catName];
+      }
+      if (sortableItemInstances.current[catName]) return;
       sortableItemInstances.current[catName] = Sortable.create(el, {
         animation: 150,
         handle: '.admin-drag-handle',
@@ -1095,7 +1102,7 @@ function App() {
         delete sortableItemInstances.current[catName];
       }
     });
-  }, [adminOpenCats, activeTab]);
+  }, [adminOpenCats, activeTab, adminSearchQuery]);
 
   // Cleanup totale solo al cambio di tab (effect separato per non toccare i sortable durante il drag)
   useEffect(() => {
@@ -1137,7 +1144,7 @@ function App() {
         sortable.destroy();
       } catch {}
     };
-  }, [activeTab]);
+  }, [activeTab, adminSearchQuery]);
 
   // Reset admin forms when leaving the tab
   useEffect(() => {
@@ -1146,6 +1153,7 @@ function App() {
       setAdminNewItem(null);
       setAdminNewCat(false);
       setAdminEditCat(null);
+      setAdminSearchQuery("");
     }
   }, [activeTab]);
   useEffect(() => {
@@ -1618,7 +1626,9 @@ function App() {
   }, "Gli slot disponibili sono esauriti. Riprova pi\xF9 avanti."), /*#__PURE__*/React.createElement("button", {
     className: "modal-btn",
     onClick: () => setNotAllowed(false)
-  }, "Ok, capito"))), /*#__PURE__*/React.createElement("header", {
+  }, "Ok, capito"))), /*#__PURE__*/React.createElement("div", {
+    className: "sticky-top"
+  }, /*#__PURE__*/React.createElement("header", {
     className: "header"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1710,6 +1720,27 @@ function App() {
     className: "search-clear",
     onClick: () => setSearchQuery(""),
     "aria-label": "Cancella ricerca"
+  }, "\xD7")), user && activeTab === "alimenti" && /*#__PURE__*/React.createElement("div", {
+    className: "search-wrap",
+    style: {
+      marginTop: 10,
+      marginBottom: 0
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "search-input",
+    type: "search",
+    "aria-label": "Cerca alimento",
+    placeholder: "Cerca alimento\u2026",
+    value: adminSearchQuery,
+    onChange: e => {
+      setAdminSearchQuery(e.target.value);
+      setAdminEditId(null);
+      setAdminNewItem(null);
+    }
+  }), adminSearchQuery && /*#__PURE__*/React.createElement("button", {
+    className: "search-clear",
+    onClick: () => setAdminSearchQuery(""),
+    "aria-label": "Cancella ricerca"
   }, "\xD7")))), user && /*#__PURE__*/React.createElement("div", {
     className: "tabs-bar",
     role: "navigation",
@@ -1729,11 +1760,7 @@ function App() {
     "data-wizard": "storico-tab",
     className: `tab-btn${activeTab === "storico" ? " active" : ""}`,
     onClick: () => setActiveTab("storico")
-  }, "Storico"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }), /*#__PURE__*/React.createElement("button", {
+  }, "Storico"), /*#__PURE__*/React.createElement("button", {
     ref: el => tabRefs.current["alimenti"] = el,
     "data-wizard": "alimenti-tab",
     className: `tab-btn${activeTab === "alimenti" ? " active" : ""}`,
@@ -1749,7 +1776,7 @@ function App() {
       left: indicatorStyle.left,
       width: indicatorStyle.width
     }
-  }))), /*#__PURE__*/React.createElement("main", {
+  })))), /*#__PURE__*/React.createElement("main", {
     id: "main-content",
     className: "content",
     onTouchStart: onTouchStart,
@@ -2336,7 +2363,83 @@ function App() {
     }));
   })()), user && activeTab === "alimenti" && /*#__PURE__*/React.createElement("div", {
     className: "admin-tab"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, adminSearchQuery.trim() ? (() => {
+    const q = adminSearchQuery.trim().toLowerCase();
+    const highlight = name => {
+      const idx = name.toLowerCase().indexOf(q);
+      if (idx === -1) return name;
+      return /*#__PURE__*/React.createElement(React.Fragment, null, name.slice(0, idx), /*#__PURE__*/React.createElement("span", {
+        className: "search-highlight"
+      }, name.slice(idx, idx + q.length)), name.slice(idx + q.length));
+    };
+    const results = dietData.flatMap((cat, catIdx) => {
+      const items = cat.items.filter(item => item.name.toLowerCase().includes(q));
+      return items.length ? [{
+        cat,
+        catIdx,
+        items
+      }] : [];
+    });
+    if (!results.length) return /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: '24px 0',
+        textAlign: 'center',
+        color: 'var(--text-dim)',
+        fontSize: 14
+      }
+    }, "Nessun alimento trovato");
+    return results.map(({
+      cat,
+      items
+    }) => /*#__PURE__*/React.createElement("div", {
+      key: cat.category,
+      className: "category-card"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "admin-cat-row",
+      style: {
+        cursor: 'default'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "cat-icon",
+      "aria-hidden": "true"
+    }, cat.icon), /*#__PURE__*/React.createElement("span", {
+      className: "cat-name"
+    }, cat.category), /*#__PURE__*/React.createElement("span", {
+      className: "cat-meta"
+    }, items.length, " ", items.length === 1 ? "alimento" : "alimenti")), /*#__PURE__*/React.createElement("div", {
+      className: "admin-items-list"
+    }, items.map(item => /*#__PURE__*/React.createElement("div", {
+      key: item.id,
+      className: "admin-item-row"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "admin-item-info",
+      style: {
+        paddingLeft: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "admin-item-name"
+    }, highlight(item.name)), /*#__PURE__*/React.createElement("span", {
+      className: "admin-item-meta"
+    }, item.variable ? `${Math.round(item.kcalPerG * 100)} kcal/100g` : `${item.kcal} kcal`, item.portion ? ` · ${item.portion}` : "")), /*#__PURE__*/React.createElement("div", {
+      className: "admin-item-actions"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "admin-icon-btn",
+      onClick: () => {
+        setAdminSearchQuery("");
+        setAdminOpenCats(prev => {
+          const next = new Set(prev);
+          next.add(cat.category);
+          return next;
+        });
+        startEditItem(item);
+      },
+      "aria-label": `Modifica ${item.name}`
+    }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
+      className: "admin-icon-btn admin-icon-btn-delete",
+      onClick: () => deleteItem(item.id),
+      "aria-label": `Elimina ${item.name}`
+    }, "\uD83D\uDDD1\uFE0F")))))));
+  })() : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     ref: sortableCatsRef
   }, dietData.map((cat, catIdx) => {
     const isOpen = adminOpenCats.has(cat.category);
@@ -2719,7 +2822,7 @@ function App() {
     className: "admin-add-cat-btn",
     onClick: () => setAdminNewCat(true),
     "aria-label": "Aggiungi nuova categoria"
-  }, "+ Aggiungi categoria")), user && activeTab === "orari" && /*#__PURE__*/React.createElement("div", {
+  }, "+ Aggiungi categoria"))), user && activeTab === "orari" && /*#__PURE__*/React.createElement("div", {
     className: "orari-tab"
   }, /*#__PURE__*/React.createElement("div", {
     className: "orari-slot orari-slot-fixed"

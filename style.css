@@ -83,12 +83,10 @@ body.light {
 button { font-family: inherit; cursor: pointer; }
 input { font-family: inherit; }
 
+.sticky-top { position: sticky; top: 0; z-index: 10; }
+.sticky-top:not(:has(.tabs-bar)) .header { border-bottom: 1px solid var(--border); }
 .header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
   padding: 16px 16px 12px;
   transition: background .25s ease;
 }
@@ -202,7 +200,8 @@ input { font-family: inherit; }
   padding: 0 16px;
   transition: background .25s ease;
 }
-.tabs-inner { max-width: 520px; margin: 0 auto; display: flex; position: relative; }
+.tabs-inner { max-width: 520px; margin: 0 auto; display: flex; position: relative; overflow-x: auto; overflow-y: clip; scrollbar-width: none; padding-bottom: 1px; }
+.tabs-inner::-webkit-scrollbar { display: none; }
 .tab-btn {
   background: transparent;
   border: none;

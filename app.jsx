@@ -416,6 +416,7 @@ function App() {
   const [varGrams, setVarGrams] = useState(() => loadLocalData().varGrams);
   const [log, setLog] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [adminSearchQuery, setAdminSearchQuery] = useState("");
   const [extraName, setExtraName] = useState("");
   const [extraInput, setExtraInput] = useState("");
   const [target, setTarget] = useState(loadTarget);
@@ -678,9 +679,13 @@ function App() {
     if (typeof Sortable === 'undefined' || activeTab !== "alimenti") return;
     // Crea sortable solo per le categorie appena aperte (non tocca quelle già attive)
     adminOpenCats.forEach(catName => {
-      if (sortableItemInstances.current[catName]) return;
       const el = sortableItemRefs.current[catName];
       if (!el) return;
+      if (sortableItemInstances.current[catName] && sortableItemInstances.current[catName].el !== el) {
+        try { sortableItemInstances.current[catName].destroy(); } catch {}
+        delete sortableItemInstances.current[catName];
+      }
+      if (sortableItemInstances.current[catName]) return;
       sortableItemInstances.current[catName] = Sortable.create(el, {
         animation: 150,
         handle: '.admin-drag-handle',
@@ -746,7 +751,7 @@ function App() {
         delete sortableItemInstances.current[catName];
       }
     });
-  }, [adminOpenCats, activeTab]);
+  }, [adminOpenCats, activeTab, adminSearchQuery]);
 
   // Cleanup totale solo al cambio di tab (effect separato per non toccare i sortable durante il drag)
   useEffect(() => {
@@ -778,7 +783,7 @@ function App() {
       },
     });
     return () => { try { sortable.destroy(); } catch {} };
-  }, [activeTab]);
+  }, [activeTab, adminSearchQuery]);
 
   // Reset admin forms when leaving the tab
   useEffect(() => {
@@ -787,6 +792,7 @@ function App() {
       setAdminNewItem(null);
       setAdminNewCat(false);
       setAdminEditCat(null);
+      setAdminSearchQuery("");
     }
   }, [activeTab]);
 
@@ -1154,6 +1160,7 @@ function App() {
           </div>
         </div>
       )}
+      <div className="sticky-top">
       <header className="header">
         <div style={{ maxWidth: 520, margin: "0 auto" }}>
           <div className="header-top">
@@ -1208,6 +1215,21 @@ function App() {
               )}
             </div>
           )}
+          {(user && activeTab === "alimenti") && (
+            <div className="search-wrap" style={{ marginTop: 10, marginBottom: 0 }}>
+              <input
+                className="search-input"
+                type="search"
+                aria-label="Cerca alimento"
+                placeholder="Cerca alimento…"
+                value={adminSearchQuery}
+                onChange={e => { setAdminSearchQuery(e.target.value); setAdminEditId(null); setAdminNewItem(null); }}
+              />
+              {adminSearchQuery && (
+                <button className="search-clear" onClick={() => setAdminSearchQuery("")} aria-label="Cancella ricerca">×</button>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
@@ -1217,13 +1239,13 @@ function App() {
             <button ref={el => tabRefs.current["oggi"] = el} className={`tab-btn${activeTab === "oggi" ? " active" : ""}`} onClick={() => setActiveTab("oggi")}>Oggi</button>
             {log.length > 0 && <button ref={el => tabRefs.current["menu"] = el} className={`tab-btn${activeTab === "menu" ? " active" : ""}`} onClick={() => setActiveTab("menu")}>Menu</button>}
             <button ref={el => tabRefs.current["storico"] = el} data-wizard="storico-tab" className={`tab-btn${activeTab === "storico" ? " active" : ""}`} onClick={() => setActiveTab("storico")}>Storico</button>
-            <div style={{ flex: 1 }} />
             <button ref={el => tabRefs.current["alimenti"] = el} data-wizard="alimenti-tab" className={`tab-btn${activeTab === "alimenti" ? " active" : ""}`} onClick={() => setActiveTab("alimenti")}>Alimenti</button>
             <button ref={el => tabRefs.current["orari"] = el} data-wizard="orari-tab" className={`tab-btn${activeTab === "orari" ? " active" : ""}`} onClick={() => setActiveTab("orari")}>Orari</button>
             <div className="tab-indicator" style={{ left: indicatorStyle.left, width: indicatorStyle.width }} />
           </div>
         </div>
       )}
+      </div>
 
       <main id="main-content" className="content" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {(!user || activeTab === "oggi") && (
@@ -1670,6 +1692,52 @@ function App() {
 
         {user && activeTab === "alimenti" && (
           <div className="admin-tab">
+            {adminSearchQuery.trim() ? (
+              (() => {
+                const q = adminSearchQuery.trim().toLowerCase();
+                const highlight = name => {
+                  const idx = name.toLowerCase().indexOf(q);
+                  if (idx === -1) return name;
+                  return <>{name.slice(0, idx)}<span className="search-highlight">{name.slice(idx, idx + q.length)}</span>{name.slice(idx + q.length)}</>;
+                };
+                const results = dietData.flatMap((cat, catIdx) => {
+                  const items = cat.items.filter(item => item.name.toLowerCase().includes(q));
+                  return items.length ? [{ cat, catIdx, items }] : [];
+                });
+                if (!results.length) return <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-dim)', fontSize: 14 }}>Nessun alimento trovato</div>;
+                return results.map(({ cat, items }) => (
+                  <div key={cat.category} className="category-card">
+                    <div className="admin-cat-row" style={{ cursor: 'default' }}>
+                      <span className="cat-icon" aria-hidden="true">{cat.icon}</span>
+                      <span className="cat-name">{cat.category}</span>
+                      <span className="cat-meta">{items.length} {items.length === 1 ? "alimento" : "alimenti"}</span>
+                    </div>
+                    <div className="admin-items-list">
+                      {items.map(item => (
+                        <div key={item.id} className="admin-item-row">
+                          <div className="admin-item-info" style={{ paddingLeft: 10 }}>
+                            <span className="admin-item-name">{highlight(item.name)}</span>
+                            <span className="admin-item-meta">
+                              {item.variable ? `${Math.round(item.kcalPerG * 100)} kcal/100g` : `${item.kcal} kcal`}
+                              {item.portion ? ` · ${item.portion}` : ""}
+                            </span>
+                          </div>
+                          <div className="admin-item-actions">
+                            <button className="admin-icon-btn" onClick={() => {
+                              setAdminSearchQuery("");
+                              setAdminOpenCats(prev => { const next = new Set(prev); next.add(cat.category); return next; });
+                              startEditItem(item);
+                            }} aria-label={`Modifica ${item.name}`}>✏️</button>
+                            <button className="admin-icon-btn admin-icon-btn-delete" onClick={() => deleteItem(item.id)} aria-label={`Elimina ${item.name}`}>🗑️</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()
+            ) : (
+              <>
             <div ref={sortableCatsRef}>
             {dietData.map((cat, catIdx) => {
               const isOpen = adminOpenCats.has(cat.category);
@@ -1952,6 +2020,8 @@ function App() {
               >
                 + Aggiungi categoria
               </button>
+            )}
+              </>
             )}
           </div>
         )}
