@@ -771,6 +771,84 @@ body.light .admin-btn-primary { color: #fff; }
 }
 .admin-btn-ghost:hover { opacity: 1; border-color: var(--text-dimmer); color: var(--text); }
 
+/* ── Orari tab ───────────────────────────────────────────── */
+.orari-tab { padding-bottom: 32px; }
+
+.orari-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.orari-slot-fixed {
+  opacity: .5;
+  padding: 8px 14px;
+}
+.orari-label-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.orari-range-text {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.orari-label-input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border-mid);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 9px;
+  font-family: inherit;
+  min-width: 0;
+  transition: border-color .15s;
+}
+.orari-label-input:focus { border-color: var(--accent); outline: none; }
+.orari-times {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.orari-start {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.orari-sep {
+  font-size: 13px;
+  color: var(--text-dimmest);
+}
+.orari-time-input {
+  background: var(--surface);
+  border: 1px solid var(--border-mid);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 5px 7px;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  width: 88px;
+  transition: border-color .15s;
+}
+.orari-time-input:focus { border-color: var(--accent); outline: none; }
+.orari-note {
+  margin: 16px 14px 0;
+  padding: 10px 13px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
 .admin-add-btn {
   display: block;
   width: 100%;

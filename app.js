@@ -469,46 +469,58 @@ function buildItemsList(counts, extras, varGrams = {}, itemById = seedItemById) 
   extras.forEach(e => items.push(`${e.name} (extra, ${e.kcal} kcal)`));
   return items;
 }
-function getMealSlot(ts) {
+const DEFAULT_SCHEDULE = [{
+  key: "colazione",
+  label: "Colazione",
+  end: 630
+}, {
+  key: "merenda-mat",
+  label: "Merenda metà mattina",
+  end: 720
+}, {
+  key: "pranzo",
+  label: "Pranzo",
+  end: 900
+}, {
+  key: "merenda-pom",
+  label: "Merenda pomeriggio",
+  end: 1140
+}, {
+  key: "cena",
+  label: "Cena",
+  end: 1320
+}];
+const minutesToTime = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const timeToMinutes = t => {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + (m || 0);
+};
+function getMealSlot(ts, schedule) {
   const d = new Date(ts);
   const m = d.getHours() * 60 + d.getMinutes();
   if (m < 330) return {
     key: "fuori-orario",
     label: "Fuori Orario"
   };
-  if (m <= 630) return {
-    key: "colazione",
-    label: "Colazione"
-  };
-  if (m <= 720) return {
-    key: "merenda-mat",
-    label: "Merenda metà mattina"
-  };
-  if (m <= 900) return {
-    key: "pranzo",
-    label: "Pranzo"
-  };
-  if (m <= 1140) return {
-    key: "merenda-pom",
-    label: "Merenda pomeriggio"
-  };
-  if (m <= 1320) return {
-    key: "cena",
-    label: "Cena"
-  };
+  for (const slot of schedule) {
+    if (m <= slot.end) return {
+      key: slot.key,
+      label: slot.label
+    };
+  }
   return {
     key: "fuori-orario",
     label: "Fuori Orario"
   };
 }
-function groupLogByMeal(log) {
+function groupLogByMeal(log, schedule) {
   const groups = {},
     order = [];
   log.forEach(entry => {
     const {
       key,
       label
-    } = getMealSlot(entry.ts);
+    } = getMealSlot(entry.ts, schedule);
     if (!groups[key]) {
       groups[key] = {
         key,
@@ -666,6 +678,7 @@ function App() {
 
   // dietData state — loaded from Firestore on login, seeded from SEED_DIET_DATA if absent
   const [dietData, setDietData] = useState(SEED_DIET_DATA);
+  const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
 
   // Admin tab state
   const [adminEditId, setAdminEditId] = useState(null);
@@ -736,13 +749,17 @@ function App() {
         setVarGrams({});
         setLog([]);
         setDietData(SEED_DIET_DATA);
+        setSchedule(DEFAULT_SCHEDULE);
         setDataReady(false);
         return;
       }
       if (u) {
         try {
-          // Load day data and food list in parallel
-          const [daySnap, foodsSnap] = await Promise.all([db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).get(), db.collection("users").doc(u.uid).collection("config").doc("foods").get()]);
+          // Load day data, food list and schedule in parallel
+          const [daySnap, foodsSnap, schedSnap] = await Promise.all([db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).get(), db.collection("users").doc(u.uid).collection("config").doc("foods").get(), db.collection("users").doc(u.uid).collection("config").doc("schedule").get()]);
+          if (schedSnap.exists && schedSnap.data().schedule) {
+            setSchedule(schedSnap.data().schedule);
+          }
 
           // Handle food list: use Firestore version if present, otherwise seed from hardcoded
           let loadedDietData;
@@ -1125,6 +1142,7 @@ function App() {
     if (log.length > 0) t.push("menu");
     t.push("storico");
     t.push("alimenti");
+    t.push("orari");
     return t;
   };
   const onTouchStart = e => {
@@ -1191,6 +1209,12 @@ function App() {
 
   // --- Admin tab functions ---
 
+  const saveScheduleToFirestore = newSchedule => {
+    if (!user) return;
+    db.collection("users").doc(user.uid).collection("config").doc("schedule").set({
+      schedule: newSchedule
+    }).catch(e => console.error("Schedule save error:", e));
+  };
   const saveDietToFirestore = newDietData => {
     if (!user) return;
     db.collection("users").doc(user.uid).collection("config").doc("foods").set({
@@ -1525,11 +1549,19 @@ function App() {
     ref: el => tabRefs.current["storico"] = el,
     className: `tab-btn${activeTab === "storico" ? " active" : ""}`,
     onClick: () => setActiveTab("storico")
-  }, "Storico"), /*#__PURE__*/React.createElement("button", {
+  }, "Storico"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), /*#__PURE__*/React.createElement("button", {
     ref: el => tabRefs.current["alimenti"] = el,
     className: `tab-btn${activeTab === "alimenti" ? " active" : ""}`,
     onClick: () => setActiveTab("alimenti")
-  }, "Alimenti"), /*#__PURE__*/React.createElement("div", {
+  }, "Alimenti"), /*#__PURE__*/React.createElement("button", {
+    ref: el => tabRefs.current["orari"] = el,
+    className: `tab-btn${activeTab === "orari" ? " active" : ""}`,
+    onClick: () => setActiveTab("orari")
+  }, "Orari"), /*#__PURE__*/React.createElement("div", {
     className: "tab-indicator",
     style: {
       left: indicatorStyle.left,
@@ -1874,7 +1906,7 @@ function App() {
     const foodLog = log.filter(e => e.category !== 'Alcol');
     return /*#__PURE__*/React.createElement("div", {
       className: "menu-tab"
-    }, groupLogByMeal(foodLog).map(({
+    }, groupLogByMeal(foodLog, schedule).map(({
       key,
       label,
       items
@@ -1918,17 +1950,15 @@ function App() {
       className: "menu-legend-title"
     }, "Fasce orarie"), /*#__PURE__*/React.createElement("div", {
       className: "menu-legend-row"
-    }, /*#__PURE__*/React.createElement("span", null, "Fuori Orario"), /*#__PURE__*/React.createElement("span", null, "00:00 \u2013 05:29 / 22:01 \u2013 23:59")), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("span", null, "Fuori Orario"), /*#__PURE__*/React.createElement("span", null, "00:00 \u2013 05:29")), schedule.map((slot, i) => {
+      const startMin = i === 0 ? 330 : schedule[i - 1].end + 1;
+      return /*#__PURE__*/React.createElement("div", {
+        key: slot.key,
+        className: "menu-legend-row"
+      }, /*#__PURE__*/React.createElement("span", null, slot.label), /*#__PURE__*/React.createElement("span", null, minutesToTime(startMin), " \u2013 ", minutesToTime(slot.end)));
+    }), /*#__PURE__*/React.createElement("div", {
       className: "menu-legend-row"
-    }, /*#__PURE__*/React.createElement("span", null, "Colazione"), /*#__PURE__*/React.createElement("span", null, "05:30 \u2013 10:30")), /*#__PURE__*/React.createElement("div", {
-      className: "menu-legend-row"
-    }, /*#__PURE__*/React.createElement("span", null, "Merenda met\xE0 mattina"), /*#__PURE__*/React.createElement("span", null, "10:31 \u2013 12:00")), /*#__PURE__*/React.createElement("div", {
-      className: "menu-legend-row"
-    }, /*#__PURE__*/React.createElement("span", null, "Pranzo"), /*#__PURE__*/React.createElement("span", null, "12:01 \u2013 15:00")), /*#__PURE__*/React.createElement("div", {
-      className: "menu-legend-row"
-    }, /*#__PURE__*/React.createElement("span", null, "Merenda pomeriggio"), /*#__PURE__*/React.createElement("span", null, "15:01 \u2013 19:00")), /*#__PURE__*/React.createElement("div", {
-      className: "menu-legend-row"
-    }, /*#__PURE__*/React.createElement("span", null, "Cena"), /*#__PURE__*/React.createElement("span", null, "19:01 \u2013 22:00"))));
+    }, /*#__PURE__*/React.createElement("span", null, "Fuori Orario"), /*#__PURE__*/React.createElement("span", null, minutesToTime(schedule[schedule.length - 1].end + 1), " \u2013 23:59"))));
   })(), user && activeTab === "storico" && /*#__PURE__*/React.createElement(React.Fragment, null, historyLoading ? /*#__PURE__*/React.createElement("div", {
     className: "history-empty"
   }, "Caricamento...") : (() => {
@@ -2086,7 +2116,7 @@ function App() {
         const foodLog = day.log.filter(e => e.category !== 'Alcol');
         return /*#__PURE__*/React.createElement("div", {
           className: "history-log-groups"
-        }, groupLogByMeal(foodLog).map(({
+        }, groupLogByMeal(foodLog, schedule).map(({
           key,
           label,
           items
@@ -2507,6 +2537,64 @@ function App() {
     className: "admin-add-cat-btn",
     onClick: () => setAdminNewCat(true),
     "aria-label": "Aggiungi nuova categoria"
-  }, "+ Aggiungi categoria"))));
+  }, "+ Aggiungi categoria")), user && activeTab === "orari" && /*#__PURE__*/React.createElement("div", {
+    className: "orari-tab"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "orari-slot orari-slot-fixed"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "orari-label-text"
+  }, "Fuori Orario"), /*#__PURE__*/React.createElement("span", {
+    className: "orari-range-text"
+  }, "00:00 \u2014 05:29")), schedule.map((slot, i) => {
+    const startMin = i === 0 ? 330 : schedule[i - 1].end + 1;
+    const prevEnd = i === 0 ? 329 : schedule[i - 1].end;
+    const nextEnd = i === schedule.length - 1 ? 1440 : schedule[i + 1].end;
+    return /*#__PURE__*/React.createElement("div", {
+      key: slot.key,
+      className: "orari-slot"
+    }, /*#__PURE__*/React.createElement("input", {
+      className: "orari-label-input",
+      "aria-label": `Nome fascia ${slot.label}`,
+      value: slot.label,
+      onChange: e => {
+        const newSchedule = schedule.map((s, j) => j === i ? {
+          ...s,
+          label: e.target.value
+        } : s);
+        setSchedule(newSchedule);
+        saveScheduleToFirestore(newSchedule);
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "orari-times"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "orari-start"
+    }, minutesToTime(startMin)), /*#__PURE__*/React.createElement("span", {
+      className: "orari-sep"
+    }, "\u2014"), /*#__PURE__*/React.createElement("input", {
+      type: "time",
+      className: "orari-time-input",
+      "aria-label": `Fine fascia ${slot.label}`,
+      value: minutesToTime(slot.end),
+      onChange: e => {
+        if (!e.target.value) return;
+        const newEnd = timeToMinutes(e.target.value);
+        if (newEnd <= prevEnd || newEnd >= nextEnd) return;
+        const newSchedule = schedule.map((s, j) => j === i ? {
+          ...s,
+          end: newEnd
+        } : s);
+        setSchedule(newSchedule);
+        saveScheduleToFirestore(newSchedule);
+      }
+    })));
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "orari-slot orari-slot-fixed"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "orari-label-text"
+  }, "Fuori Orario"), /*#__PURE__*/React.createElement("span", {
+    className: "orari-range-text"
+  }, minutesToTime(schedule[schedule.length - 1].end + 1), " \u2014 23:59")), /*#__PURE__*/React.createElement("div", {
+    className: "orari-note"
+  }, "\u2139\uFE0F Gli orari si applicano a tutto lo storico. Se sposti la fine del Pranzo da 15:00 a 14:30, i pasti loggati tra 14:30 e 15:00 \u2014 anche mesi fa \u2014 vengono spostati nella fascia successiva."))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
