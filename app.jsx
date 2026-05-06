@@ -356,7 +356,7 @@ const WIZARD_STEPS = [
   {
     tab: null, selector: null,
     title: "Benvenuto in kcalTracker",
-    text: "Questa guida ti mostra le funzionalità principali. Puoi riaprirla in qualsiasi momento dal pulsante ? nell'header.",
+    text: "Questa guida ti mostra le funzionalità principali. Puoi riaprirla in qualsiasi momento dal pulsante 🧙 nell'header.",
   },
   {
     tab: null, selector: ".header-top-right", last: false,
