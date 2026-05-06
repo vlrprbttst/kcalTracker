@@ -27,25 +27,57 @@ App personale per tracciare le calorie giornaliere. Pubblicata su GitHub Pages. 
 - **Project ID:** `kcaltracker-5dd56`
 - **Auth domain:** `kcaltracker-5dd56.firebaseapp.com`
 - **API Key:** `AIzaSyBCY1ONerEeZ6Ysa34222hZ-JzJ_rIjcZI` (sicuro da esporre nel frontend per Firebase)
-- **ALLOWED_UID:** `f1rMJWrezfORvihvxM5EspY3FsA3` (solo questo UID può loggarsi)
+- **ALLOWED_UID / OWNER_UID:** `f1rMJWrezfORvihvxM5EspY3FsA3` (Valerio — owner, riceve seed e auto-merge da `SEED_DIET_DATA`)
+- **maxUsers:** `5` (slot totali, incluso owner)
 - **Domini autorizzati:** `localhost`, `127.0.0.1`, `vlrprbttst.github.io`
+
+### Accesso multi-utente
+L'accesso è gestito dal documento `config/access` su Firestore:
+```json
+{ "allowedUids": ["f1rMJWrezfORvihvxM5EspY3FsA3", ...], "maxUsers": 5 }
+```
+Al login, l'app legge `config/access`:
+- UID già in lista → accede normalmente
+- UID non in lista + slot disponibili → si aggiunge automaticamente (`arrayUnion`) e accede
+- UID non in lista + lista piena → signOut + modale "Accesso non disponibile"
+
+I nuovi utenti partono con lista alimenti vuota (`[]`). Seed e auto-merge da `SEED_DIET_DATA` sono riservati all'owner (`ALLOWED_UID`).
 
 ### Firestore Security Rules
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    match /config/access {
+      allow read: if request.auth != null;
+      allow update: if request.auth != null
+        && resource.data.allowedUids.size() < resource.data.maxUsers
+        && !resource.data.allowedUids.hasAny([request.auth.uid])
+        && request.resource.data.allowedUids.hasAll(resource.data.allowedUids)
+        && request.resource.data.allowedUids.size() == resource.data.allowedUids.size() + 1
+        && request.resource.data.allowedUids.hasAll([request.auth.uid])
+        && request.resource.data.maxUsers == resource.data.maxUsers;
+    }
+
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null
         && request.auth.uid == userId
-        && request.auth.uid == "f1rMJWrezfORvihvxM5EspY3FsA3";
+        && get(/databases/$(database)/documents/config/access).data.allowedUids.hasAny([request.auth.uid]);
     }
+
   }
 }
 ```
 
 ### Struttura dati Firestore
 ```
+config/
+  access: {
+    allowedUids: ["f1rMJWrezfORvihvxM5EspY3FsA3", ...],
+    maxUsers: 5
+  }
+
 users/
   {uid}/
     config/
@@ -71,7 +103,7 @@ users/
 ```
 
 **Note sui campi:**
-- `config/foods.dietData`: lista alimenti completa, modificabile dal tab Alimenti. Al primo login viene seminata da `SEED_DIET_DATA` in `app.jsx`.
+- `config/foods.dietData`: lista alimenti completa, modificabile dal tab Alimenti. Al primo login dell'owner viene seminata da `SEED_DIET_DATA`; i nuovi utenti partono da lista vuota (`[]`).
 - `counts` / `varGrams`: chiavi = ID stabili opachi a 6 caratteri
 - `extras`: ogni extra ha un `uid` opaco generato al momento dell'aggiunta
 - `log`: array cronologico — vale solo per il giorno corrente
@@ -163,8 +195,9 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - **Drag & drop item** (SortableJS): handle `⠿` su ogni riga per riordinare gli item all'interno della stessa categoria — funziona su mouse e touch
 - **Drag & drop categorie** (SortableJS): handle `⠿` a sinistra del titolo categoria per riordinare le categorie — insertion sort classico, salvataggio immediato su Firestore
 - **Salvataggio:** ogni modifica (add/edit/delete/reorder) salva immediatamente su Firestore `config/foods`
-- **Prima apertura post-deploy:** se `config/foods` non esiste, viene seminato da `SEED_DIET_DATA`
-- **Auto-merge al login:** se `config/foods` esiste ma mancano item/categorie presenti in `SEED_DIET_DATA`, vengono aggiunti automaticamente. Garantisce che nuovi alimenti aggiunti via codice appaiano anche per utenti già onboardati
+- **Prima apertura post-deploy (owner):** se `config/foods` non esiste, viene seminato da `SEED_DIET_DATA`
+- **Prima apertura (altri utenti):** se `config/foods` non esiste, parte da lista vuota (`[]`)
+- **Auto-merge al login:** solo per l'owner — se `config/foods` esiste ma mancano item/categorie presenti in `SEED_DIET_DATA`, vengono aggiunti automaticamente. Garantisce che nuovi alimenti aggiunti via codice appaiano anche dopo aggiornamenti
 - Eliminare un item con conteggi attivi oggi mostra un warning — il conteggio giornaliero non viene modificato
 
 ### Modali di conferma

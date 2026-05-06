@@ -434,13 +434,8 @@ function App() {
 
   useEffect(() => {
     return auth.onAuthStateChanged(async (u) => {
-      if (u && u.uid !== ALLOWED_UID) {
-        auth.signOut();
-        setNotAllowed(true);
-        return;
-      }
-      setUser(u);
       if (!u) {
+        setUser(null);
         setCounts({});
         setExtras([]);
         setVarGrams({});
@@ -450,8 +445,31 @@ function App() {
         setDataReady(false);
         return;
       }
-      if (u) {
-        try {
+
+      // Check access list and auto-register if slot available
+      try {
+        const accessRef = db.collection("config").doc("access");
+        const accessSnap = await accessRef.get();
+        const { allowedUids, maxUsers } = accessSnap.data();
+        if (!allowedUids.includes(u.uid)) {
+          if (allowedUids.length < maxUsers) {
+            await accessRef.update({
+              allowedUids: firebase.firestore.FieldValue.arrayUnion(u.uid)
+            });
+          } else {
+            auth.signOut();
+            setNotAllowed(true);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Access check error:", e);
+        auth.signOut();
+        return;
+      }
+
+      setUser(u);
+      try {
           // Load day data, food list and schedule in parallel
           const [daySnap, foodsSnap, schedSnap] = await Promise.all([
             db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).get(),
@@ -462,38 +480,41 @@ function App() {
             setSchedule(schedSnap.data().schedule);
           }
 
-          // Handle food list: use Firestore version if present, otherwise seed from hardcoded
+          // Handle food list: use Firestore version if present, otherwise seed
           let loadedDietData;
           if (foodsSnap.exists && foodsSnap.data().dietData) {
             loadedDietData = foodsSnap.data().dietData;
-            // Merge any items/categories added to SEED_DIET_DATA that are missing from Firestore
-            const firestoreIds = new Set(loadedDietData.flatMap(c => c.items.map(i => i.id)));
-            let needsMerge = false;
-            const mergedData = loadedDietData.map(cat => {
-              const seedCat = SEED_DIET_DATA.find(sc => sc.category === cat.category);
-              if (!seedCat) return cat;
-              const newItems = seedCat.items.filter(si => !firestoreIds.has(si.id));
-              if (newItems.length === 0) return cat;
-              needsMerge = true;
-              return { ...cat, items: [...cat.items, ...newItems] };
-            });
-            const firestoreCats = new Set(loadedDietData.map(c => c.category));
-            SEED_DIET_DATA.forEach(seedCat => {
-              if (!firestoreCats.has(seedCat.category)) {
-                mergedData.push(seedCat);
+            // Auto-merge new items from SEED_DIET_DATA only for the owner
+            if (u.uid === ALLOWED_UID) {
+              const firestoreIds = new Set(loadedDietData.flatMap(c => c.items.map(i => i.id)));
+              let needsMerge = false;
+              const mergedData = loadedDietData.map(cat => {
+                const seedCat = SEED_DIET_DATA.find(sc => sc.category === cat.category);
+                if (!seedCat) return cat;
+                const newItems = seedCat.items.filter(si => !firestoreIds.has(si.id));
+                if (newItems.length === 0) return cat;
                 needsMerge = true;
+                return { ...cat, items: [...cat.items, ...newItems] };
+              });
+              const firestoreCats = new Set(loadedDietData.map(c => c.category));
+              SEED_DIET_DATA.forEach(seedCat => {
+                if (!firestoreCats.has(seedCat.category)) {
+                  mergedData.push(seedCat);
+                  needsMerge = true;
+                }
+              });
+              if (needsMerge) {
+                loadedDietData = mergedData;
+                db.collection("users").doc(u.uid).collection("config").doc("foods")
+                  .set({ dietData: mergedData })
+                  .catch(e => console.error("Merge diet data error:", e));
               }
-            });
-            if (needsMerge) {
-              loadedDietData = mergedData;
-              db.collection("users").doc(u.uid).collection("config").doc("foods")
-                .set({ dietData: mergedData })
-                .catch(e => console.error("Merge diet data error:", e));
             }
           } else {
-            loadedDietData = SEED_DIET_DATA;
+            // Owner gets SEED_DIET_DATA, new users start with an empty list
+            loadedDietData = u.uid === ALLOWED_UID ? SEED_DIET_DATA : [];
             db.collection("users").doc(u.uid).collection("config").doc("foods")
-              .set({ dietData: SEED_DIET_DATA })
+              .set({ dietData: loadedDietData })
               .catch(e => console.error("Seed diet data error:", e));
           }
           setDietData(loadedDietData);
@@ -525,7 +546,6 @@ function App() {
         } catch (e) {
           console.error("Firestore load error — save disabled to prevent data loss:", e);
         }
-      }
     });
   }, []);
 
@@ -1016,8 +1036,8 @@ function App() {
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
           <div className="modal">
             <img src="no.gif" alt="" role="presentation" style={{ width: 313, maxWidth: "100%", height: "auto", borderRadius: 8, marginBottom: 12 }} />
-            <div id="modal-title" className="modal-title">Accesso negato</div>
-            <div className="modal-text">Non puoi loggarti a meno che tu non sia il creatore dell'app!</div>
+            <div id="modal-title" className="modal-title">Accesso non disponibile</div>
+            <div className="modal-text">Gli slot disponibili sono esauriti. Riprova più avanti.</div>
             <button className="modal-btn" onClick={() => setNotAllowed(false)}>Ok, capito</button>
           </div>
         </div>
@@ -1288,8 +1308,8 @@ function App() {
 
             {!user && (
               <div className="guest-banner">
-                <div className="guest-banner-title">🧪 App in beta privata</div>
-                <div className="guest-banner-body">Accedi per sbloccare la lista alimenti personalizzata, lo storico settimanale e la sincronizzazione tra dispositivi.</div>
+                <div className="guest-banner-title">Accedi per sbloccare tutto</div>
+                <div className="guest-banner-body">Con un account Google puoi gestire la tua lista alimenti personalizzata, consultare lo storico settimanale, sincronizzare i dati su tutti i tuoi dispositivi e tanto altro.</div>
                 <button className="guest-banner-btn" onClick={login}>Accedi con Google</button>
               </div>
             )}

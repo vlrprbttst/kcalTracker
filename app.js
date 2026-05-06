@@ -737,13 +737,8 @@ function App() {
   const prevOverTarget = useRef(false);
   useEffect(() => {
     return auth.onAuthStateChanged(async u => {
-      if (u && u.uid !== ALLOWED_UID) {
-        auth.signOut();
-        setNotAllowed(true);
-        return;
-      }
-      setUser(u);
       if (!u) {
+        setUser(null);
         setCounts({});
         setExtras([]);
         setVarGrams({});
@@ -753,19 +748,45 @@ function App() {
         setDataReady(false);
         return;
       }
-      if (u) {
-        try {
-          // Load day data, food list and schedule in parallel
-          const [daySnap, foodsSnap, schedSnap] = await Promise.all([db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).get(), db.collection("users").doc(u.uid).collection("config").doc("foods").get(), db.collection("users").doc(u.uid).collection("config").doc("schedule").get()]);
-          if (schedSnap.exists && schedSnap.data().schedule) {
-            setSchedule(schedSnap.data().schedule);
-          }
 
-          // Handle food list: use Firestore version if present, otherwise seed from hardcoded
-          let loadedDietData;
-          if (foodsSnap.exists && foodsSnap.data().dietData) {
-            loadedDietData = foodsSnap.data().dietData;
-            // Merge any items/categories added to SEED_DIET_DATA that are missing from Firestore
+      // Check access list and auto-register if slot available
+      try {
+        const accessRef = db.collection("config").doc("access");
+        const accessSnap = await accessRef.get();
+        const {
+          allowedUids,
+          maxUsers
+        } = accessSnap.data();
+        if (!allowedUids.includes(u.uid)) {
+          if (allowedUids.length < maxUsers) {
+            await accessRef.update({
+              allowedUids: firebase.firestore.FieldValue.arrayUnion(u.uid)
+            });
+          } else {
+            auth.signOut();
+            setNotAllowed(true);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Access check error:", e);
+        auth.signOut();
+        return;
+      }
+      setUser(u);
+      try {
+        // Load day data, food list and schedule in parallel
+        const [daySnap, foodsSnap, schedSnap] = await Promise.all([db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).get(), db.collection("users").doc(u.uid).collection("config").doc("foods").get(), db.collection("users").doc(u.uid).collection("config").doc("schedule").get()]);
+        if (schedSnap.exists && schedSnap.data().schedule) {
+          setSchedule(schedSnap.data().schedule);
+        }
+
+        // Handle food list: use Firestore version if present, otherwise seed
+        let loadedDietData;
+        if (foodsSnap.exists && foodsSnap.data().dietData) {
+          loadedDietData = foodsSnap.data().dietData;
+          // Auto-merge new items from SEED_DIET_DATA only for the owner
+          if (u.uid === ALLOWED_UID) {
             const firestoreIds = new Set(loadedDietData.flatMap(c => c.items.map(i => i.id)));
             let needsMerge = false;
             const mergedData = loadedDietData.map(cat => {
@@ -792,55 +813,56 @@ function App() {
                 dietData: mergedData
               }).catch(e => console.error("Merge diet data error:", e));
             }
-          } else {
-            loadedDietData = SEED_DIET_DATA;
-            db.collection("users").doc(u.uid).collection("config").doc("foods").set({
-              dietData: SEED_DIET_DATA
-            }).catch(e => console.error("Seed diet data error:", e));
           }
-          setDietData(loadedDietData);
-
-          // Build lookup from the loaded food list for use in sanitization below
-          const loadedItemById = {};
-          loadedDietData.forEach(cat => cat.items.forEach(item => {
-            loadedItemById[item.id] = item;
-          }));
-
-          // Handle today's day document
-          if (daySnap.exists) {
-            const data = daySnap.data();
-            const {
-              counts: mc,
-              varGrams: mvg,
-              migrated
-            } = migrateCountKeys(data.counts || {}, data.varGrams || {});
-            const sanitizedCounts = {
-              ...mc
-            };
-            Object.keys(sanitizedCounts).forEach(id => {
-              const it = loadedItemById[id];
-              if (it?.variable && !mvg[id]) delete sanitizedCounts[id];
-            });
-            const loadedExtras = (data.extras || []).map(e => e.uid ? e : {
-              ...e,
-              uid: Math.random().toString(36).slice(2, 8)
-            });
-            setCounts(sanitizedCounts);
-            setExtras(loadedExtras);
-            setVarGrams(mvg);
-            setLog(data.log || []);
-            if (data.target) setTarget(data.target);
-            if (migrated) {
-              db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).update({
-                counts: mc,
-                varGrams: mvg
-              }).catch(e => console.error("Migration update error:", e));
-            }
-          }
-          setDataReady(true);
-        } catch (e) {
-          console.error("Firestore load error — save disabled to prevent data loss:", e);
+        } else {
+          // Owner gets SEED_DIET_DATA, new users start with an empty list
+          loadedDietData = u.uid === ALLOWED_UID ? SEED_DIET_DATA : [];
+          db.collection("users").doc(u.uid).collection("config").doc("foods").set({
+            dietData: loadedDietData
+          }).catch(e => console.error("Seed diet data error:", e));
         }
+        setDietData(loadedDietData);
+
+        // Build lookup from the loaded food list for use in sanitization below
+        const loadedItemById = {};
+        loadedDietData.forEach(cat => cat.items.forEach(item => {
+          loadedItemById[item.id] = item;
+        }));
+
+        // Handle today's day document
+        if (daySnap.exists) {
+          const data = daySnap.data();
+          const {
+            counts: mc,
+            varGrams: mvg,
+            migrated
+          } = migrateCountKeys(data.counts || {}, data.varGrams || {});
+          const sanitizedCounts = {
+            ...mc
+          };
+          Object.keys(sanitizedCounts).forEach(id => {
+            const it = loadedItemById[id];
+            if (it?.variable && !mvg[id]) delete sanitizedCounts[id];
+          });
+          const loadedExtras = (data.extras || []).map(e => e.uid ? e : {
+            ...e,
+            uid: Math.random().toString(36).slice(2, 8)
+          });
+          setCounts(sanitizedCounts);
+          setExtras(loadedExtras);
+          setVarGrams(mvg);
+          setLog(data.log || []);
+          if (data.target) setTarget(data.target);
+          if (migrated) {
+            db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).update({
+              counts: mc,
+              varGrams: mvg
+            }).catch(e => console.error("Migration update error:", e));
+          }
+        }
+        setDataReady(true);
+      } catch (e) {
+        console.error("Firestore load error — save disabled to prevent data loss:", e);
       }
     });
   }, []);
@@ -1444,9 +1466,9 @@ function App() {
   }), /*#__PURE__*/React.createElement("div", {
     id: "modal-title",
     className: "modal-title"
-  }, "Accesso negato"), /*#__PURE__*/React.createElement("div", {
+  }, "Accesso non disponibile"), /*#__PURE__*/React.createElement("div", {
     className: "modal-text"
-  }, "Non puoi loggarti a meno che tu non sia il creatore dell'app!"), /*#__PURE__*/React.createElement("button", {
+  }, "Gli slot disponibili sono esauriti. Riprova pi\xF9 avanti."), /*#__PURE__*/React.createElement("button", {
     className: "modal-btn",
     onClick: () => setNotAllowed(false)
   }, "Ok, capito"))), /*#__PURE__*/React.createElement("header", {
@@ -1896,9 +1918,9 @@ function App() {
     className: "guest-banner"
   }, /*#__PURE__*/React.createElement("div", {
     className: "guest-banner-title"
-  }, "\uD83E\uDDEA App in beta privata"), /*#__PURE__*/React.createElement("div", {
+  }, "Accedi per sbloccare tutto"), /*#__PURE__*/React.createElement("div", {
     className: "guest-banner-body"
-  }, "Accedi per sbloccare la lista alimenti personalizzata, lo storico settimanale e la sincronizzazione tra dispositivi."), /*#__PURE__*/React.createElement("button", {
+  }, "Con un account Google puoi gestire la tua lista alimenti personalizzata, consultare lo storico settimanale, sincronizzare i dati su tutti i tuoi dispositivi e tanto altro."), /*#__PURE__*/React.createElement("button", {
     className: "guest-banner-btn",
     onClick: login
   }, "Accedi con Google"))), user && activeTab === "menu" && (() => {
