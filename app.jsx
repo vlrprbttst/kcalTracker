@@ -364,7 +364,7 @@ const WIZARD_STEPS = [
     text: "Da sinistra: ❌ azzera le calorie del giorno, {themeIcon} cambia tema, 🧙 riapri questa guida, e il pulsante per uscire dall'account.",
   },
   {
-    tab: null, selector: ".kcal-row", last: false,
+    tab: null, selector: ".kcal-row", selectorEnd: ".progress-track", last: false,
     title: "Il contatore calorie",
     text: "Il numero grande sono le kcal assunte oggi. A destra il tuo obiettivo; la differenza ti dice quante kcal ti rimangono (o di quanto hai sforato). La barra sotto si riempie man mano che mangi: diventa gialla avvicinandoti all'obiettivo e rossa se lo superi.",
   },
@@ -801,7 +801,17 @@ function App() {
         el.scrollIntoView({ block: 'center', behavior: 'instant' });
         requestAnimationFrame(() => requestAnimationFrame(() => {
           const r = el.getBoundingClientRect();
-          setSpotlightRect({ top: r.top - 8, left: r.left - 8, width: r.width + 16, height: r.height + 16 });
+          const el2 = step.selectorEnd ? document.querySelector(step.selectorEnd) : null;
+          if (el2) {
+            const r2 = el2.getBoundingClientRect();
+            const top = Math.min(r.top, r2.top) - 8;
+            const left = Math.min(r.left, r2.left) - 8;
+            const right = Math.max(r.right, r2.right) + 8;
+            const bottom = Math.max(r.bottom, r2.bottom) + 8;
+            setSpotlightRect({ top, left, width: right - left, height: bottom - top });
+          } else {
+            setSpotlightRect({ top: r.top - 8, left: r.left - 8, width: r.width + 16, height: r.height + 16 });
+          }
         }));
       }
     }, 400);
