@@ -225,7 +225,7 @@ input { font-family: inherit; }
   pointer-events: none;
 }
 
-.content { max-width: 520px; margin: 0 auto; padding: 0 12px 0; min-height: calc(100dvh - 180px); }
+.content { max-width: 520px; margin: 0 auto; padding: 16px 12px 0; min-height: calc(100dvh - 180px); }
 
 .category-card {
   background: var(--surface);
@@ -614,18 +614,6 @@ body:not(.light) .week-incomplete-note { color: #ca8a04; }
 .search-clear:hover { color: var(--text); }
 .search-highlight { background: var(--accent-bg); color: var(--accent); border-radius: 2px; }
 
-.close-all-btn {
-  font-size: 11px;
-  color: var(--text-dimmest);
-  background: transparent;
-  border: none;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  margin-bottom: 8px;
-  display: block;
-}
-.close-all-btn:hover { color: var(--text-dim); }
 
 .modal-overlay {
   position: fixed;

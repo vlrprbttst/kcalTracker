@@ -1787,13 +1787,7 @@ function App() {
     className: "content",
     onTouchStart: onTouchStart,
     onTouchEnd: onTouchEnd
-  }, (!user || activeTab === "oggi") && /*#__PURE__*/React.createElement(React.Fragment, null, user && !searchQuery && /*#__PURE__*/React.createElement("button", {
-    className: "close-all-btn",
-    style: {
-      visibility: openIdx !== null ? 'visible' : 'hidden'
-    },
-    onClick: () => setOpenIdx(null)
-  }, "chiudi tutto"), user && (() => {
+  }, (!user || activeTab === "oggi") && /*#__PURE__*/React.createElement(React.Fragment, null, user && (() => {
     const query = searchQuery.trim().toLowerCase();
     const visibleCats = dietData.map((cat, ci) => ({
       cat,
@@ -2445,13 +2439,7 @@ function App() {
       onClick: () => deleteItem(item.id),
       "aria-label": `Elimina ${item.name}`
     }, "\uD83D\uDDD1\uFE0F")))))));
-  })() : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
-    className: "close-all-btn",
-    style: {
-      visibility: adminOpenCats.size > 0 ? 'visible' : 'hidden'
-    },
-    onClick: () => setAdminOpenCats(new Set())
-  }, "chiudi tutto"), /*#__PURE__*/React.createElement("div", {
+  })() : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     ref: sortableCatsRef
   }, dietData.map((cat, catIdx) => {
     const isOpen = adminOpenCats.has(cat.category);

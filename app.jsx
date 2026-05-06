@@ -1265,10 +1265,6 @@ function App() {
       <main id="main-content" className="content" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {(!user || activeTab === "oggi") && (
           <>
-            {user && !searchQuery && (
-              <button className="close-all-btn" style={{ visibility: openIdx !== null ? 'visible' : 'hidden' }} onClick={() => setOpenIdx(null)}>chiudi tutto</button>
-            )}
-
             {user && (() => {
               const query = searchQuery.trim().toLowerCase();
               const visibleCats = dietData.map((cat, ci) => ({
@@ -1753,7 +1749,6 @@ function App() {
               })()
             ) : (
               <>
-            <button className="close-all-btn" style={{ visibility: adminOpenCats.size > 0 ? 'visible' : 'hidden' }} onClick={() => setAdminOpenCats(new Set())}>chiudi tutto</button>
             <div ref={sortableCatsRef}>
             {dietData.map((cat, catIdx) => {
               const isOpen = adminOpenCats.has(cat.category);
