@@ -1532,15 +1532,20 @@ function App() {
     });
   };
   const wizardTooltipStyle = (() => {
-    const TOOLTIP_H = 210,
-      MARGIN = 20;
+    const TOOLTIP_H = 240,
+      MARGIN = 12;
+    const H = window.innerHeight;
     if (!spotlightRect) return {
-      top: window.innerHeight / 2 - TOOLTIP_H / 2,
+      top: H / 2 - TOOLTIP_H / 2,
       left: "50%",
       transform: "translateX(-50%)"
     };
-    const isTopHalf = spotlightRect.top + spotlightRect.height / 2 < window.innerHeight / 2;
-    const topPx = isTopHalf ? spotlightRect.top + spotlightRect.height + MARGIN : Math.max(MARGIN, spotlightRect.top - TOOLTIP_H - MARGIN);
+    const belowTop = spotlightRect.top + spotlightRect.height + MARGIN;
+    const aboveTop = spotlightRect.top - TOOLTIP_H - MARGIN;
+    const fitsBelow = belowTop + TOOLTIP_H + MARGIN <= H;
+    const fitsAbove = aboveTop >= MARGIN;
+    let topPx;
+    if (fitsBelow) topPx = belowTop;else if (fitsAbove) topPx = aboveTop;else topPx = Math.min(Math.max(belowTop, MARGIN), H - TOOLTIP_H - MARGIN);
     return {
       top: topPx,
       left: "50%",
