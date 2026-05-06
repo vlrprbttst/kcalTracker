@@ -162,7 +162,8 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - Feedback tattile (vibrazione) al tap su +
 - Reset manuale con conferma (modale custom)
 - Legenda colori barre kcal in fondo alla lista
-- Logo testuale sostituito con `logo-main-horizontal.png` nell'header
+- Logo testuale sostituito con `logo-main-horizontal.png` nell'header — responsive: 36px/155px a <390px, 44px/210px a ≥390px, 56px/270px a ≥768px
+- Header responsive: gap bottoni 6px a <390px, 8px a ≥390px; testo "Esci" nascosto a <390px (`.auth-btn-label`), solo avatar visibile
 
 ### Extra (campo libero)
 - Card in fondo alla lista con due input: nome alimento + kcal
@@ -215,7 +216,7 @@ Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col de
 - **Spotlight:** 4 div `.wiz-mask` che mascherano l'area fuori dall'elemento; bordo pulsante `.wizard-spotlight-border` (animazione `wizardPulse`)
 - **Tab switching:** `useEffect([wizardOpen, wizardStep])` imposta `activeTab` se lo step ha un `tab`
 - **Misurazione spotlight:** `useEffect([wizardOpen, wizardStep, activeTab])` con doppio `requestAnimationFrame` + `scrollIntoView` per garantire che il DOM sia stabile prima di misurare
-- **Tooltip:** posizionato con `top` fisso calcolato a partire dal rettangolo spotlight — sempre sotto l'elemento se c'è spazio, altrimenti sopra
+- **Tooltip:** posizionato con `top` fisso — logica: prova sotto lo spotlight → prova sopra → se né sopra né sotto hanno spazio (elemento molto alto), clamp dentro il viewport. Usa `TOOLTIP_H = 240` come stima altezza tooltip
 - **Emoji tema dinamica:** il testo dello step 1 contiene `{themeIcon}` che viene sostituito a render time con `🌙` (tema light) o `☀️` (tema dark)
 - **Fine wizard:** il bottone "Fatto!" chiude il wizard **e** riporta al tab "oggi**
 - **Selector `data-wizard`:** i pulsanti dei tab Alimenti, Orari, Storico hanno `data-wizard="alimenti-tab"` etc. per essere targettati dagli step che mostrano il tab stesso in spotlight
