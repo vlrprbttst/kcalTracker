@@ -684,46 +684,21 @@
     }));
   }
 
-  // src/app.jsx
-  var { useState: useState2, useEffect: useEffect2, useRef, useMemo } = React;
-  function App() {
-    const [user, setUser] = useState2(void 0);
-    const [notAllowed, setNotAllowed] = useState2(false);
-    const [wizardOpen, setWizardOpen] = useState2(false);
-    const [wizardStep, setWizardStep] = useState2(0);
-    const [settingsOpen, setSettingsOpen] = useState2(false);
-    const [profileMenuOpen, setProfileMenuOpen] = useState2(false);
-    const [settingsDraft, setSettingsDraft] = useState2({ defaultKcal: "2000", schedule: DEFAULT_SCHEDULE });
-    const [defaultKcal, setDefaultKcal] = useState2(2e3);
-    const [counts, setCounts] = useState2(() => loadLocalData().counts);
-    const [extras, setExtras] = useState2(() => loadLocalData().extras);
-    const [varGrams, setVarGrams] = useState2(() => loadLocalData().varGrams);
-    const [log, setLog] = useState2([]);
-    const [searchQuery, setSearchQuery] = useState2("");
-    const [adminSearchQuery, setAdminSearchQuery] = useState2("");
-    const [extraName, setExtraName] = useState2("");
-    const [extraInput, setExtraInput] = useState2("");
-    const [target, setTarget] = useState2(loadTarget);
-    const [openIdx, setOpenIdx] = useState2(null);
-    const [editingDayTarget, setEditingDayTarget] = useState2(null);
-    const [activeTab, setActiveTab] = useState2("oggi");
-    const swipeStart = useRef(null);
-    const tabRefs = useRef({});
-    const [indicatorStyle, setIndicatorStyle] = useState2({ left: 0, width: 0 });
-    const [history, setHistory] = useState2([]);
-    const [historyLoading, setHistoryLoading] = useState2(false);
-    const [currentPage, setCurrentPage] = useState2(() => getBimesterOf(ACTIVE_DAY()));
-    const [openWeeks, setOpenWeeks] = useState2(/* @__PURE__ */ new Set());
-    const [dataReady, setDataReady] = useState2(false);
-    const [shakeTarget, setShakeTarget] = useState2(false);
-    const [autoOpenWizard, setAutoOpenWizard] = useState2(false);
-    const [lightTheme, setLightTheme] = useState2(() => localStorage.getItem("kcal_theme") === "light");
-    const [confirmModal, setConfirmModal] = useState2(null);
-    const [dietData, setDietData] = useState2(SEED_DIET_DATA);
-    const [schedule, setSchedule] = useState2(DEFAULT_SCHEDULE);
-    const [adminEditId, setAdminEditId] = useState2(null);
+  // src/tabs/AlimentiAdminTab.jsx
+  var { useState: useState2, useEffect: useEffect2, useRef } = React;
+  function AlimentiAdminTab({
+    user,
+    dietData,
+    setDietData,
+    counts,
+    itemById,
+    setConfirmModal,
+    adminSearchQuery,
+    setAdminSearchQuery
+  }) {
+    const [adminEditId, setAdminEditId2] = useState2(null);
     const [adminEditDraft, setAdminEditDraft] = useState2({});
-    const [adminNewItem, setAdminNewItem] = useState2(null);
+    const [adminNewItem, setAdminNewItem2] = useState2(null);
     const [adminNewCat, setAdminNewCat] = useState2(false);
     const [adminNewCatDraft, setAdminNewCatDraft] = useState2({ name: "", icon: "" });
     const [adminEditCat, setAdminEditCat] = useState2(null);
@@ -733,13 +708,612 @@
     const sortableItemRefs = useRef({});
     const sortableItemInstances = useRef({});
     const isDraggingRef = useRef(false);
-    const profileMenuRef = useRef(null);
     const hoverOpenTimerRef = useRef(null);
     const hoverOpenCatRef = useRef(null);
-    const adminOpenCatsRef = useRef(adminOpenCats);
     const handleTouchMoveRef = useRef(null);
+    const adminOpenCatsRef = useRef(adminOpenCats);
     const dietDataRef = useRef(dietData);
-    const userRef = useRef(null);
+    const userRef = useRef(user);
+    useEffect2(() => {
+      userRef.current = user;
+    }, [user]);
+    useEffect2(() => {
+      adminOpenCatsRef.current = adminOpenCats;
+    }, [adminOpenCats]);
+    useEffect2(() => {
+      dietDataRef.current = dietData;
+    }, [dietData]);
+    useEffect2(() => {
+      if (typeof Sortable === "undefined") return;
+      adminOpenCats.forEach((catName) => {
+        const el = sortableItemRefs.current[catName];
+        if (!el) return;
+        if (sortableItemInstances.current[catName] && sortableItemInstances.current[catName].el !== el) {
+          try {
+            sortableItemInstances.current[catName].destroy();
+          } catch {
+          }
+          delete sortableItemInstances.current[catName];
+        }
+        if (sortableItemInstances.current[catName]) return;
+        sortableItemInstances.current[catName] = Sortable.create(el, {
+          animation: 150,
+          handle: ".admin-drag-handle",
+          ghostClass: "admin-drag-ghost",
+          group: "items",
+          onStart: () => {
+            isDraggingRef.current = true;
+            handleTouchMoveRef.current = (e) => {
+              const touch = e.touches[0];
+              if (!touch) return;
+              const els = document.elementsFromPoint(touch.clientX, touch.clientY);
+              const catRow = els.find((el2) => el2.dataset && el2.dataset.hoverCat);
+              const catName2 = catRow ? catRow.dataset.hoverCat : null;
+              if (catName2 === hoverOpenCatRef.current) return;
+              clearTimeout(hoverOpenTimerRef.current);
+              hoverOpenCatRef.current = catName2;
+              if (catName2 && !adminOpenCatsRef.current.has(catName2)) {
+                hoverOpenTimerRef.current = setTimeout(() => {
+                  setAdminOpenCats((prev) => {
+                    const next = new Set(prev);
+                    next.add(catName2);
+                    return next;
+                  });
+                }, 600);
+              }
+            };
+            document.addEventListener("touchmove", handleTouchMoveRef.current, { passive: true });
+          },
+          onEnd: (evt) => {
+            isDraggingRef.current = false;
+            clearTimeout(hoverOpenTimerRef.current);
+            hoverOpenCatRef.current = null;
+            if (handleTouchMoveRef.current) {
+              document.removeEventListener("touchmove", handleTouchMoveRef.current);
+              handleTouchMoveRef.current = null;
+            }
+            const { oldIndex, newIndex, from, to } = evt;
+            if (from !== el) return;
+            const fromCat = from.dataset.category;
+            const toCat = to.dataset.category;
+            if (fromCat === toCat && oldIndex === newIndex) return;
+            if (from !== to) {
+              from.insertBefore(evt.item, from.children[oldIndex] || null);
+            }
+            const u = userRef.current;
+            const newData = dietDataRef.current.map((cat) => ({ ...cat, items: [...cat.items] }));
+            const srcCat = newData.find((c) => c.category === fromCat);
+            const dstCat = newData.find((c) => c.category === toCat);
+            if (!srcCat || !dstCat) return;
+            const [moved] = srcCat.items.splice(oldIndex, 1);
+            dstCat.items.splice(newIndex, 0, moved);
+            setDietData(newData);
+            if (u) {
+              db.collection("users").doc(u.uid).collection("config").doc("foods").set({ dietData: newData }).catch((e) => console.error("Diet save error:", e));
+            }
+          }
+        });
+      });
+      Object.keys(sortableItemInstances.current).forEach((catName) => {
+        if (!adminOpenCats.has(catName)) {
+          try {
+            sortableItemInstances.current[catName].destroy();
+          } catch {
+          }
+          delete sortableItemInstances.current[catName];
+        }
+      });
+    }, [adminOpenCats, adminSearchQuery]);
+    useEffect2(() => {
+      return () => {
+        Object.values(sortableItemInstances.current).forEach((s) => {
+          try {
+            s.destroy();
+          } catch {
+          }
+        });
+        sortableItemInstances.current = {};
+      };
+    }, []);
+    useEffect2(() => {
+      if (typeof Sortable === "undefined" || !sortableCatsRef.current) return;
+      const sortable = Sortable.create(sortableCatsRef.current, {
+        animation: 150,
+        handle: ".admin-cat-drag-handle",
+        ghostClass: "admin-drag-ghost",
+        onEnd: (evt) => {
+          const { oldIndex, newIndex } = evt;
+          if (oldIndex === newIndex) return;
+          const u = userRef.current;
+          const newData = [...dietDataRef.current];
+          const [moved] = newData.splice(oldIndex, 1);
+          newData.splice(newIndex, 0, moved);
+          setDietData(newData);
+          if (u) {
+            db.collection("users").doc(u.uid).collection("config").doc("foods").set({ dietData: newData }).catch((e) => console.error("Diet save error:", e));
+          }
+        }
+      });
+      return () => {
+        try {
+          sortable.destroy();
+        } catch {
+        }
+      };
+    }, [adminSearchQuery]);
+    const saveDietToFirestore = (newDietData) => {
+      if (!user) return;
+      db.collection("users").doc(user.uid).collection("config").doc("foods").set({ dietData: newDietData }).catch((e) => console.error("Diet save error:", e));
+    };
+    const startEditItem = (item) => {
+      setAdminNewItem2(null);
+      setAdminEditId2(item.id);
+      setAdminEditDraft({
+        name: item.name,
+        kcal: item.variable ? "" : String(item.kcal),
+        portion: item.portion || "",
+        variable: !!item.variable,
+        kcalPerG: item.variable ? String(item.kcalPerG) : "",
+        refGrams: "100",
+        refKcal: item.variable ? String(Math.round(item.kcalPerG * 100)) : ""
+      });
+    };
+    const saveEditedItem = (itemId) => {
+      const d = adminEditDraft;
+      if (!d.name.trim()) return;
+      let computedKcalPerG = null;
+      if (d.variable) {
+        const g = parseFloat(d.refGrams);
+        const k = parseFloat(d.refKcal);
+        if (isNaN(g) || g <= 0 || isNaN(k) || k < 0) return;
+        computedKcalPerG = k / g;
+      } else {
+        const k = parseInt(d.kcal, 10);
+        if (isNaN(k) || k < 0) return;
+      }
+      const newDietData = dietData.map((cat) => ({
+        ...cat,
+        items: cat.items.map((item) => {
+          if (item.id !== itemId) return item;
+          if (d.variable) {
+            return { id: item.id, name: d.name.trim(), portion: d.portion.trim() || "g", kcal: 0, variable: true, kcalPerG: computedKcalPerG };
+          }
+          return { id: item.id, name: d.name.trim(), portion: d.portion.trim(), kcal: parseInt(d.kcal, 10) };
+        })
+      }));
+      setDietData(newDietData);
+      saveDietToFirestore(newDietData);
+      setAdminEditId2(null);
+    };
+    const deleteItem = (itemId) => {
+      const item = itemById[itemId];
+      const hasCount = (counts[itemId] || 0) > 0;
+      const message = hasCount ? `"${item?.name}" ha ${counts[itemId]} porzioni registrate oggi. Il conteggio di oggi non verr\xE0 modificato.` : `Eliminare "${item?.name}" dalla lista?`;
+      setConfirmModal({
+        title: "Elimina alimento",
+        message,
+        danger: true,
+        onConfirm: () => {
+          const newDietData = dietData.map((cat) => ({
+            ...cat,
+            items: cat.items.filter((i) => i.id !== itemId)
+          }));
+          setDietData(newDietData);
+          saveDietToFirestore(newDietData);
+          if (adminEditId === itemId) setAdminEditId2(null);
+        }
+      });
+    };
+    const addNewItem = (catIdx) => {
+      const form = adminNewItem;
+      if (!form || !form.name.trim()) return;
+      let computedKcalPerG = null;
+      if (form.variable) {
+        const g = parseFloat(form.refGrams);
+        const k = parseFloat(form.refKcal);
+        if (isNaN(g) || g <= 0 || isNaN(k) || k < 0) return;
+        computedKcalPerG = k / g;
+      } else {
+        const k = parseInt(form.kcal, 10);
+        if (isNaN(k) || k < 0) return;
+      }
+      const newId = genId();
+      const newItem = form.variable ? { id: newId, name: form.name.trim(), portion: form.portion.trim() || "g", kcal: 0, variable: true, kcalPerG: computedKcalPerG } : { id: newId, name: form.name.trim(), portion: form.portion.trim(), kcal: parseInt(form.kcal, 10) };
+      const newDietData = dietData.map(
+        (cat, ci) => ci !== catIdx ? cat : { ...cat, items: [...cat.items, newItem] }
+      );
+      setDietData(newDietData);
+      saveDietToFirestore(newDietData);
+      setAdminNewItem2(null);
+    };
+    const addNewCategory = () => {
+      const name = adminNewCatDraft.name.trim();
+      if (!name) return;
+      const icon = adminNewCatDraft.icon.trim() || "\u{1F37D}\uFE0F";
+      const newDietData = [...dietData, { category: name, icon, items: [] }];
+      setDietData(newDietData);
+      saveDietToFirestore(newDietData);
+      setAdminNewCat(false);
+      setAdminNewCatDraft({ name: "", icon: "" });
+    };
+    const startEditCategory = (cat) => {
+      setAdminEditCat(cat.category);
+      setAdminEditCatDraft({ name: cat.category, icon: cat.icon });
+    };
+    const saveEditedCategory = () => {
+      const name = adminEditCatDraft.name.trim();
+      if (!name) return;
+      const icon = adminEditCatDraft.icon.trim() || "\u{1F37D}\uFE0F";
+      const oldName = adminEditCat;
+      const newDietData = dietData.map(
+        (cat) => cat.category !== oldName ? cat : { ...cat, category: name, icon }
+      );
+      if (oldName !== name) {
+        setAdminOpenCats((prev) => {
+          if (!prev.has(oldName)) return prev;
+          const next = new Set(prev);
+          next.delete(oldName);
+          next.add(name);
+          return next;
+        });
+      }
+      setDietData(newDietData);
+      saveDietToFirestore(newDietData);
+      setAdminEditCat(null);
+    };
+    const deleteCategory = (catIdx) => {
+      const cat = dietData[catIdx];
+      const message = cat.items.length > 0 ? `La categoria "${cat.category}" contiene ${cat.items.length} aliment${cat.items.length === 1 ? "o" : "i"}. Eliminare tutto?` : `Eliminare la categoria "${cat.category}"?`;
+      setConfirmModal({
+        title: "Elimina categoria",
+        message,
+        danger: true,
+        onConfirm: () => {
+          const newDietData = dietData.filter((_, i) => i !== catIdx);
+          setDietData(newDietData);
+          saveDietToFirestore(newDietData);
+          setAdminOpenCats((prev) => {
+            const next = new Set(prev);
+            next.delete(cat.category);
+            return next;
+          });
+          if (adminEditCat === cat.category) setAdminEditCat(null);
+        }
+      });
+    };
+    return /* @__PURE__ */ React.createElement("div", { className: "admin-tab" }, adminSearchQuery.trim() ? (() => {
+      const q = adminSearchQuery.trim().toLowerCase();
+      const highlight = (name) => {
+        const idx = name.toLowerCase().indexOf(q);
+        if (idx === -1) return name;
+        return /* @__PURE__ */ React.createElement(React.Fragment, null, name.slice(0, idx), /* @__PURE__ */ React.createElement("span", { className: "search-highlight" }, name.slice(idx, idx + q.length)), name.slice(idx + q.length));
+      };
+      const results = dietData.flatMap((cat, catIdx) => {
+        const items = cat.items.filter((item) => item.name.toLowerCase().includes(q));
+        return items.length ? [{ cat, catIdx, items }] : [];
+      });
+      if (!results.length) return /* @__PURE__ */ React.createElement("div", { style: { padding: "24px 0", textAlign: "center", color: "var(--text-dim)", fontSize: 14 } }, "Nessun alimento trovato");
+      return results.map(({ cat, items }) => /* @__PURE__ */ React.createElement("div", { key: cat.category, className: "category-card" }, /* @__PURE__ */ React.createElement("div", { className: "admin-cat-row", style: { cursor: "default" } }, /* @__PURE__ */ React.createElement("span", { className: "cat-icon", "aria-hidden": "true" }, cat.icon), /* @__PURE__ */ React.createElement("span", { className: "cat-name" }, cat.category), /* @__PURE__ */ React.createElement("span", { className: "cat-meta" }, items.length, " ", items.length === 1 ? "alimento" : "alimenti")), /* @__PURE__ */ React.createElement("div", { className: "admin-items-list" }, items.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.id, className: "admin-item-row" }, /* @__PURE__ */ React.createElement("div", { className: "admin-item-info", style: { paddingLeft: 10 } }, /* @__PURE__ */ React.createElement("span", { className: "admin-item-name" }, highlight(item.name)), /* @__PURE__ */ React.createElement("span", { className: "admin-item-meta" }, item.variable ? `${Math.round(item.kcalPerG * 100)} kcal/100g` : `${item.kcal} kcal`, item.portion ? ` \xB7 ${item.portion}` : "")), /* @__PURE__ */ React.createElement("div", { className: "admin-item-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn", onClick: () => {
+        setAdminSearchQuery("");
+        setAdminOpenCats((prev) => {
+          const next = new Set(prev);
+          next.add(cat.category);
+          return next;
+        });
+        startEditItem(item);
+      }, "aria-label": `Modifica ${item.name}` }, "\u270F\uFE0F"), /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn admin-icon-btn-delete", onClick: () => deleteItem(item.id), "aria-label": `Elimina ${item.name}` }, "\u{1F5D1}\uFE0F")))))));
+    })() : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { ref: sortableCatsRef }, dietData.map((cat, catIdx) => {
+      const isOpen = adminOpenCats.has(cat.category);
+      return /* @__PURE__ */ React.createElement("div", { key: cat.category, className: "category-card" }, adminEditCat === cat.category ? /* @__PURE__ */ React.createElement("div", { className: "admin-form", style: { margin: "6px 10px" } }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "admin-input admin-input-name",
+          "aria-label": "Nome categoria",
+          placeholder: "Nome categoria",
+          value: adminEditCatDraft.name,
+          onChange: (e) => setAdminEditCatDraft((d) => ({ ...d, name: e.target.value })),
+          onKeyDown: (e) => {
+            if (e.key === "Enter") saveEditedCategory();
+            if (e.key === "Escape") setAdminEditCat(null);
+          },
+          autoFocus: true
+        }
+      ), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "admin-input admin-input-icon",
+          "aria-label": "Emoji icona categoria",
+          placeholder: "Emoji",
+          value: adminEditCatDraft.icon,
+          onChange: (e) => setAdminEditCatDraft((d) => ({ ...d, icon: e.target.value })),
+          maxLength: 2
+        }
+      ), /* @__PURE__ */ React.createElement("div", { className: "admin-form-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-primary", onClick: saveEditedCategory }, "Salva"), /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-ghost", onClick: () => setAdminEditCat(null) }, "Annulla"))) : /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          className: "admin-cat-row",
+          "data-hover-cat": cat.category,
+          onPointerEnter: () => {
+            if (!isDraggingRef.current || isOpen) return;
+            clearTimeout(hoverOpenTimerRef.current);
+            hoverOpenTimerRef.current = setTimeout(() => {
+              setAdminOpenCats((prev) => {
+                const next = new Set(prev);
+                next.add(cat.category);
+                return next;
+              });
+            }, 600);
+          },
+          onPointerLeave: () => clearTimeout(hoverOpenTimerRef.current),
+          onDragEnter: () => {
+            if (isOpen) return;
+            clearTimeout(hoverOpenTimerRef.current);
+            hoverOpenTimerRef.current = setTimeout(() => {
+              setAdminOpenCats((prev) => {
+                const next = new Set(prev);
+                next.add(cat.category);
+                return next;
+              });
+            }, 600);
+          },
+          onDragLeave: (e) => {
+            if (e.currentTarget.contains(e.relatedTarget)) return;
+            clearTimeout(hoverOpenTimerRef.current);
+          }
+        },
+        /* @__PURE__ */ React.createElement("span", { className: "admin-cat-drag-handle", "aria-hidden": "true" }, "\u283F"),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            className: "category-btn",
+            onClick: () => setAdminOpenCats((prev) => {
+              const next = new Set(prev);
+              next.has(cat.category) ? next.delete(cat.category) : next.add(cat.category);
+              return next;
+            }),
+            "aria-expanded": isOpen,
+            "aria-controls": `admin-cat-${catIdx}`
+          },
+          /* @__PURE__ */ React.createElement("span", { className: "cat-icon", "aria-hidden": "true" }, cat.icon),
+          /* @__PURE__ */ React.createElement("span", { className: "cat-name" }, cat.category),
+          /* @__PURE__ */ React.createElement("span", { className: "cat-meta" }, cat.items.length, " ", cat.items.length === 1 ? "alimento" : "alimenti"),
+          /* @__PURE__ */ React.createElement("span", { className: `cat-arrow${isOpen ? " open" : ""}` }, "\u25BC")
+        ),
+        /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn", onClick: (e) => {
+          e.stopPropagation();
+          startEditCategory(cat);
+        }, "aria-label": `Modifica categoria ${cat.category}` }, "\u270F\uFE0F"),
+        /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn admin-icon-btn-delete", onClick: (e) => {
+          e.stopPropagation();
+          deleteCategory(catIdx);
+        }, "aria-label": `Elimina categoria ${cat.category}` }, "\u{1F5D1}\uFE0F")
+      ), isOpen && /* @__PURE__ */ React.createElement("div", { id: `admin-cat-${catIdx}`, className: "admin-items-list" }, /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          ref: (el) => {
+            if (el) sortableItemRefs.current[cat.category] = el;
+            else delete sortableItemRefs.current[cat.category];
+          },
+          "data-category": cat.category
+        },
+        cat.items.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.id }, adminEditId === item.id ? /* @__PURE__ */ React.createElement("div", { className: "admin-form" }, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            className: "admin-input admin-input-name",
+            "aria-label": "Nome alimento",
+            placeholder: "Nome",
+            value: adminEditDraft.name,
+            onChange: (e) => setAdminEditDraft((d) => ({ ...d, name: e.target.value })),
+            onKeyDown: (e) => {
+              if (e.key === "Enter") saveEditedItem(item.id);
+              if (e.key === "Escape") setAdminEditId2(null);
+            },
+            autoFocus: true
+          }
+        ), !adminEditDraft.variable && /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            className: "admin-input admin-input-portion",
+            "aria-label": "Porzione",
+            placeholder: "Porzione",
+            value: adminEditDraft.portion,
+            onChange: (e) => setAdminEditDraft((d) => ({ ...d, portion: e.target.value }))
+          }
+        ), /* @__PURE__ */ React.createElement("label", { className: "admin-variable-label" }, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            type: "checkbox",
+            checked: adminEditDraft.variable,
+            onChange: (e) => setAdminEditDraft((d) => ({ ...d, variable: e.target.checked, ...e.target.checked ? { portion: "" } : {} }))
+          }
+        ), "Variabile"), adminEditDraft.variable ? /* @__PURE__ */ React.createElement("div", { className: "admin-ref-wrap" }, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            className: "admin-input admin-input-ref-g",
+            type: "number",
+            "aria-label": "Grammi di riferimento",
+            placeholder: "g",
+            value: adminEditDraft.refGrams,
+            onChange: (e) => setAdminEditDraft((d) => ({ ...d, refGrams: e.target.value })),
+            min: "1"
+          }
+        ), /* @__PURE__ */ React.createElement("span", { className: "admin-ref-sep" }, "g ="), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            className: "admin-input admin-input-ref-kcal",
+            type: "number",
+            "aria-label": "Calorie per i grammi di riferimento",
+            placeholder: "kcal",
+            value: adminEditDraft.refKcal,
+            onChange: (e) => setAdminEditDraft((d) => ({ ...d, refKcal: e.target.value })),
+            min: "0"
+          }
+        ), /* @__PURE__ */ React.createElement("span", { className: "admin-ref-sep" }, "kcal")) : /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            className: "admin-input admin-input-kcal",
+            type: "number",
+            "aria-label": "Calorie",
+            placeholder: "kcal",
+            value: adminEditDraft.kcal,
+            onChange: (e) => setAdminEditDraft((d) => ({ ...d, kcal: e.target.value })),
+            min: "0"
+          }
+        ), /* @__PURE__ */ React.createElement("div", { className: "admin-form-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-primary", onClick: () => saveEditedItem(item.id), "aria-label": "Salva modifiche" }, "Salva"), /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-ghost", onClick: () => setAdminEditId2(null), "aria-label": "Annulla modifica" }, "Annulla"))) : /* @__PURE__ */ React.createElement("div", { className: "admin-item-row" }, /* @__PURE__ */ React.createElement("span", { className: "admin-drag-handle", "aria-hidden": "true" }, "\u283F"), /* @__PURE__ */ React.createElement("div", { className: "admin-item-info" }, /* @__PURE__ */ React.createElement("span", { className: "admin-item-name" }, item.name), /* @__PURE__ */ React.createElement("span", { className: "admin-item-meta" }, item.variable ? `${Math.round(item.kcalPerG * 100)} kcal/100g` : `${item.kcal} kcal`, item.portion ? ` \xB7 ${item.portion}` : "")), /* @__PURE__ */ React.createElement("div", { className: "admin-item-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn", onClick: () => startEditItem(item), "aria-label": `Modifica ${item.name}` }, "\u270F\uFE0F"), /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn admin-icon-btn-delete", onClick: () => deleteItem(item.id), "aria-label": `Elimina ${item.name}` }, "\u{1F5D1}\uFE0F")))))
+      ), adminNewItem?.catIdx === catIdx ? /* @__PURE__ */ React.createElement("div", { className: "admin-form admin-form-new" }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "admin-input admin-input-name",
+          "aria-label": "Nome nuovo alimento",
+          placeholder: "Nome alimento",
+          value: adminNewItem.name,
+          onChange: (e) => setAdminNewItem2((d) => ({ ...d, name: e.target.value })),
+          onKeyDown: (e) => {
+            if (e.key === "Enter") addNewItem(catIdx);
+            if (e.key === "Escape") setAdminNewItem2(null);
+          },
+          autoFocus: true
+        }
+      ), !adminNewItem.variable && /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "admin-input admin-input-portion",
+          "aria-label": "Porzione",
+          placeholder: "Porzione",
+          value: adminNewItem.portion,
+          onChange: (e) => setAdminNewItem2((d) => ({ ...d, portion: e.target.value }))
+        }
+      ), /* @__PURE__ */ React.createElement("label", { className: "admin-variable-label" }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: adminNewItem.variable,
+          onChange: (e) => setAdminNewItem2((d) => ({ ...d, variable: e.target.checked, ...e.target.checked ? { portion: "" } : {} }))
+        }
+      ), "Variabile"), adminNewItem.variable ? /* @__PURE__ */ React.createElement("div", { className: "admin-ref-wrap" }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "admin-input admin-input-ref-g",
+          type: "number",
+          "aria-label": "Grammi di riferimento",
+          placeholder: "g",
+          value: adminNewItem.refGrams,
+          onChange: (e) => setAdminNewItem2((d) => ({ ...d, refGrams: e.target.value })),
+          min: "1"
+        }
+      ), /* @__PURE__ */ React.createElement("span", { className: "admin-ref-sep" }, "g ="), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "admin-input admin-input-ref-kcal",
+          type: "number",
+          "aria-label": "Calorie per i grammi di riferimento",
+          placeholder: "kcal",
+          value: adminNewItem.refKcal,
+          onChange: (e) => setAdminNewItem2((d) => ({ ...d, refKcal: e.target.value })),
+          min: "0"
+        }
+      ), /* @__PURE__ */ React.createElement("span", { className: "admin-ref-sep" }, "kcal")) : /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "admin-input admin-input-kcal",
+          type: "number",
+          "aria-label": "Calorie",
+          placeholder: "kcal",
+          value: adminNewItem.kcal,
+          onChange: (e) => setAdminNewItem2((d) => ({ ...d, kcal: e.target.value })),
+          min: "0"
+        }
+      ), /* @__PURE__ */ React.createElement("div", { className: "admin-form-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-primary", onClick: () => addNewItem(catIdx), "aria-label": "Aggiungi alimento" }, "Aggiungi"), /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-ghost", onClick: () => setAdminNewItem2(null), "aria-label": "Annulla" }, "Annulla"))) : /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          className: "admin-add-btn",
+          onClick: () => {
+            setAdminEditId2(null);
+            setAdminNewItem2({ catIdx, name: "", kcal: "", portion: "", variable: false, kcalPerG: "", refGrams: "100", refKcal: "" });
+          },
+          "aria-label": `Aggiungi alimento a ${cat.category}`
+        },
+        "+ Aggiungi alimento"
+      )));
+    })), adminNewCat ? /* @__PURE__ */ React.createElement("div", { className: "admin-new-cat-card" }, /* @__PURE__ */ React.createElement("div", { className: "admin-form" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        className: "admin-input admin-input-name",
+        "aria-label": "Nome nuova categoria",
+        placeholder: "Nome categoria",
+        value: adminNewCatDraft.name,
+        onChange: (e) => setAdminNewCatDraft((d) => ({ ...d, name: e.target.value })),
+        onKeyDown: (e) => {
+          if (e.key === "Enter") addNewCategory();
+          if (e.key === "Escape") {
+            setAdminNewCat(false);
+            setAdminNewCatDraft({ name: "", icon: "" });
+          }
+        },
+        autoFocus: true
+      }
+    ), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        className: "admin-input admin-input-icon",
+        "aria-label": "Emoji icona categoria",
+        placeholder: "Emoji",
+        value: adminNewCatDraft.icon,
+        onChange: (e) => setAdminNewCatDraft((d) => ({ ...d, icon: e.target.value })),
+        maxLength: 2
+      }
+    ), /* @__PURE__ */ React.createElement("div", { className: "admin-form-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-primary", onClick: addNewCategory, "aria-label": "Aggiungi categoria" }, "Aggiungi"), /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-ghost", onClick: () => {
+      setAdminNewCat(false);
+      setAdminNewCatDraft({ name: "", icon: "" });
+    }, "aria-label": "Annulla" }, "Annulla")))) : /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: "admin-add-cat-btn",
+        onClick: () => setAdminNewCat(true),
+        "aria-label": "Aggiungi nuova categoria"
+      },
+      "+ Aggiungi categoria"
+    )));
+  }
+
+  // src/app.jsx
+  var { useState: useState3, useEffect: useEffect3, useRef: useRef2, useMemo } = React;
+  function App() {
+    const [user, setUser] = useState3(void 0);
+    const [notAllowed, setNotAllowed] = useState3(false);
+    const [wizardOpen, setWizardOpen] = useState3(false);
+    const [wizardStep, setWizardStep] = useState3(0);
+    const [settingsOpen, setSettingsOpen] = useState3(false);
+    const [profileMenuOpen, setProfileMenuOpen] = useState3(false);
+    const [settingsDraft, setSettingsDraft] = useState3({ defaultKcal: "2000", schedule: DEFAULT_SCHEDULE });
+    const [defaultKcal, setDefaultKcal] = useState3(2e3);
+    const [counts, setCounts] = useState3(() => loadLocalData().counts);
+    const [extras, setExtras] = useState3(() => loadLocalData().extras);
+    const [varGrams, setVarGrams] = useState3(() => loadLocalData().varGrams);
+    const [log, setLog] = useState3([]);
+    const [searchQuery, setSearchQuery] = useState3("");
+    const [adminSearchQuery, setAdminSearchQuery] = useState3("");
+    const [extraName, setExtraName] = useState3("");
+    const [extraInput, setExtraInput] = useState3("");
+    const [target, setTarget] = useState3(loadTarget);
+    const [openIdx, setOpenIdx] = useState3(null);
+    const [editingDayTarget, setEditingDayTarget] = useState3(null);
+    const [activeTab, setActiveTab] = useState3("oggi");
+    const swipeStart = useRef2(null);
+    const tabRefs = useRef2({});
+    const [indicatorStyle, setIndicatorStyle] = useState3({ left: 0, width: 0 });
+    const [history, setHistory] = useState3([]);
+    const [historyLoading, setHistoryLoading] = useState3(false);
+    const [currentPage, setCurrentPage] = useState3(() => getBimesterOf(ACTIVE_DAY()));
+    const [openWeeks, setOpenWeeks] = useState3(/* @__PURE__ */ new Set());
+    const [dataReady, setDataReady] = useState3(false);
+    const [shakeTarget, setShakeTarget] = useState3(false);
+    const [autoOpenWizard, setAutoOpenWizard] = useState3(false);
+    const [lightTheme, setLightTheme] = useState3(() => localStorage.getItem("kcal_theme") === "light");
+    const [confirmModal, setConfirmModal] = useState3(null);
+    const [dietData, setDietData] = useState3(SEED_DIET_DATA);
+    const [schedule, setSchedule] = useState3(DEFAULT_SCHEDULE);
+    const profileMenuRef = useRef2(null);
     const itemById = useMemo(() => {
       const m = {};
       dietData.forEach((cat) => cat.items.forEach((item) => {
@@ -763,13 +1337,13 @@
       next.has(ws) ? next.delete(ws) : next.add(ws);
       return next;
     });
-    useEffect2(() => {
+    useEffect3(() => {
       document.body.classList.toggle("light", lightTheme);
       localStorage.setItem("kcal_theme", lightTheme ? "light" : "dark");
     }, [lightTheme]);
-    const saveDebounceRef = useRef(null);
-    const prevOverTarget = useRef(false);
-    useEffect2(() => {
+    const saveDebounceRef = useRef2(null);
+    const prevOverTarget = useRef2(false);
+    useEffect3(() => {
       return auth.onAuthStateChanged(async (u) => {
         if (!u) {
           setUser(null);
@@ -879,11 +1453,11 @@
         }
       });
     }, []);
-    useEffect2(() => {
+    useEffect3(() => {
       if (user === void 0 || user) return;
       localStorage.setItem("kcal_data", JSON.stringify({ date: ACTIVE_DAY(), counts, extras, varGrams }));
     }, [counts, extras, varGrams, user]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (!user || !dataReady) return;
       clearTimeout(saveDebounceRef.current);
       saveDebounceRef.current = setTimeout(() => {
@@ -902,11 +1476,11 @@
         }).catch((e) => console.error("Firestore save error:", e));
       }, 400);
     }, [counts, extras, varGrams, log, target, user, dataReady]);
-    useEffect2(() => {
+    useEffect3(() => {
       localStorage.setItem("kcal_target", String(target));
     }, [target]);
     const totalKcal = computeTotal(counts, extras, varGrams, itemById);
-    useEffect2(() => {
+    useEffect3(() => {
       const over = totalKcal > target;
       if (over && !prevOverTarget.current) {
         setShakeTarget(true);
@@ -914,14 +1488,14 @@
       }
       prevOverTarget.current = over;
     }, [totalKcal, target]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (activeTab === "menu" && log.length === 0) setActiveTab("oggi");
     }, [log, activeTab]);
-    useEffect2(() => {
+    useEffect3(() => {
       const btn = tabRefs.current[activeTab];
       if (btn) setIndicatorStyle({ left: btn.offsetLeft, width: btn.offsetWidth });
     }, [activeTab, log.length]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (activeTab !== "storico" || !user) return;
       setHistoryLoading(true);
       db.collection("users").doc(user.uid).collection("days").get().then((snap) => {
@@ -930,150 +1504,17 @@
         setHistoryLoading(false);
       }).catch(() => setHistoryLoading(false));
     }, [activeTab, user]);
-    useEffect2(() => {
-      userRef.current = user;
-    }, [user]);
-    useEffect2(() => {
-      adminOpenCatsRef.current = adminOpenCats;
-    }, [adminOpenCats]);
-    useEffect2(() => {
-      dietDataRef.current = dietData;
-    }, [dietData]);
-    useEffect2(() => {
-      if (typeof Sortable === "undefined" || activeTab !== "alimenti") return;
-      adminOpenCats.forEach((catName) => {
-        const el = sortableItemRefs.current[catName];
-        if (!el) return;
-        if (sortableItemInstances.current[catName] && sortableItemInstances.current[catName].el !== el) {
-          try {
-            sortableItemInstances.current[catName].destroy();
-          } catch {
-          }
-          delete sortableItemInstances.current[catName];
-        }
-        if (sortableItemInstances.current[catName]) return;
-        sortableItemInstances.current[catName] = Sortable.create(el, {
-          animation: 150,
-          handle: ".admin-drag-handle",
-          ghostClass: "admin-drag-ghost",
-          group: "items",
-          onStart: () => {
-            isDraggingRef.current = true;
-            handleTouchMoveRef.current = (e) => {
-              const touch = e.touches[0];
-              if (!touch) return;
-              const els = document.elementsFromPoint(touch.clientX, touch.clientY);
-              const catRow = els.find((el2) => el2.dataset && el2.dataset.hoverCat);
-              const catName2 = catRow ? catRow.dataset.hoverCat : null;
-              if (catName2 === hoverOpenCatRef.current) return;
-              clearTimeout(hoverOpenTimerRef.current);
-              hoverOpenCatRef.current = catName2;
-              if (catName2 && !adminOpenCatsRef.current.has(catName2)) {
-                hoverOpenTimerRef.current = setTimeout(() => {
-                  setAdminOpenCats((prev) => {
-                    const next = new Set(prev);
-                    next.add(catName2);
-                    return next;
-                  });
-                }, 600);
-              }
-            };
-            document.addEventListener("touchmove", handleTouchMoveRef.current, { passive: true });
-          },
-          onEnd: (evt) => {
-            isDraggingRef.current = false;
-            clearTimeout(hoverOpenTimerRef.current);
-            hoverOpenCatRef.current = null;
-            if (handleTouchMoveRef.current) {
-              document.removeEventListener("touchmove", handleTouchMoveRef.current);
-              handleTouchMoveRef.current = null;
-            }
-            const { oldIndex, newIndex, from, to } = evt;
-            if (from !== el) return;
-            const fromCat = from.dataset.category;
-            const toCat = to.dataset.category;
-            if (fromCat === toCat && oldIndex === newIndex) return;
-            if (from !== to) {
-              from.insertBefore(evt.item, from.children[oldIndex] || null);
-            }
-            const u = userRef.current;
-            const newData = dietDataRef.current.map((cat) => ({ ...cat, items: [...cat.items] }));
-            const srcCat = newData.find((c) => c.category === fromCat);
-            const dstCat = newData.find((c) => c.category === toCat);
-            if (!srcCat || !dstCat) return;
-            const [moved] = srcCat.items.splice(oldIndex, 1);
-            dstCat.items.splice(newIndex, 0, moved);
-            setDietData(newData);
-            if (u) {
-              db.collection("users").doc(u.uid).collection("config").doc("foods").set({ dietData: newData }).catch((e) => console.error("Diet save error:", e));
-            }
-          }
-        });
-      });
-      Object.keys(sortableItemInstances.current).forEach((catName) => {
-        if (!adminOpenCats.has(catName)) {
-          try {
-            sortableItemInstances.current[catName].destroy();
-          } catch {
-          }
-          delete sortableItemInstances.current[catName];
-        }
-      });
-    }, [adminOpenCats, activeTab, adminSearchQuery]);
-    useEffect2(() => {
-      return () => {
-        Object.values(sortableItemInstances.current).forEach((s) => {
-          try {
-            s.destroy();
-          } catch {
-          }
-        });
-        sortableItemInstances.current = {};
-      };
+    useEffect3(() => {
+      if (activeTab !== "alimenti") setAdminSearchQuery("");
     }, [activeTab]);
-    useEffect2(() => {
-      if (typeof Sortable === "undefined" || activeTab !== "alimenti" || !sortableCatsRef.current) return;
-      const sortable = Sortable.create(sortableCatsRef.current, {
-        animation: 150,
-        handle: ".admin-cat-drag-handle",
-        ghostClass: "admin-drag-ghost",
-        onEnd: (evt) => {
-          const { oldIndex, newIndex } = evt;
-          if (oldIndex === newIndex) return;
-          const u = userRef.current;
-          const newData = [...dietDataRef.current];
-          const [moved] = newData.splice(oldIndex, 1);
-          newData.splice(newIndex, 0, moved);
-          setDietData(newData);
-          if (u) {
-            db.collection("users").doc(u.uid).collection("config").doc("foods").set({ dietData: newData }).catch((e) => console.error("Diet save error:", e));
-          }
-        }
-      });
-      return () => {
-        try {
-          sortable.destroy();
-        } catch {
-        }
-      };
-    }, [activeTab, adminSearchQuery]);
-    useEffect2(() => {
-      if (activeTab !== "alimenti") {
-        setAdminEditId(null);
-        setAdminNewItem(null);
-        setAdminNewCat(false);
-        setAdminEditCat(null);
-        setAdminSearchQuery("");
-      }
-    }, [activeTab]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (dataReady && autoOpenWizard) {
         setWizardStep(0);
         setWizardOpen(true);
         setAutoOpenWizard(false);
       }
     }, [dataReady, autoOpenWizard]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (!wizardOpen) {
         setSettingsOpen(false);
         setProfileMenuOpen(false);
@@ -1089,7 +1530,7 @@
       }
       setProfileMenuOpen(!!step.openProfileMenu);
     }, [wizardOpen, wizardStep]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (!profileMenuOpen) return;
       const handler = (e) => {
         if (wizardOpen) return;
@@ -1232,146 +1673,6 @@
       setTarget(newDefaultKcal);
       saveSettingsToFirestore(settingsDraft.schedule, newDefaultKcal);
       setSettingsOpen(false);
-    };
-    const saveDietToFirestore = (newDietData) => {
-      if (!user) return;
-      db.collection("users").doc(user.uid).collection("config").doc("foods").set({ dietData: newDietData }).catch((e) => console.error("Diet save error:", e));
-    };
-    const startEditItem = (item) => {
-      setAdminNewItem(null);
-      setAdminEditId(item.id);
-      setAdminEditDraft({
-        name: item.name,
-        kcal: item.variable ? "" : String(item.kcal),
-        portion: item.portion || "",
-        variable: !!item.variable,
-        kcalPerG: item.variable ? String(item.kcalPerG) : "",
-        refGrams: "100",
-        refKcal: item.variable ? String(Math.round(item.kcalPerG * 100)) : ""
-      });
-    };
-    const saveEditedItem = (itemId) => {
-      const d = adminEditDraft;
-      if (!d.name.trim()) return;
-      let computedKcalPerG = null;
-      if (d.variable) {
-        const g = parseFloat(d.refGrams);
-        const k = parseFloat(d.refKcal);
-        if (isNaN(g) || g <= 0 || isNaN(k) || k < 0) return;
-        computedKcalPerG = k / g;
-      } else {
-        const k = parseInt(d.kcal, 10);
-        if (isNaN(k) || k < 0) return;
-      }
-      const newDietData = dietData.map((cat) => ({
-        ...cat,
-        items: cat.items.map((item) => {
-          if (item.id !== itemId) return item;
-          if (d.variable) {
-            return { id: item.id, name: d.name.trim(), portion: d.portion.trim() || "g", kcal: 0, variable: true, kcalPerG: computedKcalPerG };
-          }
-          return { id: item.id, name: d.name.trim(), portion: d.portion.trim(), kcal: parseInt(d.kcal, 10) };
-        })
-      }));
-      setDietData(newDietData);
-      saveDietToFirestore(newDietData);
-      setAdminEditId(null);
-    };
-    const deleteItem = (itemId) => {
-      const item = itemById[itemId];
-      const hasCount = (counts[itemId] || 0) > 0;
-      const message = hasCount ? `"${item?.name}" ha ${counts[itemId]} porzioni registrate oggi. Il conteggio di oggi non verr\xE0 modificato.` : `Eliminare "${item?.name}" dalla lista?`;
-      setConfirmModal({
-        title: "Elimina alimento",
-        message,
-        danger: true,
-        onConfirm: () => {
-          const newDietData = dietData.map((cat) => ({
-            ...cat,
-            items: cat.items.filter((i) => i.id !== itemId)
-          }));
-          setDietData(newDietData);
-          saveDietToFirestore(newDietData);
-          if (adminEditId === itemId) setAdminEditId(null);
-        }
-      });
-    };
-    const addNewItem = (catIdx) => {
-      const form = adminNewItem;
-      if (!form || !form.name.trim()) return;
-      let computedKcalPerG = null;
-      if (form.variable) {
-        const g = parseFloat(form.refGrams);
-        const k = parseFloat(form.refKcal);
-        if (isNaN(g) || g <= 0 || isNaN(k) || k < 0) return;
-        computedKcalPerG = k / g;
-      } else {
-        const k = parseInt(form.kcal, 10);
-        if (isNaN(k) || k < 0) return;
-      }
-      const newId = genId();
-      const newItem = form.variable ? { id: newId, name: form.name.trim(), portion: form.portion.trim() || "g", kcal: 0, variable: true, kcalPerG: computedKcalPerG } : { id: newId, name: form.name.trim(), portion: form.portion.trim(), kcal: parseInt(form.kcal, 10) };
-      const newDietData = dietData.map(
-        (cat, ci) => ci !== catIdx ? cat : { ...cat, items: [...cat.items, newItem] }
-      );
-      setDietData(newDietData);
-      saveDietToFirestore(newDietData);
-      setAdminNewItem(null);
-    };
-    const addNewCategory = () => {
-      const name = adminNewCatDraft.name.trim();
-      if (!name) return;
-      const icon = adminNewCatDraft.icon.trim() || "\u{1F37D}\uFE0F";
-      const newDietData = [...dietData, { category: name, icon, items: [] }];
-      setDietData(newDietData);
-      saveDietToFirestore(newDietData);
-      setAdminNewCat(false);
-      setAdminNewCatDraft({ name: "", icon: "" });
-    };
-    const startEditCategory = (cat) => {
-      setAdminEditCat(cat.category);
-      setAdminEditCatDraft({ name: cat.category, icon: cat.icon });
-    };
-    const saveEditedCategory = () => {
-      const name = adminEditCatDraft.name.trim();
-      if (!name) return;
-      const icon = adminEditCatDraft.icon.trim() || "\u{1F37D}\uFE0F";
-      const oldName = adminEditCat;
-      const newDietData = dietData.map(
-        (cat) => cat.category !== oldName ? cat : { ...cat, category: name, icon }
-      );
-      if (oldName !== name) {
-        setAdminOpenCats((prev) => {
-          if (!prev.has(oldName)) return prev;
-          const next = new Set(prev);
-          next.delete(oldName);
-          next.add(name);
-          return next;
-        });
-      }
-      setDietData(newDietData);
-      saveDietToFirestore(newDietData);
-      setAdminEditCat(null);
-    };
-    const deleteCategory = (catIdx) => {
-      const cat = dietData[catIdx];
-      const message = cat.items.length > 0 ? `La categoria "${cat.category}" contiene ${cat.items.length} aliment${cat.items.length === 1 ? "o" : "i"}. Eliminare tutto?` : `Eliminare la categoria "${cat.category}"?`;
-      setConfirmModal({
-        title: "Elimina categoria",
-        message,
-        danger: true,
-        onConfirm: () => {
-          const newDietData = dietData.filter((_, i) => i !== catIdx);
-          setDietData(newDietData);
-          saveDietToFirestore(newDietData);
-          setAdminOpenCats((prev) => {
-            const next = new Set(prev);
-            next.delete(cat.category);
-            return next;
-          });
-          if (adminEditCat === cat.category) setAdminEditCat(null);
-        }
-      });
     };
     return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("a", { href: "#main-content", className: "skip-link" }, "Vai al contenuto principale"), /* @__PURE__ */ React.createElement(ConfirmModal, { modal: confirmModal, onClose: () => setConfirmModal(null) }), notAllowed && /* @__PURE__ */ React.createElement("div", { className: "modal-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "modal-title" }, /* @__PURE__ */ React.createElement("div", { className: "modal" }, /* @__PURE__ */ React.createElement("img", { src: "no.gif", alt: "", role: "presentation", style: { width: 313, maxWidth: "100%", height: "auto", borderRadius: 8, marginBottom: 12 } }), /* @__PURE__ */ React.createElement("div", { id: "modal-title", className: "modal-title" }, "Accesso non disponibile"), /* @__PURE__ */ React.createElement("div", { className: "modal-text" }, "Gli slot disponibili sono esauriti. Riprova pi\xF9 avanti."), /* @__PURE__ */ React.createElement("button", { className: "modal-btn", onClick: () => setNotAllowed(false) }, "Ok, capito"))), /* @__PURE__ */ React.createElement("div", { className: "sticky-top" }, /* @__PURE__ */ React.createElement("header", { className: "header" }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 520, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { className: "header-top" }, /* @__PURE__ */ React.createElement("img", { src: "logo-main-horizontal.png", alt: "kcalTracker", className: "app-logo" }), /* @__PURE__ */ React.createElement("div", { className: "header-top-right" }, /* @__PURE__ */ React.createElement("button", { className: "reset-btn", onClick: handleReset, "aria-label": "Azzera le calorie di oggi" }, "\u274C"), /* @__PURE__ */ React.createElement("button", { className: "theme-btn", onClick: () => setLightTheme((t) => !t), "aria-label": lightTheme ? "Passa al tema scuro" : "Passa al tema chiaro" }, lightTheme ? "\u{1F319}" : "\u2600\uFE0F"), user && /* @__PURE__ */ React.createElement("button", { className: "wizard-help-btn", onClick: () => {
       setWizardStep(0);
@@ -1523,299 +1824,19 @@
         totalKcal,
         schedule
       }
-    ), user && activeTab === "alimenti" && /* @__PURE__ */ React.createElement("div", { className: "admin-tab" }, adminSearchQuery.trim() ? (() => {
-      const q = adminSearchQuery.trim().toLowerCase();
-      const highlight = (name) => {
-        const idx = name.toLowerCase().indexOf(q);
-        if (idx === -1) return name;
-        return /* @__PURE__ */ React.createElement(React.Fragment, null, name.slice(0, idx), /* @__PURE__ */ React.createElement("span", { className: "search-highlight" }, name.slice(idx, idx + q.length)), name.slice(idx + q.length));
-      };
-      const results = dietData.flatMap((cat, catIdx) => {
-        const items = cat.items.filter((item) => item.name.toLowerCase().includes(q));
-        return items.length ? [{ cat, catIdx, items }] : [];
-      });
-      if (!results.length) return /* @__PURE__ */ React.createElement("div", { style: { padding: "24px 0", textAlign: "center", color: "var(--text-dim)", fontSize: 14 } }, "Nessun alimento trovato");
-      return results.map(({ cat, items }) => /* @__PURE__ */ React.createElement("div", { key: cat.category, className: "category-card" }, /* @__PURE__ */ React.createElement("div", { className: "admin-cat-row", style: { cursor: "default" } }, /* @__PURE__ */ React.createElement("span", { className: "cat-icon", "aria-hidden": "true" }, cat.icon), /* @__PURE__ */ React.createElement("span", { className: "cat-name" }, cat.category), /* @__PURE__ */ React.createElement("span", { className: "cat-meta" }, items.length, " ", items.length === 1 ? "alimento" : "alimenti")), /* @__PURE__ */ React.createElement("div", { className: "admin-items-list" }, items.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.id, className: "admin-item-row" }, /* @__PURE__ */ React.createElement("div", { className: "admin-item-info", style: { paddingLeft: 10 } }, /* @__PURE__ */ React.createElement("span", { className: "admin-item-name" }, highlight(item.name)), /* @__PURE__ */ React.createElement("span", { className: "admin-item-meta" }, item.variable ? `${Math.round(item.kcalPerG * 100)} kcal/100g` : `${item.kcal} kcal`, item.portion ? ` \xB7 ${item.portion}` : "")), /* @__PURE__ */ React.createElement("div", { className: "admin-item-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn", onClick: () => {
-        setAdminSearchQuery("");
-        setAdminOpenCats((prev) => {
-          const next = new Set(prev);
-          next.add(cat.category);
-          return next;
-        });
-        startEditItem(item);
-      }, "aria-label": `Modifica ${item.name}` }, "\u270F\uFE0F"), /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn admin-icon-btn-delete", onClick: () => deleteItem(item.id), "aria-label": `Elimina ${item.name}` }, "\u{1F5D1}\uFE0F")))))));
-    })() : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { ref: sortableCatsRef }, dietData.map((cat, catIdx) => {
-      const isOpen = adminOpenCats.has(cat.category);
-      return /* @__PURE__ */ React.createElement("div", { key: cat.category, className: "category-card" }, adminEditCat === cat.category ? /* @__PURE__ */ React.createElement("div", { className: "admin-form", style: { margin: "6px 10px" } }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          className: "admin-input admin-input-name",
-          "aria-label": "Nome categoria",
-          placeholder: "Nome categoria",
-          value: adminEditCatDraft.name,
-          onChange: (e) => setAdminEditCatDraft((d) => ({ ...d, name: e.target.value })),
-          onKeyDown: (e) => {
-            if (e.key === "Enter") saveEditedCategory();
-            if (e.key === "Escape") setAdminEditCat(null);
-          },
-          autoFocus: true
-        }
-      ), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          className: "admin-input admin-input-icon",
-          "aria-label": "Emoji icona categoria",
-          placeholder: "Emoji",
-          value: adminEditCatDraft.icon,
-          onChange: (e) => setAdminEditCatDraft((d) => ({ ...d, icon: e.target.value })),
-          maxLength: 2
-        }
-      ), /* @__PURE__ */ React.createElement("div", { className: "admin-form-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-primary", onClick: saveEditedCategory }, "Salva"), /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-ghost", onClick: () => setAdminEditCat(null) }, "Annulla"))) : /* @__PURE__ */ React.createElement(
-        "div",
-        {
-          className: "admin-cat-row",
-          "data-hover-cat": cat.category,
-          onPointerEnter: () => {
-            if (!isDraggingRef.current || isOpen) return;
-            clearTimeout(hoverOpenTimerRef.current);
-            hoverOpenTimerRef.current = setTimeout(() => {
-              setAdminOpenCats((prev) => {
-                const next = new Set(prev);
-                next.add(cat.category);
-                return next;
-              });
-            }, 600);
-          },
-          onPointerLeave: () => clearTimeout(hoverOpenTimerRef.current),
-          onDragEnter: () => {
-            if (isOpen) return;
-            clearTimeout(hoverOpenTimerRef.current);
-            hoverOpenTimerRef.current = setTimeout(() => {
-              setAdminOpenCats((prev) => {
-                const next = new Set(prev);
-                next.add(cat.category);
-                return next;
-              });
-            }, 600);
-          },
-          onDragLeave: (e) => {
-            if (e.currentTarget.contains(e.relatedTarget)) return;
-            clearTimeout(hoverOpenTimerRef.current);
-          }
-        },
-        /* @__PURE__ */ React.createElement("span", { className: "admin-cat-drag-handle", "aria-hidden": "true" }, "\u283F"),
-        /* @__PURE__ */ React.createElement(
-          "button",
-          {
-            className: "category-btn",
-            onClick: () => setAdminOpenCats((prev) => {
-              const next = new Set(prev);
-              next.has(cat.category) ? next.delete(cat.category) : next.add(cat.category);
-              return next;
-            }),
-            "aria-expanded": isOpen,
-            "aria-controls": `admin-cat-${catIdx}`
-          },
-          /* @__PURE__ */ React.createElement("span", { className: "cat-icon", "aria-hidden": "true" }, cat.icon),
-          /* @__PURE__ */ React.createElement("span", { className: "cat-name" }, cat.category),
-          /* @__PURE__ */ React.createElement("span", { className: "cat-meta" }, cat.items.length, " ", cat.items.length === 1 ? "alimento" : "alimenti"),
-          /* @__PURE__ */ React.createElement("span", { className: `cat-arrow${isOpen ? " open" : ""}` }, "\u25BC")
-        ),
-        /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn", onClick: (e) => {
-          e.stopPropagation();
-          startEditCategory(cat);
-        }, "aria-label": `Modifica categoria ${cat.category}` }, "\u270F\uFE0F"),
-        /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn admin-icon-btn-delete", onClick: (e) => {
-          e.stopPropagation();
-          deleteCategory(catIdx);
-        }, "aria-label": `Elimina categoria ${cat.category}` }, "\u{1F5D1}\uFE0F")
-      ), isOpen && /* @__PURE__ */ React.createElement("div", { id: `admin-cat-${catIdx}`, className: "admin-items-list" }, /* @__PURE__ */ React.createElement(
-        "div",
-        {
-          ref: (el) => {
-            if (el) sortableItemRefs.current[cat.category] = el;
-            else delete sortableItemRefs.current[cat.category];
-          },
-          "data-category": cat.category
-        },
-        cat.items.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.id }, adminEditId === item.id ? /* @__PURE__ */ React.createElement("div", { className: "admin-form" }, /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            className: "admin-input admin-input-name",
-            "aria-label": "Nome alimento",
-            placeholder: "Nome",
-            value: adminEditDraft.name,
-            onChange: (e) => setAdminEditDraft((d) => ({ ...d, name: e.target.value })),
-            onKeyDown: (e) => {
-              if (e.key === "Enter") saveEditedItem(item.id);
-              if (e.key === "Escape") setAdminEditId(null);
-            },
-            autoFocus: true
-          }
-        ), !adminEditDraft.variable && /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            className: "admin-input admin-input-portion",
-            "aria-label": "Porzione",
-            placeholder: "Porzione",
-            value: adminEditDraft.portion,
-            onChange: (e) => setAdminEditDraft((d) => ({ ...d, portion: e.target.value }))
-          }
-        ), /* @__PURE__ */ React.createElement("label", { className: "admin-variable-label" }, /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            type: "checkbox",
-            checked: adminEditDraft.variable,
-            onChange: (e) => setAdminEditDraft((d) => ({ ...d, variable: e.target.checked, ...e.target.checked ? { portion: "" } : {} }))
-          }
-        ), "Variabile"), adminEditDraft.variable ? /* @__PURE__ */ React.createElement("div", { className: "admin-ref-wrap" }, /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            className: "admin-input admin-input-ref-g",
-            type: "number",
-            "aria-label": "Grammi di riferimento",
-            placeholder: "g",
-            value: adminEditDraft.refGrams,
-            onChange: (e) => setAdminEditDraft((d) => ({ ...d, refGrams: e.target.value })),
-            min: "1"
-          }
-        ), /* @__PURE__ */ React.createElement("span", { className: "admin-ref-sep" }, "g ="), /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            className: "admin-input admin-input-ref-kcal",
-            type: "number",
-            "aria-label": "Calorie per i grammi di riferimento",
-            placeholder: "kcal",
-            value: adminEditDraft.refKcal,
-            onChange: (e) => setAdminEditDraft((d) => ({ ...d, refKcal: e.target.value })),
-            min: "0"
-          }
-        ), /* @__PURE__ */ React.createElement("span", { className: "admin-ref-sep" }, "kcal")) : /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            className: "admin-input admin-input-kcal",
-            type: "number",
-            "aria-label": "Calorie",
-            placeholder: "kcal",
-            value: adminEditDraft.kcal,
-            onChange: (e) => setAdminEditDraft((d) => ({ ...d, kcal: e.target.value })),
-            min: "0"
-          }
-        ), /* @__PURE__ */ React.createElement("div", { className: "admin-form-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-primary", onClick: () => saveEditedItem(item.id), "aria-label": "Salva modifiche" }, "Salva"), /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-ghost", onClick: () => setAdminEditId(null), "aria-label": "Annulla modifica" }, "Annulla"))) : /* @__PURE__ */ React.createElement("div", { className: "admin-item-row" }, /* @__PURE__ */ React.createElement("span", { className: "admin-drag-handle", "aria-hidden": "true" }, "\u283F"), /* @__PURE__ */ React.createElement("div", { className: "admin-item-info" }, /* @__PURE__ */ React.createElement("span", { className: "admin-item-name" }, item.name), /* @__PURE__ */ React.createElement("span", { className: "admin-item-meta" }, item.variable ? `${Math.round(item.kcalPerG * 100)} kcal/100g` : `${item.kcal} kcal`, item.portion ? ` \xB7 ${item.portion}` : "")), /* @__PURE__ */ React.createElement("div", { className: "admin-item-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn", onClick: () => startEditItem(item), "aria-label": `Modifica ${item.name}` }, "\u270F\uFE0F"), /* @__PURE__ */ React.createElement("button", { className: "admin-icon-btn admin-icon-btn-delete", onClick: () => deleteItem(item.id), "aria-label": `Elimina ${item.name}` }, "\u{1F5D1}\uFE0F")))))
-      ), adminNewItem?.catIdx === catIdx ? /* @__PURE__ */ React.createElement("div", { className: "admin-form admin-form-new" }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          className: "admin-input admin-input-name",
-          "aria-label": "Nome nuovo alimento",
-          placeholder: "Nome alimento",
-          value: adminNewItem.name,
-          onChange: (e) => setAdminNewItem((d) => ({ ...d, name: e.target.value })),
-          onKeyDown: (e) => {
-            if (e.key === "Enter") addNewItem(catIdx);
-            if (e.key === "Escape") setAdminNewItem(null);
-          },
-          autoFocus: true
-        }
-      ), !adminNewItem.variable && /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          className: "admin-input admin-input-portion",
-          "aria-label": "Porzione",
-          placeholder: "Porzione",
-          value: adminNewItem.portion,
-          onChange: (e) => setAdminNewItem((d) => ({ ...d, portion: e.target.value }))
-        }
-      ), /* @__PURE__ */ React.createElement("label", { className: "admin-variable-label" }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          type: "checkbox",
-          checked: adminNewItem.variable,
-          onChange: (e) => setAdminNewItem((d) => ({ ...d, variable: e.target.checked, ...e.target.checked ? { portion: "" } : {} }))
-        }
-      ), "Variabile"), adminNewItem.variable ? /* @__PURE__ */ React.createElement("div", { className: "admin-ref-wrap" }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          className: "admin-input admin-input-ref-g",
-          type: "number",
-          "aria-label": "Grammi di riferimento",
-          placeholder: "g",
-          value: adminNewItem.refGrams,
-          onChange: (e) => setAdminNewItem((d) => ({ ...d, refGrams: e.target.value })),
-          min: "1"
-        }
-      ), /* @__PURE__ */ React.createElement("span", { className: "admin-ref-sep" }, "g ="), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          className: "admin-input admin-input-ref-kcal",
-          type: "number",
-          "aria-label": "Calorie per i grammi di riferimento",
-          placeholder: "kcal",
-          value: adminNewItem.refKcal,
-          onChange: (e) => setAdminNewItem((d) => ({ ...d, refKcal: e.target.value })),
-          min: "0"
-        }
-      ), /* @__PURE__ */ React.createElement("span", { className: "admin-ref-sep" }, "kcal")) : /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          className: "admin-input admin-input-kcal",
-          type: "number",
-          "aria-label": "Calorie",
-          placeholder: "kcal",
-          value: adminNewItem.kcal,
-          onChange: (e) => setAdminNewItem((d) => ({ ...d, kcal: e.target.value })),
-          min: "0"
-        }
-      ), /* @__PURE__ */ React.createElement("div", { className: "admin-form-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-primary", onClick: () => addNewItem(catIdx), "aria-label": "Aggiungi alimento" }, "Aggiungi"), /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-ghost", onClick: () => setAdminNewItem(null), "aria-label": "Annulla" }, "Annulla"))) : /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          className: "admin-add-btn",
-          onClick: () => {
-            setAdminEditId(null);
-            setAdminNewItem({ catIdx, name: "", kcal: "", portion: "", variable: false, kcalPerG: "", refGrams: "100", refKcal: "" });
-          },
-          "aria-label": `Aggiungi alimento a ${cat.category}`
-        },
-        "+ Aggiungi alimento"
-      )));
-    })), adminNewCat ? /* @__PURE__ */ React.createElement("div", { className: "admin-new-cat-card" }, /* @__PURE__ */ React.createElement("div", { className: "admin-form" }, /* @__PURE__ */ React.createElement(
-      "input",
+    ), user && activeTab === "alimenti" && /* @__PURE__ */ React.createElement(
+      AlimentiAdminTab,
       {
-        className: "admin-input admin-input-name",
-        "aria-label": "Nome nuova categoria",
-        placeholder: "Nome categoria",
-        value: adminNewCatDraft.name,
-        onChange: (e) => setAdminNewCatDraft((d) => ({ ...d, name: e.target.value })),
-        onKeyDown: (e) => {
-          if (e.key === "Enter") addNewCategory();
-          if (e.key === "Escape") {
-            setAdminNewCat(false);
-            setAdminNewCatDraft({ name: "", icon: "" });
-          }
-        },
-        autoFocus: true
+        user,
+        dietData,
+        setDietData,
+        counts,
+        itemById,
+        setConfirmModal,
+        adminSearchQuery,
+        setAdminSearchQuery
       }
-    ), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        className: "admin-input admin-input-icon",
-        "aria-label": "Emoji icona categoria",
-        placeholder: "Emoji",
-        value: adminNewCatDraft.icon,
-        onChange: (e) => setAdminNewCatDraft((d) => ({ ...d, icon: e.target.value })),
-        maxLength: 2
-      }
-    ), /* @__PURE__ */ React.createElement("div", { className: "admin-form-actions" }, /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-primary", onClick: addNewCategory, "aria-label": "Aggiungi categoria" }, "Aggiungi"), /* @__PURE__ */ React.createElement("button", { className: "admin-btn admin-btn-ghost", onClick: () => {
-      setAdminNewCat(false);
-      setAdminNewCatDraft({ name: "", icon: "" });
-    }, "aria-label": "Annulla" }, "Annulla")))) : /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        className: "admin-add-cat-btn",
-        onClick: () => setAdminNewCat(true),
-        "aria-label": "Aggiungi nuova categoria"
-      },
-      "+ Aggiungi categoria"
-    )))), user && /* @__PURE__ */ React.createElement(
+    )), user && /* @__PURE__ */ React.createElement(
       SettingsOverlay,
       {
         open: settingsOpen,
