@@ -628,6 +628,7 @@ body:not(.light) .week-incomplete-note { color: #ca8a04; }
   font-size: 14px;
   transition: border-color .15s;
 }
+.search-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
 .search-input::placeholder { color: var(--text-dimmest); font-style: italic; }
 .search-input:focus { border-color: var(--accent); }
 .search-clear {
