@@ -1,6 +1,5 @@
 (() => {
-  // src/app.jsx
-  var { useState, useEffect, useRef, useMemo } = React;
+  // src/firebase.js
   var firebaseConfig = {
     apiKey: "AIzaSyBCY1ONerEeZ6Ysa34222hZ-JzJ_rIjcZI",
     authDomain: "kcaltracker-5dd56.firebaseapp.com",
@@ -12,6 +11,9 @@
   firebase.initializeApp(firebaseConfig);
   var auth = firebase.auth();
   var db = firebase.firestore();
+  var ALLOWED_UID = "f1rMJWrezfORvihvxM5EspY3FsA3";
+
+  // src/seed.js
   var SEED_DIET_DATA = [
     {
       category: "Carboidrati",
@@ -153,7 +155,8 @@
     seedItemById[item.id] = item;
     seedItemCategory[item.id] = cat.category;
   }));
-  var ALLOWED_UID = "f1rMJWrezfORvihvxM5EspY3FsA3";
+
+  // src/utils.js
   var ACTIVE_DAY = () => {
     const now = /* @__PURE__ */ new Date();
     const pad = (n) => String(n).padStart(2, "0");
@@ -239,6 +242,8 @@
     extras.forEach((e) => items.push(`${e.name} (extra, ${e.kcal} kcal)`));
     return items;
   }
+
+  // src/schedule.js
   var DEFAULT_SCHEDULE = [
     { key: "colazione", label: "Colazione", end: 630 },
     { key: "merenda-mat", label: "Merenda met\xE0 mattina", end: 720 },
@@ -286,6 +291,8 @@
     }
     return Array.from(map.values());
   }
+
+  // src/history.js
   function getWeekStart(dateStr) {
     const d = /* @__PURE__ */ new Date(dateStr + "T12:00:00");
     const daysSinceFriday = (d.getDay() + 2) % 7;
@@ -342,6 +349,9 @@
     const d = /* @__PURE__ */ new Date(dateStr + "T12:00:00");
     return d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
   }
+
+  // src/app.jsx
+  var { useState, useEffect, useRef, useMemo } = React;
   function KcalBar({ kcal, max }) {
     const pct = Math.min(kcal / max * 100, 100);
     const color = kcal > 400 ? "var(--color-negative)" : kcal > 250 ? "var(--color-warning)" : "var(--color-positive)";
