@@ -3,84 +3,19 @@ import { SEED_DIET_DATA, seedItemById, seedItemCategory } from './seed.js';
 import { TODAY, ACTIVE_DAY, genId, migrateCountKeys, loadLocalData, loadTarget, computeTotal, buildItemsList } from './utils.js';
 import { DEFAULT_SCHEDULE, minutesToTime, timeToMinutes, getMealSlot, groupLogByMeal, groupEntries } from './schedule.js';
 import { getWeekStart, formatShortDate, groupByWeek, getBimesterOf, bimesterLabel, addBimesters, getMonthName, formatDate } from './history.js';
+import KcalBar from './components/KcalBar.jsx';
+import ConfirmModal from './components/ConfirmModal.jsx';
+import SettingsOverlay from './components/SettingsOverlay.jsx';
+import Wizard, { WIZARD_STEPS } from './components/Wizard.jsx';
 
 const { useState, useEffect, useRef, useMemo } = React;
 
-function KcalBar({ kcal, max }) {
-  const pct = Math.min((kcal / max) * 100, 100);
-  const color = kcal > 400 ? "var(--color-negative)" : kcal > 250 ? "var(--color-warning)" : "var(--color-positive)";
-  return (
-    <div className="bar-mini">
-      <div className="bar-mini-fill" style={{ width: `${pct}%`, background: color }} />
-    </div>
-  );
-}
-
-
-const WIZARD_STEPS = [
-  {
-    tab: null, selector: null,
-    title: "Benvenuto in kcalTracker",
-    text: "Questa guida ti mostra le funzionalità principali. Puoi riaprirla in qualsiasi momento dal pulsante 🧙 nell'header.",
-  },
-  {
-    tab: null, selector: ".header-top-right",
-    title: "I controlli dell'app",
-    text: "Da sinistra: ❌ azzera le calorie del giorno, {themeIcon} cambia tema, 🧙 riapri questa guida, e il tuo avatar per aprire il menu profilo.",
-  },
-  {
-    tab: null, selector: ".kcal-row", selectorEnd: ".progress-track",
-    title: "Il contatore calorie",
-    text: "Il numero grande sono le kcal assunte oggi. A destra il tuo obiettivo; la differenza ti dice quante kcal ti rimangono (o di quanto hai sforato). La barra sotto si riempie man mano che mangi: diventa gialla avvicinandoti all'obiettivo e rossa se lo superi.",
-  },
-  {
-    tab: "oggi", selector: ".category-card",
-    title: "Tracker calorie",
-    text: "Gli alimenti sono divisi per categoria. Apri un accordion e usa + e − per registrare le porzioni. Il totale si aggiorna in tempo reale.",
-  },
-  {
-    tab: "oggi", selector: ".category-card", last: true,
-    title: "Alimenti extra",
-    text: "Hai mangiato qualcosa fuori dalla lista? Aggiungilo con nome e calorie. Viene sommato al totale della giornata.",
-  },
-  {
-    tab: "alimenti", selector: "[data-wizard='alimenti-tab']",
-    title: "Gestisci i tuoi alimenti",
-    text: "Dal tab Alimenti puoi costruire la tua lista personalizzata: categorie, porzioni e calorie tutte configurabili.",
-  },
-  {
-    tab: "alimenti", selector: ".admin-add-cat-btn",
-    title: "Aggiungi categorie e alimenti",
-    text: "Crea le tue categorie e aggiungi alimenti con porzioni e calorie. Puoi trascinare le righe per riordinare.",
-  },
-  {
-    tab: "storico", selector: "[data-wizard='storico-tab']",
-    title: "Storico settimanale",
-    text: "Qui trovi il riepilogo di ogni settimana: calorie consumate, deficit o surplus e una proiezione di fine settimana. Si popola automaticamente giorno dopo giorno.",
-  },
-  {
-    tab: null, openProfileMenu: true, selector: ".profile-menu-wrap", selectorEnd: ".profile-dropdown",
-    title: "Menu profilo",
-    text: "Clicca sull'avatar in alto a destra per aprire questo menu: trovi le impostazioni dell'app e il pulsante per uscire dall'account.",
-  },
-  {
-    tab: null, openSettings: true, selector: ".settings-section",
-    title: "Calorie giornaliere",
-    text: "Qui imposti quante calorie bruci mediamente ogni giorno (il tuo TDEE). Sarà l'obiettivo di default per ogni nuovo giorno — puoi sempre modificarlo per un giorno specifico dallo Storico.",
-  },
-  {
-    tab: null, openSettings: true, selector: ".settings-section", last: true,
-    title: "Fasce orarie",
-    text: "Personalizza gli orari di fine di ogni fascia pasto. L'app li usa per raggruppare gli alimenti nel tab Menu e nello Storico. Le modifiche si applicano a tutto lo storico.",
-  },
-];
 
 function App() {
   const [user, setUser] = useState(undefined);
   const [notAllowed, setNotAllowed] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
-  const [spotlightRect, setSpotlightRect] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [settingsDraft, setSettingsDraft] = useState({ defaultKcal: "2000", schedule: DEFAULT_SCHEDULE });
@@ -499,34 +434,6 @@ function App() {
   }, [wizardOpen, wizardStep]);
 
   useEffect(() => {
-    if (!wizardOpen) { setSpotlightRect(null); return; }
-    const step = WIZARD_STEPS[wizardStep];
-    if (!step.selector) { setSpotlightRect(null); return; }
-    const t = setTimeout(() => {
-      const els = document.querySelectorAll(step.selector);
-      const el = step.last ? els[els.length - 1] : els[0];
-      if (el) {
-        el.scrollIntoView({ block: 'center', behavior: 'instant' });
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          const r = el.getBoundingClientRect();
-          const el2 = step.selectorEnd ? document.querySelector(step.selectorEnd) : null;
-          if (el2) {
-            const r2 = el2.getBoundingClientRect();
-            const top = Math.min(r.top, r2.top) - 8;
-            const left = Math.min(r.left, r2.left) - 8;
-            const right = Math.max(r.right, r2.right) + 8;
-            const bottom = Math.max(r.bottom, r2.bottom) + 8;
-            setSpotlightRect({ top, left, width: right - left, height: bottom - top });
-          } else {
-            setSpotlightRect({ top: r.top - 8, left: r.left - 8, width: r.width + 16, height: r.height + 16 });
-          }
-        }));
-      }
-    }, 400);
-    return () => clearTimeout(t);
-  }, [wizardOpen, wizardStep, activeTab]);
-
-  useEffect(() => {
     if (!profileMenuOpen) return;
     const handler = (e) => {
       if (wizardOpen) return;
@@ -833,43 +740,11 @@ function App() {
     });
   };
 
-  const wizardTooltipStyle = (() => {
-    const TOOLTIP_H = 240, MARGIN = 12;
-    const H = window.innerHeight;
-    if (!spotlightRect) return { top: H / 2 - TOOLTIP_H / 2, left: "50%", transform: "translateX(-50%)" };
-    const belowTop = spotlightRect.top + spotlightRect.height + MARGIN;
-    const aboveTop = spotlightRect.top - TOOLTIP_H - MARGIN;
-    const fitsBelow = belowTop + TOOLTIP_H + MARGIN <= H;
-    const fitsAbove = aboveTop >= MARGIN;
-    let topPx;
-    if (fitsBelow) topPx = belowTop;
-    else if (fitsAbove) topPx = aboveTop;
-    else topPx = Math.min(Math.max(belowTop, MARGIN), H - TOOLTIP_H - MARGIN);
-    return { top: topPx, left: "50%", transform: "translateX(-50%)" };
-  })();
-
   return (
     <>
       <a href="#main-content" className="skip-link">Vai al contenuto principale</a>
 
-      {confirmModal && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title"
-          onKeyDown={e => { if (e.key === "Escape") setConfirmModal(null); }}>
-          <div className="modal">
-            <div id="confirm-title" className="modal-title">{confirmModal.title}</div>
-            <div className="modal-text">{confirmModal.message}</div>
-            <div className="modal-actions">
-              <button className="modal-btn-ghost" onClick={() => setConfirmModal(null)}>Annulla</button>
-              <button
-                className={confirmModal.danger ? "modal-btn-danger" : "modal-btn"}
-                onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }}
-              >
-                Conferma
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal modal={confirmModal} onClose={() => setConfirmModal(null)} />
 
       {notAllowed && (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -892,7 +767,7 @@ function App() {
                 {lightTheme ? "🌙" : "☀️"}
               </button>
               {user && (
-                <button className="wizard-help-btn" onClick={() => { setWizardStep(0); setSpotlightRect(null); setWizardOpen(true); }} aria-label="Apri guida funzionalità">🧙</button>
+                <button className="wizard-help-btn" onClick={() => { setWizardStep(0); setWizardOpen(true); }} aria-label="Apri guida funzionalità">🧙</button>
               )}
               {user === undefined ? null : user ? (
                 <div className="profile-menu-wrap" ref={profileMenuRef}>
@@ -1759,142 +1634,26 @@ function App() {
 
       </main>
 
-      {user && settingsOpen && (
-        <div
-          className="settings-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Impostazioni"
-          onKeyDown={e => { if (e.key === "Escape" && !wizardOpen) setSettingsOpen(false); }}
-        >
-          <div className="settings-header">
-            <div className="settings-header-inner">
-              <button className="settings-close" onClick={() => setSettingsOpen(false)} aria-label="Chiudi impostazioni" autoFocus>×</button>
-              <span className="settings-title">Impostazioni</span>
-            </div>
-          </div>
-          <div className="settings-body">
-            <section className="settings-section">
-              <h2 className="settings-section-title">Calorie giornaliere</h2>
-              <p className="settings-section-desc">Quante calorie bruci in media ogni giorno (TDEE). Sarà il tuo obiettivo di default per i nuovi giorni. Puoi sempre modificarlo per un giorno specifico dallo Storico.</p>
-              <div className="settings-field">
-                <label className="settings-label" htmlFor="settings-default-kcal">Calorie al giorno</label>
-                <input
-                  id="settings-default-kcal"
-                  className="settings-input"
-                  type="number"
-                  min="500"
-                  max="9999"
-                  value={settingsDraft.defaultKcal}
-                  onChange={e => setSettingsDraft(d => ({ ...d, defaultKcal: e.target.value }))}
-                />
-              </div>
-            </section>
-
-            <section className="settings-section">
-              <h2 className="settings-section-title">Fasce orarie</h2>
-              <p className="settings-section-desc">Orari di fine di ogni fascia pasto. Si applicano a tutto lo storico, anche ai giorni passati.</p>
-              <div className="orari-tab settings-orari">
-                <div className="orari-slot orari-slot-fixed">
-                  <span className="orari-label-text">Fuori Orario</span>
-                  <span className="orari-range-text">00:00 — 05:29</span>
-                </div>
-                {settingsDraft.schedule.map((slot, i) => {
-                  const startMin = i === 0 ? 330 : settingsDraft.schedule[i - 1].end + 1;
-                  const prevEnd = i === 0 ? 329 : settingsDraft.schedule[i - 1].end;
-                  const nextEnd = i === settingsDraft.schedule.length - 1 ? 1440 : settingsDraft.schedule[i + 1].end;
-                  return (
-                    <div key={slot.key} className="orari-slot">
-                      <input
-                        className="orari-label-input"
-                        aria-label={`Nome fascia ${slot.label}`}
-                        value={slot.label}
-                        onChange={e => {
-                          const newSchedule = settingsDraft.schedule.map((s, j) => j === i ? { ...s, label: e.target.value } : s);
-                          setSettingsDraft(d => ({ ...d, schedule: newSchedule }));
-                        }}
-                      />
-                      <div className="orari-times">
-                        <span className="orari-start">{minutesToTime(startMin)}</span>
-                        <span className="orari-sep">—</span>
-                        <input
-                          key={`time-${slot.key}-${slot.end}`}
-                          type="text"
-                          inputMode="numeric"
-                          placeholder="HH:MM"
-                          className="orari-time-input"
-                          aria-label={`Fine fascia ${slot.label}`}
-                          defaultValue={minutesToTime(slot.end)}
-                          onBlur={e => {
-                            const raw = e.target.value.trim();
-                            if (!raw.match(/^\d{1,2}:\d{2}$/)) { e.target.value = minutesToTime(slot.end); return; }
-                            const newEnd = timeToMinutes(raw);
-                            if (isNaN(newEnd) || newEnd <= prevEnd || newEnd >= nextEnd) { e.target.value = minutesToTime(slot.end); return; }
-                            const newSchedule = settingsDraft.schedule.map((s, j) => j === i ? { ...s, end: newEnd } : s);
-                            setSettingsDraft(d => ({ ...d, schedule: newSchedule }));
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-                <div className="orari-slot orari-slot-fixed">
-                  <span className="orari-label-text">Fuori Orario</span>
-                  <span className="orari-range-text">{minutesToTime(settingsDraft.schedule[settingsDraft.schedule.length - 1].end + 1)} — 23:59</span>
-                </div>
-              </div>
-            </section>
-          </div>
-          <div className="settings-footer">
-            <div className="settings-footer-inner">
-              <button className="settings-save-btn" onClick={saveSettings}>Salva</button>
-            </div>
-          </div>
-        </div>
+      {user && (
+        <SettingsOverlay
+          open={settingsOpen}
+          setOpen={setSettingsOpen}
+          wizardOpen={wizardOpen}
+          draft={settingsDraft}
+          setDraft={setSettingsDraft}
+          onSave={saveSettings}
+        />
       )}
 
-      {wizardOpen && (() => {
-        const W = window.innerWidth, H = window.innerHeight;
-        const eff = spotlightRect ?? { top: H / 2, left: W / 2, width: 0, height: 0 };
-        const { top: sT, left: sL, width: sW, height: sH } = eff;
-        const sR = sL + sW, sB = sT + sH;
-        return (
-        <>
-          <div className="wiz-mask" style={{ top: 0, left: 0, width: W, height: sT }} />
-          <div className="wiz-mask" style={{ top: sT, left: 0, width: sL, height: sH }} />
-          <div className="wiz-mask" style={{ top: sT, left: sR, width: Math.max(0, W - sR), height: sH }} />
-          <div className="wiz-mask" style={{ top: sB, left: 0, width: W, height: Math.max(0, H - sB) }} />
-          {spotlightRect && (
-            <div className="wizard-spotlight-border" style={{ top: sT, left: sL, width: sW, height: sH }} />
-          )}
-          <div className="wizard-tooltip" style={wizardTooltipStyle} role="dialog" aria-modal="true" aria-labelledby="wizard-title">
-            <button className="wizard-close" onClick={() => setWizardOpen(false)} aria-label="Chiudi guida">×</button>
-            <div className="wizard-step-body">
-            <div className="wizard-step-indicator">{wizardStep + 1} / {WIZARD_STEPS.length}</div>
-            <div id="wizard-title" className="wizard-title">{WIZARD_STEPS[wizardStep].title}</div>
-            <div className="wizard-text">{WIZARD_STEPS[wizardStep].text.replace('{themeIcon}', lightTheme ? '🌙' : '☀️')}</div>
-            <div className="wizard-actions">
-              <div className="wizard-actions-left">
-                {wizardStep > 0 && (
-                  <button className="wizard-btn-back" onClick={() => setWizardStep(s => s - 1)}>← Indietro</button>
-                )}
-              </div>
-              <div className="wizard-actions-right">
-                {wizardStep < WIZARD_STEPS.length - 1 ? (
-                  <>
-                    <button className="wizard-btn-skip" onClick={() => setWizardOpen(false)}>Salta</button>
-                    <button className="wizard-btn-next" onClick={() => setWizardStep(s => s + 1)}>Avanti →</button>
-                  </>
-                ) : (
-                  <button className="wizard-btn-next" onClick={() => { setWizardOpen(false); setActiveTab("oggi"); }}>Fatto!</button>
-                )}
-              </div>
-            </div>
-            </div>
-          </div>
-        </>
-        );
-      })()}
+      <Wizard
+        open={wizardOpen}
+        step={wizardStep}
+        setStep={setWizardStep}
+        setOpen={setWizardOpen}
+        lightTheme={lightTheme}
+        setActiveTab={setActiveTab}
+        activeTab={activeTab}
+      />
     </>
   );
 }

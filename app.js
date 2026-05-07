@@ -350,13 +350,115 @@
     return d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
   }
 
-  // src/app.jsx
-  var { useState, useEffect, useRef, useMemo } = React;
+  // src/components/KcalBar.jsx
   function KcalBar({ kcal, max }) {
     const pct = Math.min(kcal / max * 100, 100);
     const color = kcal > 400 ? "var(--color-negative)" : kcal > 250 ? "var(--color-warning)" : "var(--color-positive)";
     return /* @__PURE__ */ React.createElement("div", { className: "bar-mini" }, /* @__PURE__ */ React.createElement("div", { className: "bar-mini-fill", style: { width: `${pct}%`, background: color } }));
   }
+
+  // src/components/ConfirmModal.jsx
+  function ConfirmModal({ modal, onClose }) {
+    if (!modal) return null;
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "modal-overlay",
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-labelledby": "confirm-title",
+        onKeyDown: (e) => {
+          if (e.key === "Escape") onClose();
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { className: "modal" }, /* @__PURE__ */ React.createElement("div", { id: "confirm-title", className: "modal-title" }, modal.title), /* @__PURE__ */ React.createElement("div", { className: "modal-text" }, modal.message), /* @__PURE__ */ React.createElement("div", { className: "modal-actions" }, /* @__PURE__ */ React.createElement("button", { className: "modal-btn-ghost", onClick: onClose }, "Annulla"), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          className: modal.danger ? "modal-btn-danger" : "modal-btn",
+          onClick: () => {
+            modal.onConfirm();
+            onClose();
+          }
+        },
+        "Conferma"
+      )))
+    );
+  }
+
+  // src/components/SettingsOverlay.jsx
+  function SettingsOverlay({ open, setOpen, wizardOpen, draft, setDraft, onSave }) {
+    if (!open) return null;
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "settings-overlay",
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-label": "Impostazioni",
+        onKeyDown: (e) => {
+          if (e.key === "Escape" && !wizardOpen) setOpen(false);
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { className: "settings-header" }, /* @__PURE__ */ React.createElement("div", { className: "settings-header-inner" }, /* @__PURE__ */ React.createElement("button", { className: "settings-close", onClick: () => setOpen(false), "aria-label": "Chiudi impostazioni", autoFocus: true }, "\xD7"), /* @__PURE__ */ React.createElement("span", { className: "settings-title" }, "Impostazioni"))),
+      /* @__PURE__ */ React.createElement("div", { className: "settings-body" }, /* @__PURE__ */ React.createElement("section", { className: "settings-section" }, /* @__PURE__ */ React.createElement("h2", { className: "settings-section-title" }, "Calorie giornaliere"), /* @__PURE__ */ React.createElement("p", { className: "settings-section-desc" }, "Quante calorie bruci in media ogni giorno (TDEE). Sar\xE0 il tuo obiettivo di default per i nuovi giorni. Puoi sempre modificarlo per un giorno specifico dallo Storico."), /* @__PURE__ */ React.createElement("div", { className: "settings-field" }, /* @__PURE__ */ React.createElement("label", { className: "settings-label", htmlFor: "settings-default-kcal" }, "Calorie al giorno"), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          id: "settings-default-kcal",
+          className: "settings-input",
+          type: "number",
+          min: "500",
+          max: "9999",
+          value: draft.defaultKcal,
+          onChange: (e) => setDraft((d) => ({ ...d, defaultKcal: e.target.value }))
+        }
+      ))), /* @__PURE__ */ React.createElement("section", { className: "settings-section" }, /* @__PURE__ */ React.createElement("h2", { className: "settings-section-title" }, "Fasce orarie"), /* @__PURE__ */ React.createElement("p", { className: "settings-section-desc" }, "Orari di fine di ogni fascia pasto. Si applicano a tutto lo storico, anche ai giorni passati."), /* @__PURE__ */ React.createElement("div", { className: "orari-tab settings-orari" }, /* @__PURE__ */ React.createElement("div", { className: "orari-slot orari-slot-fixed" }, /* @__PURE__ */ React.createElement("span", { className: "orari-label-text" }, "Fuori Orario"), /* @__PURE__ */ React.createElement("span", { className: "orari-range-text" }, "00:00 \u2014 05:29")), draft.schedule.map((slot, i) => {
+        const startMin = i === 0 ? 330 : draft.schedule[i - 1].end + 1;
+        const prevEnd = i === 0 ? 329 : draft.schedule[i - 1].end;
+        const nextEnd = i === draft.schedule.length - 1 ? 1440 : draft.schedule[i + 1].end;
+        return /* @__PURE__ */ React.createElement("div", { key: slot.key, className: "orari-slot" }, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            className: "orari-label-input",
+            "aria-label": `Nome fascia ${slot.label}`,
+            value: slot.label,
+            onChange: (e) => {
+              const newSchedule = draft.schedule.map((s, j) => j === i ? { ...s, label: e.target.value } : s);
+              setDraft((d) => ({ ...d, schedule: newSchedule }));
+            }
+          }
+        ), /* @__PURE__ */ React.createElement("div", { className: "orari-times" }, /* @__PURE__ */ React.createElement("span", { className: "orari-start" }, minutesToTime(startMin)), /* @__PURE__ */ React.createElement("span", { className: "orari-sep" }, "\u2014"), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            key: `time-${slot.key}-${slot.end}`,
+            type: "text",
+            inputMode: "numeric",
+            placeholder: "HH:MM",
+            className: "orari-time-input",
+            "aria-label": `Fine fascia ${slot.label}`,
+            defaultValue: minutesToTime(slot.end),
+            onBlur: (e) => {
+              const raw = e.target.value.trim();
+              if (!raw.match(/^\d{1,2}:\d{2}$/)) {
+                e.target.value = minutesToTime(slot.end);
+                return;
+              }
+              const newEnd = timeToMinutes(raw);
+              if (isNaN(newEnd) || newEnd <= prevEnd || newEnd >= nextEnd) {
+                e.target.value = minutesToTime(slot.end);
+                return;
+              }
+              const newSchedule = draft.schedule.map((s, j) => j === i ? { ...s, end: newEnd } : s);
+              setDraft((d) => ({ ...d, schedule: newSchedule }));
+            }
+          }
+        )));
+      }), /* @__PURE__ */ React.createElement("div", { className: "orari-slot orari-slot-fixed" }, /* @__PURE__ */ React.createElement("span", { className: "orari-label-text" }, "Fuori Orario"), /* @__PURE__ */ React.createElement("span", { className: "orari-range-text" }, minutesToTime(draft.schedule[draft.schedule.length - 1].end + 1), " \u2014 23:59"))))),
+      /* @__PURE__ */ React.createElement("div", { className: "settings-footer" }, /* @__PURE__ */ React.createElement("div", { className: "settings-footer-inner" }, /* @__PURE__ */ React.createElement("button", { className: "settings-save-btn", onClick: onSave }, "Salva")))
+    );
+  }
+
+  // src/components/Wizard.jsx
+  var { useState, useEffect } = React;
   var WIZARD_STEPS = [
     {
       tab: null,
@@ -432,50 +534,111 @@
       text: "Personalizza gli orari di fine di ogni fascia pasto. L'app li usa per raggruppare gli alimenti nel tab Menu e nello Storico. Le modifiche si applicano a tutto lo storico."
     }
   ];
-  function App() {
-    const [user, setUser] = useState(void 0);
-    const [notAllowed, setNotAllowed] = useState(false);
-    const [wizardOpen, setWizardOpen] = useState(false);
-    const [wizardStep, setWizardStep] = useState(0);
+  function Wizard({ open, step, setStep, setOpen, lightTheme, setActiveTab, activeTab }) {
     const [spotlightRect, setSpotlightRect] = useState(null);
-    const [settingsOpen, setSettingsOpen] = useState(false);
-    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-    const [settingsDraft, setSettingsDraft] = useState({ defaultKcal: "2000", schedule: DEFAULT_SCHEDULE });
-    const [defaultKcal, setDefaultKcal] = useState(2e3);
-    const [counts, setCounts] = useState(() => loadLocalData().counts);
-    const [extras, setExtras] = useState(() => loadLocalData().extras);
-    const [varGrams, setVarGrams] = useState(() => loadLocalData().varGrams);
-    const [log, setLog] = useState([]);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [adminSearchQuery, setAdminSearchQuery] = useState("");
-    const [extraName, setExtraName] = useState("");
-    const [extraInput, setExtraInput] = useState("");
-    const [target, setTarget] = useState(loadTarget);
-    const [openIdx, setOpenIdx] = useState(null);
-    const [editingDayTarget, setEditingDayTarget] = useState(null);
-    const [activeTab, setActiveTab] = useState("oggi");
+    useEffect(() => {
+      if (!open) {
+        setSpotlightRect(null);
+        return;
+      }
+      const s = WIZARD_STEPS[step];
+      if (!s.selector) {
+        setSpotlightRect(null);
+        return;
+      }
+      const t = setTimeout(() => {
+        const els = document.querySelectorAll(s.selector);
+        const el = s.last ? els[els.length - 1] : els[0];
+        if (el) {
+          el.scrollIntoView({ block: "center", behavior: "instant" });
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const r = el.getBoundingClientRect();
+            const el2 = s.selectorEnd ? document.querySelector(s.selectorEnd) : null;
+            if (el2) {
+              const r2 = el2.getBoundingClientRect();
+              const top = Math.min(r.top, r2.top) - 8;
+              const left = Math.min(r.left, r2.left) - 8;
+              const right = Math.max(r.right, r2.right) + 8;
+              const bottom = Math.max(r.bottom, r2.bottom) + 8;
+              setSpotlightRect({ top, left, width: right - left, height: bottom - top });
+            } else {
+              setSpotlightRect({ top: r.top - 8, left: r.left - 8, width: r.width + 16, height: r.height + 16 });
+            }
+          }));
+        }
+      }, 400);
+      return () => clearTimeout(t);
+    }, [open, step, activeTab]);
+    if (!open) return null;
+    const tooltipStyle = (() => {
+      const TOOLTIP_H = 240, MARGIN = 12;
+      const H2 = window.innerHeight;
+      if (!spotlightRect) return { top: H2 / 2 - TOOLTIP_H / 2, left: "50%", transform: "translateX(-50%)" };
+      const belowTop = spotlightRect.top + spotlightRect.height + MARGIN;
+      const aboveTop = spotlightRect.top - TOOLTIP_H - MARGIN;
+      const fitsBelow = belowTop + TOOLTIP_H + MARGIN <= H2;
+      const fitsAbove = aboveTop >= MARGIN;
+      let topPx;
+      if (fitsBelow) topPx = belowTop;
+      else if (fitsAbove) topPx = aboveTop;
+      else topPx = Math.min(Math.max(belowTop, MARGIN), H2 - TOOLTIP_H - MARGIN);
+      return { top: topPx, left: "50%", transform: "translateX(-50%)" };
+    })();
+    const W = window.innerWidth, H = window.innerHeight;
+    const eff = spotlightRect ?? { top: H / 2, left: W / 2, width: 0, height: 0 };
+    const { top: sT, left: sL, width: sW, height: sH } = eff;
+    const sR = sL + sW, sB = sT + sH;
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "wiz-mask", style: { top: 0, left: 0, width: W, height: sT } }), /* @__PURE__ */ React.createElement("div", { className: "wiz-mask", style: { top: sT, left: 0, width: sL, height: sH } }), /* @__PURE__ */ React.createElement("div", { className: "wiz-mask", style: { top: sT, left: sR, width: Math.max(0, W - sR), height: sH } }), /* @__PURE__ */ React.createElement("div", { className: "wiz-mask", style: { top: sB, left: 0, width: W, height: Math.max(0, H - sB) } }), spotlightRect && /* @__PURE__ */ React.createElement("div", { className: "wizard-spotlight-border", style: { top: sT, left: sL, width: sW, height: sH } }), /* @__PURE__ */ React.createElement("div", { className: "wizard-tooltip", style: tooltipStyle, role: "dialog", "aria-modal": "true", "aria-labelledby": "wizard-title" }, /* @__PURE__ */ React.createElement("button", { className: "wizard-close", onClick: () => setOpen(false), "aria-label": "Chiudi guida" }, "\xD7"), /* @__PURE__ */ React.createElement("div", { className: "wizard-step-body" }, /* @__PURE__ */ React.createElement("div", { className: "wizard-step-indicator" }, step + 1, " / ", WIZARD_STEPS.length), /* @__PURE__ */ React.createElement("div", { id: "wizard-title", className: "wizard-title" }, WIZARD_STEPS[step].title), /* @__PURE__ */ React.createElement("div", { className: "wizard-text" }, WIZARD_STEPS[step].text.replace("{themeIcon}", lightTheme ? "\u{1F319}" : "\u2600\uFE0F")), /* @__PURE__ */ React.createElement("div", { className: "wizard-actions" }, /* @__PURE__ */ React.createElement("div", { className: "wizard-actions-left" }, step > 0 && /* @__PURE__ */ React.createElement("button", { className: "wizard-btn-back", onClick: () => setStep((s) => s - 1) }, "\u2190 Indietro")), /* @__PURE__ */ React.createElement("div", { className: "wizard-actions-right" }, step < WIZARD_STEPS.length - 1 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "wizard-btn-skip", onClick: () => setOpen(false) }, "Salta"), /* @__PURE__ */ React.createElement("button", { className: "wizard-btn-next", onClick: () => setStep((s) => s + 1) }, "Avanti \u2192")) : /* @__PURE__ */ React.createElement("button", { className: "wizard-btn-next", onClick: () => {
+      setOpen(false);
+      setActiveTab("oggi");
+    } }, "Fatto!"))))));
+  }
+
+  // src/app.jsx
+  var { useState: useState2, useEffect: useEffect2, useRef, useMemo } = React;
+  function App() {
+    const [user, setUser] = useState2(void 0);
+    const [notAllowed, setNotAllowed] = useState2(false);
+    const [wizardOpen, setWizardOpen] = useState2(false);
+    const [wizardStep, setWizardStep] = useState2(0);
+    const [settingsOpen, setSettingsOpen] = useState2(false);
+    const [profileMenuOpen, setProfileMenuOpen] = useState2(false);
+    const [settingsDraft, setSettingsDraft] = useState2({ defaultKcal: "2000", schedule: DEFAULT_SCHEDULE });
+    const [defaultKcal, setDefaultKcal] = useState2(2e3);
+    const [counts, setCounts] = useState2(() => loadLocalData().counts);
+    const [extras, setExtras] = useState2(() => loadLocalData().extras);
+    const [varGrams, setVarGrams] = useState2(() => loadLocalData().varGrams);
+    const [log, setLog] = useState2([]);
+    const [searchQuery, setSearchQuery] = useState2("");
+    const [adminSearchQuery, setAdminSearchQuery] = useState2("");
+    const [extraName, setExtraName] = useState2("");
+    const [extraInput, setExtraInput] = useState2("");
+    const [target, setTarget] = useState2(loadTarget);
+    const [openIdx, setOpenIdx] = useState2(null);
+    const [editingDayTarget, setEditingDayTarget] = useState2(null);
+    const [activeTab, setActiveTab] = useState2("oggi");
     const swipeStart = useRef(null);
     const tabRefs = useRef({});
-    const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
-    const [history, setHistory] = useState([]);
-    const [historyLoading, setHistoryLoading] = useState(false);
-    const [currentPage, setCurrentPage] = useState(() => getBimesterOf(ACTIVE_DAY()));
-    const [openWeeks, setOpenWeeks] = useState(/* @__PURE__ */ new Set());
-    const [dataReady, setDataReady] = useState(false);
-    const [shakeTarget, setShakeTarget] = useState(false);
-    const [autoOpenWizard, setAutoOpenWizard] = useState(false);
-    const [lightTheme, setLightTheme] = useState(() => localStorage.getItem("kcal_theme") === "light");
-    const [confirmModal, setConfirmModal] = useState(null);
-    const [dietData, setDietData] = useState(SEED_DIET_DATA);
-    const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
-    const [adminEditId, setAdminEditId] = useState(null);
-    const [adminEditDraft, setAdminEditDraft] = useState({});
-    const [adminNewItem, setAdminNewItem] = useState(null);
-    const [adminNewCat, setAdminNewCat] = useState(false);
-    const [adminNewCatDraft, setAdminNewCatDraft] = useState({ name: "", icon: "" });
-    const [adminEditCat, setAdminEditCat] = useState(null);
-    const [adminEditCatDraft, setAdminEditCatDraft] = useState({ name: "", icon: "" });
-    const [adminOpenCats, setAdminOpenCats] = useState(/* @__PURE__ */ new Set());
+    const [indicatorStyle, setIndicatorStyle] = useState2({ left: 0, width: 0 });
+    const [history, setHistory] = useState2([]);
+    const [historyLoading, setHistoryLoading] = useState2(false);
+    const [currentPage, setCurrentPage] = useState2(() => getBimesterOf(ACTIVE_DAY()));
+    const [openWeeks, setOpenWeeks] = useState2(/* @__PURE__ */ new Set());
+    const [dataReady, setDataReady] = useState2(false);
+    const [shakeTarget, setShakeTarget] = useState2(false);
+    const [autoOpenWizard, setAutoOpenWizard] = useState2(false);
+    const [lightTheme, setLightTheme] = useState2(() => localStorage.getItem("kcal_theme") === "light");
+    const [confirmModal, setConfirmModal] = useState2(null);
+    const [dietData, setDietData] = useState2(SEED_DIET_DATA);
+    const [schedule, setSchedule] = useState2(DEFAULT_SCHEDULE);
+    const [adminEditId, setAdminEditId] = useState2(null);
+    const [adminEditDraft, setAdminEditDraft] = useState2({});
+    const [adminNewItem, setAdminNewItem] = useState2(null);
+    const [adminNewCat, setAdminNewCat] = useState2(false);
+    const [adminNewCatDraft, setAdminNewCatDraft] = useState2({ name: "", icon: "" });
+    const [adminEditCat, setAdminEditCat] = useState2(null);
+    const [adminEditCatDraft, setAdminEditCatDraft] = useState2({ name: "", icon: "" });
+    const [adminOpenCats, setAdminOpenCats] = useState2(/* @__PURE__ */ new Set());
     const sortableCatsRef = useRef(null);
     const sortableItemRefs = useRef({});
     const sortableItemInstances = useRef({});
@@ -510,13 +673,13 @@
       next.has(ws) ? next.delete(ws) : next.add(ws);
       return next;
     });
-    useEffect(() => {
+    useEffect2(() => {
       document.body.classList.toggle("light", lightTheme);
       localStorage.setItem("kcal_theme", lightTheme ? "light" : "dark");
     }, [lightTheme]);
     const saveDebounceRef = useRef(null);
     const prevOverTarget = useRef(false);
-    useEffect(() => {
+    useEffect2(() => {
       return auth.onAuthStateChanged(async (u) => {
         if (!u) {
           setUser(null);
@@ -626,11 +789,11 @@
         }
       });
     }, []);
-    useEffect(() => {
+    useEffect2(() => {
       if (user === void 0 || user) return;
       localStorage.setItem("kcal_data", JSON.stringify({ date: ACTIVE_DAY(), counts, extras, varGrams }));
     }, [counts, extras, varGrams, user]);
-    useEffect(() => {
+    useEffect2(() => {
       if (!user || !dataReady) return;
       clearTimeout(saveDebounceRef.current);
       saveDebounceRef.current = setTimeout(() => {
@@ -649,11 +812,11 @@
         }).catch((e) => console.error("Firestore save error:", e));
       }, 400);
     }, [counts, extras, varGrams, log, target, user, dataReady]);
-    useEffect(() => {
+    useEffect2(() => {
       localStorage.setItem("kcal_target", String(target));
     }, [target]);
     const totalKcal = computeTotal(counts, extras, varGrams, itemById);
-    useEffect(() => {
+    useEffect2(() => {
       const over = totalKcal > target;
       if (over && !prevOverTarget.current) {
         setShakeTarget(true);
@@ -661,14 +824,14 @@
       }
       prevOverTarget.current = over;
     }, [totalKcal, target]);
-    useEffect(() => {
+    useEffect2(() => {
       if (activeTab === "menu" && log.length === 0) setActiveTab("oggi");
     }, [log, activeTab]);
-    useEffect(() => {
+    useEffect2(() => {
       const btn = tabRefs.current[activeTab];
       if (btn) setIndicatorStyle({ left: btn.offsetLeft, width: btn.offsetWidth });
     }, [activeTab, log.length]);
-    useEffect(() => {
+    useEffect2(() => {
       if (activeTab !== "storico" || !user) return;
       setHistoryLoading(true);
       db.collection("users").doc(user.uid).collection("days").get().then((snap) => {
@@ -677,16 +840,16 @@
         setHistoryLoading(false);
       }).catch(() => setHistoryLoading(false));
     }, [activeTab, user]);
-    useEffect(() => {
+    useEffect2(() => {
       userRef.current = user;
     }, [user]);
-    useEffect(() => {
+    useEffect2(() => {
       adminOpenCatsRef.current = adminOpenCats;
     }, [adminOpenCats]);
-    useEffect(() => {
+    useEffect2(() => {
       dietDataRef.current = dietData;
     }, [dietData]);
-    useEffect(() => {
+    useEffect2(() => {
       if (typeof Sortable === "undefined" || activeTab !== "alimenti") return;
       adminOpenCats.forEach((catName) => {
         const el = sortableItemRefs.current[catName];
@@ -767,7 +930,7 @@
         }
       });
     }, [adminOpenCats, activeTab, adminSearchQuery]);
-    useEffect(() => {
+    useEffect2(() => {
       return () => {
         Object.values(sortableItemInstances.current).forEach((s) => {
           try {
@@ -778,7 +941,7 @@
         sortableItemInstances.current = {};
       };
     }, [activeTab]);
-    useEffect(() => {
+    useEffect2(() => {
       if (typeof Sortable === "undefined" || activeTab !== "alimenti" || !sortableCatsRef.current) return;
       const sortable = Sortable.create(sortableCatsRef.current, {
         animation: 150,
@@ -804,7 +967,7 @@
         }
       };
     }, [activeTab, adminSearchQuery]);
-    useEffect(() => {
+    useEffect2(() => {
       if (activeTab !== "alimenti") {
         setAdminEditId(null);
         setAdminNewItem(null);
@@ -813,14 +976,14 @@
         setAdminSearchQuery("");
       }
     }, [activeTab]);
-    useEffect(() => {
+    useEffect2(() => {
       if (dataReady && autoOpenWizard) {
         setWizardStep(0);
         setWizardOpen(true);
         setAutoOpenWizard(false);
       }
     }, [dataReady, autoOpenWizard]);
-    useEffect(() => {
+    useEffect2(() => {
       if (!wizardOpen) {
         setSettingsOpen(false);
         setProfileMenuOpen(false);
@@ -836,40 +999,7 @@
       }
       setProfileMenuOpen(!!step.openProfileMenu);
     }, [wizardOpen, wizardStep]);
-    useEffect(() => {
-      if (!wizardOpen) {
-        setSpotlightRect(null);
-        return;
-      }
-      const step = WIZARD_STEPS[wizardStep];
-      if (!step.selector) {
-        setSpotlightRect(null);
-        return;
-      }
-      const t = setTimeout(() => {
-        const els = document.querySelectorAll(step.selector);
-        const el = step.last ? els[els.length - 1] : els[0];
-        if (el) {
-          el.scrollIntoView({ block: "center", behavior: "instant" });
-          requestAnimationFrame(() => requestAnimationFrame(() => {
-            const r = el.getBoundingClientRect();
-            const el2 = step.selectorEnd ? document.querySelector(step.selectorEnd) : null;
-            if (el2) {
-              const r2 = el2.getBoundingClientRect();
-              const top = Math.min(r.top, r2.top) - 8;
-              const left = Math.min(r.left, r2.left) - 8;
-              const right = Math.max(r.right, r2.right) + 8;
-              const bottom = Math.max(r.bottom, r2.bottom) + 8;
-              setSpotlightRect({ top, left, width: right - left, height: bottom - top });
-            } else {
-              setSpotlightRect({ top: r.top - 8, left: r.left - 8, width: r.width + 16, height: r.height + 16 });
-            }
-          }));
-        }
-      }, 400);
-      return () => clearTimeout(t);
-    }, [wizardOpen, wizardStep, activeTab]);
-    useEffect(() => {
+    useEffect2(() => {
       if (!profileMenuOpen) return;
       const handler = (e) => {
         if (wizardOpen) return;
@@ -1153,45 +1283,8 @@
         }
       });
     };
-    const wizardTooltipStyle = (() => {
-      const TOOLTIP_H = 240, MARGIN = 12;
-      const H = window.innerHeight;
-      if (!spotlightRect) return { top: H / 2 - TOOLTIP_H / 2, left: "50%", transform: "translateX(-50%)" };
-      const belowTop = spotlightRect.top + spotlightRect.height + MARGIN;
-      const aboveTop = spotlightRect.top - TOOLTIP_H - MARGIN;
-      const fitsBelow = belowTop + TOOLTIP_H + MARGIN <= H;
-      const fitsAbove = aboveTop >= MARGIN;
-      let topPx;
-      if (fitsBelow) topPx = belowTop;
-      else if (fitsAbove) topPx = aboveTop;
-      else topPx = Math.min(Math.max(belowTop, MARGIN), H - TOOLTIP_H - MARGIN);
-      return { top: topPx, left: "50%", transform: "translateX(-50%)" };
-    })();
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("a", { href: "#main-content", className: "skip-link" }, "Vai al contenuto principale"), confirmModal && /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        className: "modal-overlay",
-        role: "dialog",
-        "aria-modal": "true",
-        "aria-labelledby": "confirm-title",
-        onKeyDown: (e) => {
-          if (e.key === "Escape") setConfirmModal(null);
-        }
-      },
-      /* @__PURE__ */ React.createElement("div", { className: "modal" }, /* @__PURE__ */ React.createElement("div", { id: "confirm-title", className: "modal-title" }, confirmModal.title), /* @__PURE__ */ React.createElement("div", { className: "modal-text" }, confirmModal.message), /* @__PURE__ */ React.createElement("div", { className: "modal-actions" }, /* @__PURE__ */ React.createElement("button", { className: "modal-btn-ghost", onClick: () => setConfirmModal(null) }, "Annulla"), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          className: confirmModal.danger ? "modal-btn-danger" : "modal-btn",
-          onClick: () => {
-            confirmModal.onConfirm();
-            setConfirmModal(null);
-          }
-        },
-        "Conferma"
-      )))
-    ), notAllowed && /* @__PURE__ */ React.createElement("div", { className: "modal-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "modal-title" }, /* @__PURE__ */ React.createElement("div", { className: "modal" }, /* @__PURE__ */ React.createElement("img", { src: "no.gif", alt: "", role: "presentation", style: { width: 313, maxWidth: "100%", height: "auto", borderRadius: 8, marginBottom: 12 } }), /* @__PURE__ */ React.createElement("div", { id: "modal-title", className: "modal-title" }, "Accesso non disponibile"), /* @__PURE__ */ React.createElement("div", { className: "modal-text" }, "Gli slot disponibili sono esauriti. Riprova pi\xF9 avanti."), /* @__PURE__ */ React.createElement("button", { className: "modal-btn", onClick: () => setNotAllowed(false) }, "Ok, capito"))), /* @__PURE__ */ React.createElement("div", { className: "sticky-top" }, /* @__PURE__ */ React.createElement("header", { className: "header" }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 520, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { className: "header-top" }, /* @__PURE__ */ React.createElement("img", { src: "logo-main-horizontal.png", alt: "kcalTracker", className: "app-logo" }), /* @__PURE__ */ React.createElement("div", { className: "header-top-right" }, /* @__PURE__ */ React.createElement("button", { className: "reset-btn", onClick: handleReset, "aria-label": "Azzera le calorie di oggi" }, "\u274C"), /* @__PURE__ */ React.createElement("button", { className: "theme-btn", onClick: () => setLightTheme((t) => !t), "aria-label": lightTheme ? "Passa al tema scuro" : "Passa al tema chiaro" }, lightTheme ? "\u{1F319}" : "\u2600\uFE0F"), user && /* @__PURE__ */ React.createElement("button", { className: "wizard-help-btn", onClick: () => {
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("a", { href: "#main-content", className: "skip-link" }, "Vai al contenuto principale"), /* @__PURE__ */ React.createElement(ConfirmModal, { modal: confirmModal, onClose: () => setConfirmModal(null) }), notAllowed && /* @__PURE__ */ React.createElement("div", { className: "modal-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "modal-title" }, /* @__PURE__ */ React.createElement("div", { className: "modal" }, /* @__PURE__ */ React.createElement("img", { src: "no.gif", alt: "", role: "presentation", style: { width: 313, maxWidth: "100%", height: "auto", borderRadius: 8, marginBottom: 12 } }), /* @__PURE__ */ React.createElement("div", { id: "modal-title", className: "modal-title" }, "Accesso non disponibile"), /* @__PURE__ */ React.createElement("div", { className: "modal-text" }, "Gli slot disponibili sono esauriti. Riprova pi\xF9 avanti."), /* @__PURE__ */ React.createElement("button", { className: "modal-btn", onClick: () => setNotAllowed(false) }, "Ok, capito"))), /* @__PURE__ */ React.createElement("div", { className: "sticky-top" }, /* @__PURE__ */ React.createElement("header", { className: "header" }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 520, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { className: "header-top" }, /* @__PURE__ */ React.createElement("img", { src: "logo-main-horizontal.png", alt: "kcalTracker", className: "app-logo" }), /* @__PURE__ */ React.createElement("div", { className: "header-top-right" }, /* @__PURE__ */ React.createElement("button", { className: "reset-btn", onClick: handleReset, "aria-label": "Azzera le calorie di oggi" }, "\u274C"), /* @__PURE__ */ React.createElement("button", { className: "theme-btn", onClick: () => setLightTheme((t) => !t), "aria-label": lightTheme ? "Passa al tema scuro" : "Passa al tema chiaro" }, lightTheme ? "\u{1F319}" : "\u2600\uFE0F"), user && /* @__PURE__ */ React.createElement("button", { className: "wizard-help-btn", onClick: () => {
       setWizardStep(0);
-      setSpotlightRect(null);
       setWizardOpen(true);
     }, "aria-label": "Apri guida funzionalit\xE0" }, "\u{1F9D9}"), user === void 0 ? null : user ? /* @__PURE__ */ React.createElement("div", { className: "profile-menu-wrap", ref: profileMenuRef }, /* @__PURE__ */ React.createElement("button", { className: "auth-btn logged", onClick: () => setProfileMenuOpen((v) => !v), "aria-label": "Menu profilo", "aria-expanded": profileMenuOpen, "aria-haspopup": "menu" }, user.photoURL && /* @__PURE__ */ React.createElement("img", { src: user.photoURL, className: "auth-avatar", alt: "" })), profileMenuOpen && /* @__PURE__ */ React.createElement("div", { className: "profile-dropdown", role: "menu" }, /* @__PURE__ */ React.createElement("button", { className: "profile-menu-item", role: "menuitem", onClick: () => {
       setProfileMenuOpen(false);
@@ -1686,82 +1779,28 @@
         "aria-label": "Aggiungi nuova categoria"
       },
       "+ Aggiungi categoria"
-    )))), user && settingsOpen && /* @__PURE__ */ React.createElement(
-      "div",
+    )))), user && /* @__PURE__ */ React.createElement(
+      SettingsOverlay,
       {
-        className: "settings-overlay",
-        role: "dialog",
-        "aria-modal": "true",
-        "aria-label": "Impostazioni",
-        onKeyDown: (e) => {
-          if (e.key === "Escape" && !wizardOpen) setSettingsOpen(false);
-        }
-      },
-      /* @__PURE__ */ React.createElement("div", { className: "settings-header" }, /* @__PURE__ */ React.createElement("div", { className: "settings-header-inner" }, /* @__PURE__ */ React.createElement("button", { className: "settings-close", onClick: () => setSettingsOpen(false), "aria-label": "Chiudi impostazioni", autoFocus: true }, "\xD7"), /* @__PURE__ */ React.createElement("span", { className: "settings-title" }, "Impostazioni"))),
-      /* @__PURE__ */ React.createElement("div", { className: "settings-body" }, /* @__PURE__ */ React.createElement("section", { className: "settings-section" }, /* @__PURE__ */ React.createElement("h2", { className: "settings-section-title" }, "Calorie giornaliere"), /* @__PURE__ */ React.createElement("p", { className: "settings-section-desc" }, "Quante calorie bruci in media ogni giorno (TDEE). Sar\xE0 il tuo obiettivo di default per i nuovi giorni. Puoi sempre modificarlo per un giorno specifico dallo Storico."), /* @__PURE__ */ React.createElement("div", { className: "settings-field" }, /* @__PURE__ */ React.createElement("label", { className: "settings-label", htmlFor: "settings-default-kcal" }, "Calorie al giorno"), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          id: "settings-default-kcal",
-          className: "settings-input",
-          type: "number",
-          min: "500",
-          max: "9999",
-          value: settingsDraft.defaultKcal,
-          onChange: (e) => setSettingsDraft((d) => ({ ...d, defaultKcal: e.target.value }))
-        }
-      ))), /* @__PURE__ */ React.createElement("section", { className: "settings-section" }, /* @__PURE__ */ React.createElement("h2", { className: "settings-section-title" }, "Fasce orarie"), /* @__PURE__ */ React.createElement("p", { className: "settings-section-desc" }, "Orari di fine di ogni fascia pasto. Si applicano a tutto lo storico, anche ai giorni passati."), /* @__PURE__ */ React.createElement("div", { className: "orari-tab settings-orari" }, /* @__PURE__ */ React.createElement("div", { className: "orari-slot orari-slot-fixed" }, /* @__PURE__ */ React.createElement("span", { className: "orari-label-text" }, "Fuori Orario"), /* @__PURE__ */ React.createElement("span", { className: "orari-range-text" }, "00:00 \u2014 05:29")), settingsDraft.schedule.map((slot, i) => {
-        const startMin = i === 0 ? 330 : settingsDraft.schedule[i - 1].end + 1;
-        const prevEnd = i === 0 ? 329 : settingsDraft.schedule[i - 1].end;
-        const nextEnd = i === settingsDraft.schedule.length - 1 ? 1440 : settingsDraft.schedule[i + 1].end;
-        return /* @__PURE__ */ React.createElement("div", { key: slot.key, className: "orari-slot" }, /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            className: "orari-label-input",
-            "aria-label": `Nome fascia ${slot.label}`,
-            value: slot.label,
-            onChange: (e) => {
-              const newSchedule = settingsDraft.schedule.map((s, j) => j === i ? { ...s, label: e.target.value } : s);
-              setSettingsDraft((d) => ({ ...d, schedule: newSchedule }));
-            }
-          }
-        ), /* @__PURE__ */ React.createElement("div", { className: "orari-times" }, /* @__PURE__ */ React.createElement("span", { className: "orari-start" }, minutesToTime(startMin)), /* @__PURE__ */ React.createElement("span", { className: "orari-sep" }, "\u2014"), /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            key: `time-${slot.key}-${slot.end}`,
-            type: "text",
-            inputMode: "numeric",
-            placeholder: "HH:MM",
-            className: "orari-time-input",
-            "aria-label": `Fine fascia ${slot.label}`,
-            defaultValue: minutesToTime(slot.end),
-            onBlur: (e) => {
-              const raw = e.target.value.trim();
-              if (!raw.match(/^\d{1,2}:\d{2}$/)) {
-                e.target.value = minutesToTime(slot.end);
-                return;
-              }
-              const newEnd = timeToMinutes(raw);
-              if (isNaN(newEnd) || newEnd <= prevEnd || newEnd >= nextEnd) {
-                e.target.value = minutesToTime(slot.end);
-                return;
-              }
-              const newSchedule = settingsDraft.schedule.map((s, j) => j === i ? { ...s, end: newEnd } : s);
-              setSettingsDraft((d) => ({ ...d, schedule: newSchedule }));
-            }
-          }
-        )));
-      }), /* @__PURE__ */ React.createElement("div", { className: "orari-slot orari-slot-fixed" }, /* @__PURE__ */ React.createElement("span", { className: "orari-label-text" }, "Fuori Orario"), /* @__PURE__ */ React.createElement("span", { className: "orari-range-text" }, minutesToTime(settingsDraft.schedule[settingsDraft.schedule.length - 1].end + 1), " \u2014 23:59"))))),
-      /* @__PURE__ */ React.createElement("div", { className: "settings-footer" }, /* @__PURE__ */ React.createElement("div", { className: "settings-footer-inner" }, /* @__PURE__ */ React.createElement("button", { className: "settings-save-btn", onClick: saveSettings }, "Salva")))
-    ), wizardOpen && (() => {
-      const W = window.innerWidth, H = window.innerHeight;
-      const eff = spotlightRect ?? { top: H / 2, left: W / 2, width: 0, height: 0 };
-      const { top: sT, left: sL, width: sW, height: sH } = eff;
-      const sR = sL + sW, sB = sT + sH;
-      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "wiz-mask", style: { top: 0, left: 0, width: W, height: sT } }), /* @__PURE__ */ React.createElement("div", { className: "wiz-mask", style: { top: sT, left: 0, width: sL, height: sH } }), /* @__PURE__ */ React.createElement("div", { className: "wiz-mask", style: { top: sT, left: sR, width: Math.max(0, W - sR), height: sH } }), /* @__PURE__ */ React.createElement("div", { className: "wiz-mask", style: { top: sB, left: 0, width: W, height: Math.max(0, H - sB) } }), spotlightRect && /* @__PURE__ */ React.createElement("div", { className: "wizard-spotlight-border", style: { top: sT, left: sL, width: sW, height: sH } }), /* @__PURE__ */ React.createElement("div", { className: "wizard-tooltip", style: wizardTooltipStyle, role: "dialog", "aria-modal": "true", "aria-labelledby": "wizard-title" }, /* @__PURE__ */ React.createElement("button", { className: "wizard-close", onClick: () => setWizardOpen(false), "aria-label": "Chiudi guida" }, "\xD7"), /* @__PURE__ */ React.createElement("div", { className: "wizard-step-body" }, /* @__PURE__ */ React.createElement("div", { className: "wizard-step-indicator" }, wizardStep + 1, " / ", WIZARD_STEPS.length), /* @__PURE__ */ React.createElement("div", { id: "wizard-title", className: "wizard-title" }, WIZARD_STEPS[wizardStep].title), /* @__PURE__ */ React.createElement("div", { className: "wizard-text" }, WIZARD_STEPS[wizardStep].text.replace("{themeIcon}", lightTheme ? "\u{1F319}" : "\u2600\uFE0F")), /* @__PURE__ */ React.createElement("div", { className: "wizard-actions" }, /* @__PURE__ */ React.createElement("div", { className: "wizard-actions-left" }, wizardStep > 0 && /* @__PURE__ */ React.createElement("button", { className: "wizard-btn-back", onClick: () => setWizardStep((s) => s - 1) }, "\u2190 Indietro")), /* @__PURE__ */ React.createElement("div", { className: "wizard-actions-right" }, wizardStep < WIZARD_STEPS.length - 1 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "wizard-btn-skip", onClick: () => setWizardOpen(false) }, "Salta"), /* @__PURE__ */ React.createElement("button", { className: "wizard-btn-next", onClick: () => setWizardStep((s) => s + 1) }, "Avanti \u2192")) : /* @__PURE__ */ React.createElement("button", { className: "wizard-btn-next", onClick: () => {
-        setWizardOpen(false);
-        setActiveTab("oggi");
-      } }, "Fatto!"))))));
-    })());
+        open: settingsOpen,
+        setOpen: setSettingsOpen,
+        wizardOpen,
+        draft: settingsDraft,
+        setDraft: setSettingsDraft,
+        onSave: saveSettings
+      }
+    ), /* @__PURE__ */ React.createElement(
+      Wizard,
+      {
+        open: wizardOpen,
+        step: wizardStep,
+        setStep: setWizardStep,
+        setOpen: setWizardOpen,
+        lightTheme,
+        setActiveTab,
+        activeTab
+      }
+    ));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ React.createElement(App, null));
 })();
