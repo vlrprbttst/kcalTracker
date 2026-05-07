@@ -1740,7 +1740,7 @@ function App() {
                                   <div className="week-balance">
                                     {week.balance <= 0
                                       ? <span className="week-weight-delta deficit">🎉 potresti aver perso circa {(Math.abs(week.balance) / 7700).toFixed(2)} kg</span>
-                                      : <span className="week-weight-delta surplus">⚠️ potresti aver preso circa{(Math.abs(week.balance) / 7700).toFixed(2)} kg</span>}
+                                      : <span className="week-weight-delta surplus">⚠️ potresti aver preso circa {(Math.abs(week.balance) / 7700).toFixed(2)} kg</span>}
                                   </div>
                                 )}
                               </div>

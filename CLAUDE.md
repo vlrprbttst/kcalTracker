@@ -241,7 +241,7 @@ Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col de
 - **Emoji tema dinamica:** il testo dello step 1 contiene `{themeIcon}` che viene sostituito a render time con `🌙` (tema light) o `☀️` (tema dark)
 - **Fine wizard:** il bottone "Fatto!" chiude il wizard **e** riporta al tab "oggi"
 - **Selector `data-wizard`:** i pulsanti dei tab Alimenti e Storico hanno `data-wizard="alimenti-tab"` etc. per essere targettati dagli step che mostrano il tab stesso in spotlight
-- Steps attuali (10 totali): Benvenuto → Controlli header → Contatore+barra kcal → Tracker calorie → Extra → Alimenti (tab) → Aggiungi alimenti → Storico → Menu profilo → Impostazioni (apre overlay)
+- Steps attuali (11 totali): Benvenuto → Controlli header → Contatore+barra kcal → Tracker calorie → Extra → Alimenti (tab) → Aggiungi alimenti → Storico → Menu profilo → Calorie giornaliere (apre overlay) → Fasce orarie (overlay)
 
 ### Autenticazione
 - Bottone "Accedi" nell'header (Google OAuth)
@@ -451,7 +451,7 @@ Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 `app.js`, `style.css` e `manifest.json` sono caricati con query string di versione (`?v=HASH`). Gli hash sono i primi 8 caratteri del SHA-256 dei rispettivi contenuti, aggiornati automaticamente da `build.js` ad ogni build. **Modificare qualsiasi di questi file senza fare `npm run build` non invalida la cache PWA mobile.**
 
 ### Sicurezza
-- **SRI hash** su tutti gli script CDN eccetto SortableJS (aggiunto successivamente)
-- **Content Security Policy** via meta tag: `script-src` include `unpkg.com` (dove risiedono React e SortableJS)
+- **SRI hash** su tutti gli script CDN incluso SortableJS (`sha384-BSxuMLxX+...`)
+- **Content Security Policy** via meta tag: `script-src` senza `unsafe-inline` (rimosso — non necessario, React non usa inline scripts); `style-src` mantiene `unsafe-inline` (necessario per gli stili inline di React)
 - **Babel non più nel browser**
 - **Versioni CDN pinnate**

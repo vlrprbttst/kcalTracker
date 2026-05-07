@@ -2435,7 +2435,7 @@ function App() {
         className: "week-weight-delta deficit"
       }, "\uD83C\uDF89 potresti aver perso circa ", (Math.abs(week.balance) / 7700).toFixed(2), " kg") : /*#__PURE__*/React.createElement("span", {
         className: "week-weight-delta surplus"
-      }, "\u26A0\uFE0F potresti aver preso circa", (Math.abs(week.balance) / 7700).toFixed(2), " kg"))))));
+      }, "\u26A0\uFE0F potresti aver preso circa ", (Math.abs(week.balance) / 7700).toFixed(2), " kg"))))));
     }));
   })()), user && activeTab === "alimenti" && /*#__PURE__*/React.createElement("div", {
     className: "admin-tab"

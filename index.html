@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com https://www.gstatic.com https://apis.google.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.googleusercontent.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://accounts.google.com https://www.gstatic.com https://apis.google.com; frame-src https://accounts.google.com https://apis.google.com https://kcaltracker-5dd56.firebaseapp.com; manifest-src 'self'; object-src 'none'; base-uri 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.googleusercontent.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://accounts.google.com https://www.gstatic.com https://apis.google.com; frame-src https://accounts.google.com https://apis.google.com https://kcaltracker-5dd56.firebaseapp.com; manifest-src 'self'; object-src 'none'; base-uri 'self';" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>kcalTracker</title>
   <link rel="manifest" href="manifest.json?v=0410afba" />
@@ -32,7 +32,9 @@
 </head>
 <body>
   <div id="root"></div>
-  <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js" crossorigin="anonymous"></script>
-  <script src="app.js?v=0c1166bd"></script>
+  <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js"
+          integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM"
+          crossorigin="anonymous"></script>
+  <script src="app.js?v=ae180596"></script>
 </body>
 </html>
