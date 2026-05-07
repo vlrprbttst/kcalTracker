@@ -633,7 +633,7 @@ body:not(.light) .week-incomplete-note { color: #ca8a04; }
 .search-input:focus { border-color: var(--accent); }
 .search-clear {
   position: absolute;
-  right: 10px;
+  right: 24px;
   top: 50%;
   transform: translateY(-50%);
   background: transparent;
