@@ -607,6 +607,83 @@
     }), /* @__PURE__ */ React.createElement("div", { className: "menu-legend-row" }, /* @__PURE__ */ React.createElement("span", null, "Fuori Orario"), /* @__PURE__ */ React.createElement("span", null, minutesToTime(schedule[schedule.length - 1].end + 1), " \u2013 23:59"))));
   }
 
+  // src/tabs/StoricoTab.jsx
+  function StoricoTab({
+    historyLoading,
+    history,
+    currentPage,
+    setCurrentPage,
+    openWeeks,
+    toggleWeek,
+    editingDayTarget,
+    setEditingDayTarget,
+    saveDayTarget,
+    target,
+    totalKcal,
+    schedule
+  }) {
+    if (historyLoading) return /* @__PURE__ */ React.createElement("div", { className: "history-empty" }, "Caricamento...");
+    const { year: curYear, bim: curBim } = getBimesterOf(ACTIVE_DAY());
+    const currentWeekStart = getWeekStart(ACTIVE_DAY());
+    const pageHistory = history.filter((d) => {
+      const { year, bim } = getBimesterOf(d.date);
+      return year === currentPage.year && bim === currentPage.bim;
+    });
+    const weeks = groupByWeek(pageHistory);
+    const hasPrev = history.some((d) => {
+      const { year, bim } = getBimesterOf(d.date);
+      return year < currentPage.year || year === currentPage.year && bim < currentPage.bim;
+    });
+    const isCurrentPage = currentPage.year === curYear && currentPage.bim === curBim;
+    let lastMonth = null;
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "bimester-nav" }, /* @__PURE__ */ React.createElement("button", { className: "bimester-btn", onClick: () => setCurrentPage((p) => addBimesters(p.year, p.bim, -1)), disabled: !hasPrev }, "\u2190 prec"), /* @__PURE__ */ React.createElement("span", { className: "bimester-label" }, bimesterLabel(currentPage.year, currentPage.bim)), /* @__PURE__ */ React.createElement("button", { className: "bimester-btn", onClick: () => setCurrentPage((p) => addBimesters(p.year, p.bim, 1)), disabled: isCurrentPage }, "succ \u2192")), weeks.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "history-empty" }, "Nessun dato in questo periodo.") : weeks.map((week, i) => {
+      const isCurrentWeek = week.weekStart === currentWeekStart;
+      const isOpen = isCurrentWeek || openWeeks.has(week.weekStart);
+      const weekMonth = getMonthName(week.weekStart);
+      const showMonthHeader = weekMonth !== lastMonth;
+      lastMonth = weekMonth;
+      return /* @__PURE__ */ React.createElement(React.Fragment, { key: i }, showMonthHeader && /* @__PURE__ */ React.createElement("div", { className: "month-label" }, weekMonth), /* @__PURE__ */ React.createElement("div", { className: "week-card" }, isCurrentWeek ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "week-current-header" }, "Settimana in corso \xB7 ", formatShortDate(week.weekStart), " \u2192 ", formatShortDate(week.weekEndStr)), (() => {
+        const activeDay = ACTIVE_DAY();
+        const d = /* @__PURE__ */ new Date(activeDay + "T12:00:00");
+        const daysFromFriday = (d.getDay() + 2) % 7;
+        if (daysFromFriday < 3) return null;
+        const weekKcal = week.days.reduce((s, day) => s + (day.totalKcal || 0), 0);
+        const daysAfterToday = 6 - daysFromFriday;
+        const projectedTotal = weekKcal + Math.max(totalKcal, target) + target * daysAfterToday;
+        const pastDaysTarget = week.days.reduce((s, day) => s + (day.target || 2e3), 0);
+        const weeklyProjectedTarget = pastDaysTarget + target + target * daysAfterToday;
+        const projectedSurplus = projectedTotal - weeklyProjectedTarget;
+        const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2);
+        if (projectedSurplus > 0) return /* @__PURE__ */ React.createElement("div", { className: "surplus-snackbar" }, /* @__PURE__ */ React.createElement("span", { className: "surplus-snackbar-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ React.createElement("div", { className: "surplus-snackbar-text" }, /* @__PURE__ */ React.createElement("strong", null, "Surplus ad oggi: +", projectedSurplus.toLocaleString("it-IT"), " kcal"), /* @__PURE__ */ React.createElement("span", null, "A fine settimana potresti aumentare di circa ", weightDelta, " kg")));
+        return /* @__PURE__ */ React.createElement("div", { className: "deficit-snackbar" }, /* @__PURE__ */ React.createElement("span", { className: "surplus-snackbar-icon" }, "\u2705"), /* @__PURE__ */ React.createElement("div", { className: "surplus-snackbar-text" }, /* @__PURE__ */ React.createElement("strong", null, "Deficit ad oggi: ", projectedSurplus.toLocaleString("it-IT"), " kcal"), /* @__PURE__ */ React.createElement("span", null, "A fine settimana potresti perdere circa ", weightDelta, " kg")));
+      })()) : (() => {
+        const incomplete = week.days.length < 7;
+        return /* @__PURE__ */ React.createElement("div", { className: `week-accordion-header${incomplete ? " incomplete" : ""}`, onClick: () => toggleWeek(week.weekStart) }, /* @__PURE__ */ React.createElement("div", { className: "week-acc-left" }, /* @__PURE__ */ React.createElement("span", { className: "week-acc-dates" }, incomplete && "\u26A0\uFE0F ", formatShortDate(week.weekStart), " \u2192 ", formatShortDate(week.weekEndStr), /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 400, color: "var(--text-dimmer)", marginLeft: 6 } }, week.days.length, "/7 giorni"))), !incomplete && /* @__PURE__ */ React.createElement("span", { className: `week-acc-balance ${week.balance <= 0 ? "deficit" : "surplus"}` }, week.balance <= 0 ? `\u2705 Deficit ${Math.abs(week.balance).toLocaleString("it-IT")} kcal` : `\u26A0\uFE0F Surplus ${week.balance.toLocaleString("it-IT")} kcal`), /* @__PURE__ */ React.createElement("span", { className: `week-acc-arrow${isOpen ? " open" : ""}` }, "\u25BC"));
+      })(), isOpen && /* @__PURE__ */ React.createElement(React.Fragment, null, week.days.map((day, j) => /* @__PURE__ */ React.createElement("div", { key: j, className: "history-day", style: { borderRadius: 0, border: "none", borderTop: j > 0 ? "1px solid var(--border)" : "none" } }, /* @__PURE__ */ React.createElement("div", { className: "history-day-header" }, /* @__PURE__ */ React.createElement("span", { className: "history-day-date" }, formatDate(day.date)), /* @__PURE__ */ React.createElement("span", { className: "history-day-kcal", style: { color: day.totalKcal > day.target ? "var(--color-negative)" : "var(--color-positive)" } }, day.totalKcal, " kcal", isCurrentWeek || week.days.length === 7 ? editingDayTarget?.date === day.date ? /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "history-day-target-input",
+          type: "number",
+          value: editingDayTarget.draft,
+          onChange: (e) => setEditingDayTarget((prev) => ({ ...prev, draft: e.target.value })),
+          onBlur: () => saveDayTarget(day.date),
+          onKeyDown: (e) => {
+            if (e.key === "Enter") saveDayTarget(day.date);
+            if (e.key === "Escape") setEditingDayTarget(null);
+          },
+          autoFocus: true,
+          "aria-label": `Obiettivo calorico per ${day.date}`
+        }
+      ) : /* @__PURE__ */ React.createElement("span", { className: "history-day-target", onClick: () => setEditingDayTarget({ date: day.date, draft: String(day.target || 2e3) }), role: "button", tabIndex: 0, onKeyDown: (e) => {
+        if (e.key === "Enter" || e.key === " ") setEditingDayTarget({ date: day.date, draft: String(day.target || 2e3) });
+      }, "aria-label": `Obiettivo ${day.date}: ${day.target || 2e3} kcal. Premi per modificare` }, "di ", day.target || 2e3) : /* @__PURE__ */ React.createElement("span", { className: "history-day-target", style: { cursor: "default", borderBottom: "none" } }, "di ", day.target || 2e3))), day.log && day.log.length > 0 ? (() => {
+        const alcolLog = day.log.filter((e) => e.category === "Alcol");
+        const foodLog = day.log.filter((e) => e.category !== "Alcol");
+        return /* @__PURE__ */ React.createElement("div", { className: "history-log-groups" }, groupLogByMeal(foodLog, schedule).map(({ key, label, items }) => /* @__PURE__ */ React.createElement("div", { key, className: "history-log-group" }, /* @__PURE__ */ React.createElement("span", { className: "history-log-label" }, label, ": "), /* @__PURE__ */ React.createElement("span", { className: "history-log-items" }, groupEntries(items).map((e) => e.name + (e.grams > 0 ? ` ${e.grams}g` : "") + (e.count > 1 ? ` \xD7${e.count}` : "")).join(", ")))), alcolLog.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "history-log-group" }, /* @__PURE__ */ React.createElement("span", { className: "history-log-label" }, "\u{1F37A} Extra: "), /* @__PURE__ */ React.createElement("span", { className: "history-log-items" }, groupEntries(alcolLog).map((e) => e.name + (e.count > 1 ? ` \xD7${e.count}` : "")).join(", "))));
+      })() : day.items && day.items.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "history-items" }, day.items.join(" \xB7 ")) : null)), /* @__PURE__ */ React.createElement("div", { className: "week-summary" }, /* @__PURE__ */ React.createElement("div", { className: "week-summary-row" }, /* @__PURE__ */ React.createElement("span", null, "Media settimanale"), /* @__PURE__ */ React.createElement("span", null, (isCurrentWeek ? week.days.reduce((s, d) => s + (d.target || 2e3), 0) + target * (7 - week.days.length) : week.days.length < 7 ? 14e3 : week.weeklyTarget).toLocaleString("it-IT"), " kcal")), /* @__PURE__ */ React.createElement("div", { className: "week-summary-row" }, /* @__PURE__ */ React.createElement("span", null, "Calorie assunte"), /* @__PURE__ */ React.createElement("span", null, week.totalConsumed.toLocaleString("it-IT"), " kcal")), !isCurrentWeek && week.days.length < 7 && /* @__PURE__ */ React.createElement("div", { className: "week-incomplete-note" }, "\u26A0\uFE0F Dati parziali \u2014 ", 7 - week.days.length, " ", 7 - week.days.length === 1 ? "giorno non tracciato" : "giorni non tracciati", ". Il balance potrebbe non essere accurato."), (!isCurrentWeek || ACTIVE_DAY() === week.weekEndStr) && week.days.length === 7 && /* @__PURE__ */ React.createElement("div", { className: "week-balance" }, week.balance <= 0 ? /* @__PURE__ */ React.createElement("span", { className: "week-weight-delta deficit" }, "\u{1F389} potresti aver perso circa ", (Math.abs(week.balance) / 7700).toFixed(2), " kg") : /* @__PURE__ */ React.createElement("span", { className: "week-weight-delta surplus" }, "\u26A0\uFE0F potresti aver preso circa ", (Math.abs(week.balance) / 7700).toFixed(2), " kg"))))));
+    }));
+  }
+
   // src/app.jsx
   var { useState: useState2, useEffect: useEffect2, useRef, useMemo } = React;
   function App() {
@@ -1430,67 +1507,23 @@
           style: { flex: 1, minWidth: 0 }
         }
       ), /* @__PURE__ */ React.createElement("button", { className: "extra-add-btn", onClick: addExtra, "aria-label": "Aggiungi alimento" }, "+")), hasExtras && /* @__PURE__ */ React.createElement("div", { className: "extra-list" }, extras.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.uid || item.name, className: "extra-item" }, /* @__PURE__ */ React.createElement("span", { className: "extra-item-label" }, item.name), /* @__PURE__ */ React.createElement("div", { className: "extra-item-right" }, /* @__PURE__ */ React.createElement("span", { className: "extra-item-kcal" }, item.kcal, " kcal"), /* @__PURE__ */ React.createElement("button", { className: "extra-remove-btn", onClick: () => removeExtra(item.uid), "aria-label": `Rimuovi ${item.name}` }, "\xD7"))))));
-    })(), user && /* @__PURE__ */ React.createElement("div", { className: "legend" }, [["var(--color-positive)", "<250 kcal"], ["var(--color-warning)", "250\u2013400 kcal"], ["var(--color-negative)", ">400 kcal"]].map(([color, label]) => /* @__PURE__ */ React.createElement("span", { key: label, style: { display: "flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 } }), label))), !user && /* @__PURE__ */ React.createElement("div", { className: "guest-banner" }, /* @__PURE__ */ React.createElement("div", { className: "guest-banner-title" }, "Accedi per sbloccare tutto"), /* @__PURE__ */ React.createElement("div", { className: "guest-banner-body" }, "Con un account Google puoi gestire la tua lista alimenti personalizzata, consultare lo storico settimanale, sincronizzare i dati su tutti i tuoi dispositivi e tanto altro."), /* @__PURE__ */ React.createElement("button", { className: "guest-banner-btn", onClick: login }, "Accedi con Google"))), user && activeTab === "menu" && /* @__PURE__ */ React.createElement(MenuTab, { log, schedule }), user && activeTab === "storico" && /* @__PURE__ */ React.createElement(React.Fragment, null, historyLoading ? /* @__PURE__ */ React.createElement("div", { className: "history-empty" }, "Caricamento...") : (() => {
-      const { year: curYear, bim: curBim } = getBimesterOf(ACTIVE_DAY());
-      const currentWeekStart = getWeekStart(ACTIVE_DAY());
-      const pageHistory = history.filter((d) => {
-        const { year, bim } = getBimesterOf(d.date);
-        return year === currentPage.year && bim === currentPage.bim;
-      });
-      const weeks = groupByWeek(pageHistory);
-      const hasPrev = history.some((d) => {
-        const { year, bim } = getBimesterOf(d.date);
-        return year < currentPage.year || year === currentPage.year && bim < currentPage.bim;
-      });
-      const isCurrentPage = currentPage.year === curYear && currentPage.bim === curBim;
-      let lastMonth = null;
-      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "bimester-nav" }, /* @__PURE__ */ React.createElement("button", { className: "bimester-btn", onClick: () => setCurrentPage((p) => addBimesters(p.year, p.bim, -1)), disabled: !hasPrev }, "\u2190 prec"), /* @__PURE__ */ React.createElement("span", { className: "bimester-label" }, bimesterLabel(currentPage.year, currentPage.bim)), /* @__PURE__ */ React.createElement("button", { className: "bimester-btn", onClick: () => setCurrentPage((p) => addBimesters(p.year, p.bim, 1)), disabled: isCurrentPage }, "succ \u2192")), weeks.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "history-empty" }, "Nessun dato in questo periodo.") : weeks.map((week, i) => {
-        const isCurrentWeek = week.weekStart === currentWeekStart;
-        const isOpen = isCurrentWeek || openWeeks.has(week.weekStart);
-        const weekMonth = getMonthName(week.weekStart);
-        const showMonthHeader = weekMonth !== lastMonth;
-        lastMonth = weekMonth;
-        return /* @__PURE__ */ React.createElement(React.Fragment, { key: i }, showMonthHeader && /* @__PURE__ */ React.createElement("div", { className: "month-label" }, weekMonth), /* @__PURE__ */ React.createElement("div", { className: "week-card" }, isCurrentWeek ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "week-current-header" }, "Settimana in corso \xB7 ", formatShortDate(week.weekStart), " \u2192 ", formatShortDate(week.weekEndStr)), (() => {
-          const activeDay = ACTIVE_DAY();
-          const d = /* @__PURE__ */ new Date(activeDay + "T12:00:00");
-          const daysFromFriday = (d.getDay() + 2) % 7;
-          if (daysFromFriday < 3) return null;
-          const weekKcal = week.days.reduce((s, day) => s + (day.totalKcal || 0), 0);
-          const daysAfterToday = 6 - daysFromFriday;
-          const projectedTotal = weekKcal + Math.max(totalKcal, target) + target * daysAfterToday;
-          const pastDaysTarget = week.days.reduce((s, day) => s + (day.target || 2e3), 0);
-          const weeklyProjectedTarget = pastDaysTarget + target + target * daysAfterToday;
-          const projectedSurplus = projectedTotal - weeklyProjectedTarget;
-          const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2);
-          if (projectedSurplus > 0) return /* @__PURE__ */ React.createElement("div", { className: "surplus-snackbar" }, /* @__PURE__ */ React.createElement("span", { className: "surplus-snackbar-icon" }, "\u26A0\uFE0F"), /* @__PURE__ */ React.createElement("div", { className: "surplus-snackbar-text" }, /* @__PURE__ */ React.createElement("strong", null, "Surplus ad oggi: +", projectedSurplus.toLocaleString("it-IT"), " kcal"), /* @__PURE__ */ React.createElement("span", null, "A fine settimana potresti aumentare di circa ", weightDelta, " kg")));
-          return /* @__PURE__ */ React.createElement("div", { className: "deficit-snackbar" }, /* @__PURE__ */ React.createElement("span", { className: "surplus-snackbar-icon" }, "\u2705"), /* @__PURE__ */ React.createElement("div", { className: "surplus-snackbar-text" }, /* @__PURE__ */ React.createElement("strong", null, "Deficit ad oggi: ", projectedSurplus.toLocaleString("it-IT"), " kcal"), /* @__PURE__ */ React.createElement("span", null, "A fine settimana potresti perdere circa ", weightDelta, " kg")));
-        })()) : (() => {
-          const incomplete = week.days.length < 7;
-          return /* @__PURE__ */ React.createElement("div", { className: `week-accordion-header${incomplete ? " incomplete" : ""}`, onClick: () => toggleWeek(week.weekStart) }, /* @__PURE__ */ React.createElement("div", { className: "week-acc-left" }, /* @__PURE__ */ React.createElement("span", { className: "week-acc-dates" }, incomplete && "\u26A0\uFE0F ", formatShortDate(week.weekStart), " \u2192 ", formatShortDate(week.weekEndStr), /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 400, color: "var(--text-dimmer)", marginLeft: 6 } }, week.days.length, "/7 giorni"))), !incomplete && /* @__PURE__ */ React.createElement("span", { className: `week-acc-balance ${week.balance <= 0 ? "deficit" : "surplus"}` }, week.balance <= 0 ? `\u2705 Deficit ${Math.abs(week.balance).toLocaleString("it-IT")} kcal` : `\u26A0\uFE0F Surplus ${week.balance.toLocaleString("it-IT")} kcal`), /* @__PURE__ */ React.createElement("span", { className: `week-acc-arrow${isOpen ? " open" : ""}` }, "\u25BC"));
-        })(), isOpen && /* @__PURE__ */ React.createElement(React.Fragment, null, week.days.map((day, j) => /* @__PURE__ */ React.createElement("div", { key: j, className: "history-day", style: { borderRadius: 0, border: "none", borderTop: j > 0 ? "1px solid var(--border)" : "none" } }, /* @__PURE__ */ React.createElement("div", { className: "history-day-header" }, /* @__PURE__ */ React.createElement("span", { className: "history-day-date" }, formatDate(day.date)), /* @__PURE__ */ React.createElement("span", { className: "history-day-kcal", style: { color: day.totalKcal > day.target ? "var(--color-negative)" : "var(--color-positive)" } }, day.totalKcal, " kcal", isCurrentWeek || week.days.length === 7 ? editingDayTarget?.date === day.date ? /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            className: "history-day-target-input",
-            type: "number",
-            value: editingDayTarget.draft,
-            onChange: (e) => setEditingDayTarget((prev) => ({ ...prev, draft: e.target.value })),
-            onBlur: () => saveDayTarget(day.date),
-            onKeyDown: (e) => {
-              if (e.key === "Enter") saveDayTarget(day.date);
-              if (e.key === "Escape") setEditingDayTarget(null);
-            },
-            autoFocus: true,
-            "aria-label": `Obiettivo calorico per ${day.date}`
-          }
-        ) : /* @__PURE__ */ React.createElement("span", { className: "history-day-target", onClick: () => setEditingDayTarget({ date: day.date, draft: String(day.target || 2e3) }), role: "button", tabIndex: 0, onKeyDown: (e) => {
-          if (e.key === "Enter" || e.key === " ") setEditingDayTarget({ date: day.date, draft: String(day.target || 2e3) });
-        }, "aria-label": `Obiettivo ${day.date}: ${day.target || 2e3} kcal. Premi per modificare` }, "di ", day.target || 2e3) : /* @__PURE__ */ React.createElement("span", { className: "history-day-target", style: { cursor: "default", borderBottom: "none" } }, "di ", day.target || 2e3))), day.log && day.log.length > 0 ? (() => {
-          const alcolLog = day.log.filter((e) => e.category === "Alcol");
-          const foodLog = day.log.filter((e) => e.category !== "Alcol");
-          return /* @__PURE__ */ React.createElement("div", { className: "history-log-groups" }, groupLogByMeal(foodLog, schedule).map(({ key, label, items }) => /* @__PURE__ */ React.createElement("div", { key, className: "history-log-group" }, /* @__PURE__ */ React.createElement("span", { className: "history-log-label" }, label, ": "), /* @__PURE__ */ React.createElement("span", { className: "history-log-items" }, groupEntries(items).map((e) => e.name + (e.grams > 0 ? ` ${e.grams}g` : "") + (e.count > 1 ? ` \xD7${e.count}` : "")).join(", ")))), alcolLog.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "history-log-group" }, /* @__PURE__ */ React.createElement("span", { className: "history-log-label" }, "\u{1F37A} Extra: "), /* @__PURE__ */ React.createElement("span", { className: "history-log-items" }, groupEntries(alcolLog).map((e) => e.name + (e.count > 1 ? ` \xD7${e.count}` : "")).join(", "))));
-        })() : day.items && day.items.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: "history-items" }, day.items.join(" \xB7 ")) : null)), /* @__PURE__ */ React.createElement("div", { className: "week-summary" }, /* @__PURE__ */ React.createElement("div", { className: "week-summary-row" }, /* @__PURE__ */ React.createElement("span", null, "Media settimanale"), /* @__PURE__ */ React.createElement("span", null, (isCurrentWeek ? week.days.reduce((s, d) => s + (d.target || 2e3), 0) + target * (7 - week.days.length) : week.days.length < 7 ? 14e3 : week.weeklyTarget).toLocaleString("it-IT"), " kcal")), /* @__PURE__ */ React.createElement("div", { className: "week-summary-row" }, /* @__PURE__ */ React.createElement("span", null, "Calorie assunte"), /* @__PURE__ */ React.createElement("span", null, week.totalConsumed.toLocaleString("it-IT"), " kcal")), !isCurrentWeek && week.days.length < 7 && /* @__PURE__ */ React.createElement("div", { className: "week-incomplete-note" }, "\u26A0\uFE0F Dati parziali \u2014 ", 7 - week.days.length, " ", 7 - week.days.length === 1 ? "giorno non tracciato" : "giorni non tracciati", ". Il balance potrebbe non essere accurato."), (!isCurrentWeek || ACTIVE_DAY() === week.weekEndStr) && week.days.length === 7 && /* @__PURE__ */ React.createElement("div", { className: "week-balance" }, week.balance <= 0 ? /* @__PURE__ */ React.createElement("span", { className: "week-weight-delta deficit" }, "\u{1F389} potresti aver perso circa ", (Math.abs(week.balance) / 7700).toFixed(2), " kg") : /* @__PURE__ */ React.createElement("span", { className: "week-weight-delta surplus" }, "\u26A0\uFE0F potresti aver preso circa ", (Math.abs(week.balance) / 7700).toFixed(2), " kg"))))));
-      }));
-    })()), user && activeTab === "alimenti" && /* @__PURE__ */ React.createElement("div", { className: "admin-tab" }, adminSearchQuery.trim() ? (() => {
+    })(), user && /* @__PURE__ */ React.createElement("div", { className: "legend" }, [["var(--color-positive)", "<250 kcal"], ["var(--color-warning)", "250\u2013400 kcal"], ["var(--color-negative)", ">400 kcal"]].map(([color, label]) => /* @__PURE__ */ React.createElement("span", { key: label, style: { display: "flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 } }), label))), !user && /* @__PURE__ */ React.createElement("div", { className: "guest-banner" }, /* @__PURE__ */ React.createElement("div", { className: "guest-banner-title" }, "Accedi per sbloccare tutto"), /* @__PURE__ */ React.createElement("div", { className: "guest-banner-body" }, "Con un account Google puoi gestire la tua lista alimenti personalizzata, consultare lo storico settimanale, sincronizzare i dati su tutti i tuoi dispositivi e tanto altro."), /* @__PURE__ */ React.createElement("button", { className: "guest-banner-btn", onClick: login }, "Accedi con Google"))), user && activeTab === "menu" && /* @__PURE__ */ React.createElement(MenuTab, { log, schedule }), user && activeTab === "storico" && /* @__PURE__ */ React.createElement(
+      StoricoTab,
+      {
+        historyLoading,
+        history,
+        currentPage,
+        setCurrentPage,
+        openWeeks,
+        toggleWeek,
+        editingDayTarget,
+        setEditingDayTarget,
+        saveDayTarget,
+        target,
+        totalKcal,
+        schedule
+      }
+    ), user && activeTab === "alimenti" && /* @__PURE__ */ React.createElement("div", { className: "admin-tab" }, adminSearchQuery.trim() ? (() => {
       const q = adminSearchQuery.trim().toLowerCase();
       const highlight = (name) => {
         const idx = name.toLowerCase().indexOf(q);
