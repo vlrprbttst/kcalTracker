@@ -350,13 +350,6 @@
     return d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
   }
 
-  // src/components/KcalBar.jsx
-  function KcalBar({ kcal, max }) {
-    const pct = Math.min(kcal / max * 100, 100);
-    const color = kcal > 400 ? "var(--color-negative)" : kcal > 250 ? "var(--color-warning)" : "var(--color-positive)";
-    return /* @__PURE__ */ React.createElement("div", { className: "bar-mini" }, /* @__PURE__ */ React.createElement("div", { className: "bar-mini-fill", style: { width: `${pct}%`, background: color } }));
-  }
-
   // src/components/ConfirmModal.jsx
   function ConfirmModal({ modal, onClose }) {
     if (!modal) return null;
@@ -1276,6 +1269,137 @@
     )));
   }
 
+  // src/components/KcalBar.jsx
+  function KcalBar({ kcal, max }) {
+    const pct = Math.min(kcal / max * 100, 100);
+    const color = kcal > 400 ? "var(--color-negative)" : kcal > 250 ? "var(--color-warning)" : "var(--color-positive)";
+    return /* @__PURE__ */ React.createElement("div", { className: "bar-mini" }, /* @__PURE__ */ React.createElement("div", { className: "bar-mini-fill", style: { width: `${pct}%`, background: color } }));
+  }
+
+  // src/tabs/TrackerTab.jsx
+  function TrackerTab({
+    user,
+    dietData,
+    searchQuery,
+    openIdx,
+    setOpenIdx,
+    varGrams,
+    setVarGrams,
+    setLog,
+    extras,
+    extraName,
+    setExtraName,
+    extraInput,
+    setExtraInput,
+    addExtra,
+    removeExtra,
+    getCount,
+    inc,
+    dec,
+    catKcal,
+    maxItemKcal,
+    login
+  }) {
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, user && (() => {
+      const query = searchQuery.trim().toLowerCase();
+      const visibleCats = dietData.map((cat, ci) => ({
+        cat,
+        ci,
+        items: query ? cat.items.map((item, ii) => ({ item, ii })).filter(({ item }) => item.name.toLowerCase().includes(query)) : cat.items.map((item, ii) => ({ item, ii }))
+      })).filter(({ items }) => !query || items.length > 0).filter(({ cat }) => user || cat.category !== "Alcol");
+      const highlightName = (name) => {
+        if (!query) return name;
+        const idx = name.toLowerCase().indexOf(query);
+        if (idx === -1) return name;
+        return /* @__PURE__ */ React.createElement(React.Fragment, null, name.slice(0, idx), /* @__PURE__ */ React.createElement("span", { className: "search-highlight" }, name.slice(idx, idx + query.length)), name.slice(idx + query.length));
+      };
+      return visibleCats.map(({ cat, ci, items }) => {
+        const isOpen = query ? true : openIdx === ci;
+        const kcalCat = catKcal(ci);
+        const hasAny = kcalCat > 0;
+        return /* @__PURE__ */ React.createElement("div", { key: ci, className: `category-card${hasAny ? " has-checked" : ""}` }, /* @__PURE__ */ React.createElement("button", { className: "category-btn", onClick: () => !query && setOpenIdx(isOpen ? null : ci), "aria-expanded": isOpen, "aria-controls": `cat-grid-${ci}` }, /* @__PURE__ */ React.createElement("span", { className: "cat-icon", "aria-hidden": "true" }, cat.icon), /* @__PURE__ */ React.createElement("span", { className: "cat-name" }, cat.category), hasAny && /* @__PURE__ */ React.createElement("span", { className: "cat-kcal-badge" }, "+", kcalCat, " kcal"), !query && /* @__PURE__ */ React.createElement("span", { className: "cat-meta" }, cat.items.length, " ", cat.items.length === 1 ? "alimento" : "alimenti"), !query && /* @__PURE__ */ React.createElement("span", { className: `cat-arrow${isOpen ? " open" : ""}` }, "\u25BC")), isOpen && /* @__PURE__ */ React.createElement("div", { id: `cat-grid-${ci}`, className: "items-grid" }, /* @__PURE__ */ React.createElement("div", { className: "items-grid-label" }, "Alimento"), /* @__PURE__ */ React.createElement("div", { className: "items-grid-label" }, "Porzione"), /* @__PURE__ */ React.createElement("div", { className: "items-grid-label right" }, "Kcal"), /* @__PURE__ */ React.createElement("div", { className: "items-grid-label" }), items.map(({ item, ii }, idx) => {
+          const qty = getCount(item.id);
+          const isActive = qty > 0;
+          if (item.variable) {
+            const g = varGrams[item.id] || 0;
+            const portionKcal = g > 0 ? Math.round(g * item.kcalPerG) : 0;
+            const totalVar = portionKcal * qty;
+            return /* @__PURE__ */ React.createElement(React.Fragment, { key: ii }, idx > 0 && /* @__PURE__ */ React.createElement("div", { className: "items-grid-sep" }), /* @__PURE__ */ React.createElement("div", { className: `item-name${isActive ? " item-cell-active" : ""}` }, /* @__PURE__ */ React.createElement("span", null, highlightName(item.name))), /* @__PURE__ */ React.createElement("div", { className: `item-portion${isActive ? " item-cell-active" : ""}` }, /* @__PURE__ */ React.createElement(
+              "input",
+              {
+                type: "number",
+                className: "grams-input",
+                "aria-label": `Grammi di ${item.name}`,
+                placeholder: "Grammi",
+                value: g || "",
+                onChange: (e) => {
+                  e.stopPropagation();
+                  const val = parseInt(e.target.value, 10);
+                  setVarGrams((prev) => {
+                    if (!val || val <= 0) {
+                      const { [item.id]: _, ...rest } = prev;
+                      return rest;
+                    }
+                    return { ...prev, [item.id]: val };
+                  });
+                  if (val > 0 && getCount(item.id) > 0) {
+                    const newKcal = Math.round(val * item.kcalPerG);
+                    setLog((prev) => {
+                      for (let i = prev.length - 1; i >= 0; i--) {
+                        if (prev[i].type === "item" && prev[i].id === item.id) {
+                          const updated = [...prev];
+                          updated[i] = { ...updated[i], grams: val, kcal: newKcal };
+                          return updated;
+                        }
+                      }
+                      return prev;
+                    });
+                  }
+                },
+                onClick: (e) => e.stopPropagation(),
+                min: "0"
+              }
+            )), /* @__PURE__ */ React.createElement("div", { className: `item-kcal-cell${isActive ? " item-cell-active" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "item-kcal" }, g > 0 ? isActive ? totalVar : portionKcal : "\u2013", g > 0 && isActive && qty > 1 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: "var(--text-dimmer)", marginLeft: 3 } }, "\xD7", qty)), /* @__PURE__ */ React.createElement(KcalBar, { kcal: portionKcal, max: maxItemKcal })), /* @__PURE__ */ React.createElement("div", { className: isActive ? "item-cell-active" : "", style: { minHeight: 44, padding: "0 14px 0 0", display: "flex", alignItems: "center", justifyContent: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { className: "counter", onClick: (e) => e.stopPropagation(), role: "group", "aria-label": item.name }, /* @__PURE__ */ React.createElement("button", { className: `counter-btn${isActive ? "" : " minus-disabled"}`, onClick: (e) => dec(item.id, e), "aria-label": `Rimuovi ${item.name}`, "aria-disabled": !isActive }, "\u2212"), /* @__PURE__ */ React.createElement("span", { className: "counter-num", "aria-label": `${qty} porzioni` }, qty), /* @__PURE__ */ React.createElement("button", { className: "counter-btn plus", onClick: (e) => inc(item.id, e), "aria-label": `Aggiungi ${item.name}` }, "+"))));
+          }
+          return /* @__PURE__ */ React.createElement(React.Fragment, { key: ii }, idx > 0 && /* @__PURE__ */ React.createElement("div", { className: "items-grid-sep" }), /* @__PURE__ */ React.createElement("div", { className: `item-name${isActive ? " item-cell-active" : ""}` }, /* @__PURE__ */ React.createElement("span", null, highlightName(item.name))), /* @__PURE__ */ React.createElement("div", { className: `item-portion${isActive ? " item-cell-active" : ""}` }, item.portion), /* @__PURE__ */ React.createElement("div", { className: `item-kcal-cell${isActive ? " item-cell-active" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "item-kcal" }, isActive ? item.kcal * qty : item.kcal, isActive && qty > 1 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: "var(--text-dimmer)", marginLeft: 3 } }, "\xD7", qty)), /* @__PURE__ */ React.createElement(KcalBar, { kcal: item.kcal, max: maxItemKcal })), /* @__PURE__ */ React.createElement("div", { className: isActive ? "item-cell-active" : "", style: { minHeight: 44, padding: "0 14px 0 0", display: "flex", alignItems: "center", justifyContent: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { className: "counter", onClick: (e) => e.stopPropagation(), role: "group", "aria-label": item.name }, /* @__PURE__ */ React.createElement("button", { className: `counter-btn${isActive ? "" : " minus-disabled"}`, onClick: (e) => dec(item.id, e), "aria-label": `Rimuovi ${item.name}`, "aria-disabled": !isActive }, "\u2212"), /* @__PURE__ */ React.createElement("span", { className: "counter-num", "aria-label": `${qty} porzioni` }, qty), /* @__PURE__ */ React.createElement("button", { className: "counter-btn plus", onClick: (e) => inc(item.id, e), "aria-label": `Aggiungi ${item.name}` }, "+"))));
+        })));
+      });
+    })(), (() => {
+      const extrasKcal = extras.reduce((s, e) => s + e.kcal, 0);
+      const hasExtras = extras.length > 0;
+      return /* @__PURE__ */ React.createElement("div", { className: `category-card${hasExtras ? " has-checked" : ""}`, style: { marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, padding: "12px 14px 0", fontWeight: 600, fontSize: 14 } }, /* @__PURE__ */ React.createElement("span", { className: "cat-icon", "aria-hidden": "true" }, "\u{1F9FE}"), /* @__PURE__ */ React.createElement("span", { className: "cat-name" }, user ? "Extra" : "Aggiungi alimento"), hasExtras && /* @__PURE__ */ React.createElement("span", { className: "cat-kcal-badge" }, "+", extrasKcal, " kcal"), user && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: "#a1a1aa", fontWeight: 400 } }, "calorie libere")), /* @__PURE__ */ React.createElement("div", { className: "extra-input-row" }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "extra-kcal-input",
+          type: "text",
+          "aria-label": "Nome alimento",
+          placeholder: "cosa hai mangiato\u2026",
+          value: extraName,
+          onChange: (e) => setExtraName(e.target.value),
+          onKeyDown: (e) => {
+            if (e.key === "Enter") addExtra();
+          },
+          style: { flex: 2 }
+        }
+      ), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          className: "extra-kcal-input",
+          type: "number",
+          "aria-label": "Calorie",
+          placeholder: "kcal",
+          value: extraInput,
+          onChange: (e) => setExtraInput(e.target.value),
+          onKeyDown: (e) => {
+            if (e.key === "Enter") addExtra();
+          },
+          min: "1",
+          style: { flex: 1, minWidth: 0 }
+        }
+      ), /* @__PURE__ */ React.createElement("button", { className: "extra-add-btn", onClick: addExtra, "aria-label": "Aggiungi alimento" }, "+")), hasExtras && /* @__PURE__ */ React.createElement("div", { className: "extra-list" }, extras.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.uid || item.name, className: "extra-item" }, /* @__PURE__ */ React.createElement("span", { className: "extra-item-label" }, item.name), /* @__PURE__ */ React.createElement("div", { className: "extra-item-right" }, /* @__PURE__ */ React.createElement("span", { className: "extra-item-kcal" }, item.kcal, " kcal"), /* @__PURE__ */ React.createElement("button", { className: "extra-remove-btn", onClick: () => removeExtra(item.uid), "aria-label": `Rimuovi ${item.name}` }, "\xD7"))))));
+    })(), user && /* @__PURE__ */ React.createElement("div", { className: "legend" }, [["var(--color-positive)", "<250 kcal"], ["var(--color-warning)", "250\u2013400 kcal"], ["var(--color-negative)", ">400 kcal"]].map(([color, label]) => /* @__PURE__ */ React.createElement("span", { key: label, style: { display: "flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 } }), label))), !user && /* @__PURE__ */ React.createElement("div", { className: "guest-banner" }, /* @__PURE__ */ React.createElement("div", { className: "guest-banner-title" }, "Accedi per sbloccare tutto"), /* @__PURE__ */ React.createElement("div", { className: "guest-banner-body" }, "Con un account Google puoi gestire la tua lista alimenti personalizzata, consultare lo storico settimanale, sincronizzare i dati su tutti i tuoi dispositivi e tanto altro."), /* @__PURE__ */ React.createElement("button", { className: "guest-banner-btn", onClick: login }, "Accedi con Google")));
+  }
+
   // src/app.jsx
   var { useState: useState3, useEffect: useEffect3, useRef: useRef2, useMemo } = React;
   function App() {
@@ -1711,104 +1835,32 @@
           setAdminNewItem(null);
         }
       }
-    ), adminSearchQuery && /* @__PURE__ */ React.createElement("button", { className: "search-clear", onClick: () => setAdminSearchQuery(""), "aria-label": "Cancella ricerca" }, "\xD7")))), /* @__PURE__ */ React.createElement("main", { id: "main-content", className: "content", onTouchStart, onTouchEnd }, (!user || activeTab === "oggi") && /* @__PURE__ */ React.createElement(React.Fragment, null, user && (() => {
-      const query = searchQuery.trim().toLowerCase();
-      const visibleCats = dietData.map((cat, ci) => ({
-        cat,
-        ci,
-        items: query ? cat.items.map((item, ii) => ({ item, ii })).filter(({ item }) => item.name.toLowerCase().includes(query)) : cat.items.map((item, ii) => ({ item, ii }))
-      })).filter(({ items }) => !query || items.length > 0).filter(({ cat }) => user || cat.category !== "Alcol");
-      const highlightName = (name) => {
-        if (!query) return name;
-        const idx = name.toLowerCase().indexOf(query);
-        if (idx === -1) return name;
-        return /* @__PURE__ */ React.createElement(React.Fragment, null, name.slice(0, idx), /* @__PURE__ */ React.createElement("span", { className: "search-highlight" }, name.slice(idx, idx + query.length)), name.slice(idx + query.length));
-      };
-      return visibleCats.map(({ cat, ci, items }) => {
-        const isOpen = query ? true : openIdx === ci;
-        const kcalCat = catKcal(ci);
-        const hasAny = kcalCat > 0;
-        return /* @__PURE__ */ React.createElement("div", { key: ci, className: `category-card${hasAny ? " has-checked" : ""}` }, /* @__PURE__ */ React.createElement("button", { className: "category-btn", onClick: () => !query && setOpenIdx(isOpen ? null : ci), "aria-expanded": isOpen, "aria-controls": `cat-grid-${ci}` }, /* @__PURE__ */ React.createElement("span", { className: "cat-icon", "aria-hidden": "true" }, cat.icon), /* @__PURE__ */ React.createElement("span", { className: "cat-name" }, cat.category), hasAny && /* @__PURE__ */ React.createElement("span", { className: "cat-kcal-badge" }, "+", kcalCat, " kcal"), !query && /* @__PURE__ */ React.createElement("span", { className: "cat-meta" }, cat.items.length, " ", cat.items.length === 1 ? "alimento" : "alimenti"), !query && /* @__PURE__ */ React.createElement("span", { className: `cat-arrow${isOpen ? " open" : ""}` }, "\u25BC")), isOpen && /* @__PURE__ */ React.createElement("div", { id: `cat-grid-${ci}`, className: "items-grid" }, /* @__PURE__ */ React.createElement("div", { className: "items-grid-label" }, "Alimento"), /* @__PURE__ */ React.createElement("div", { className: "items-grid-label" }, "Porzione"), /* @__PURE__ */ React.createElement("div", { className: "items-grid-label right" }, "Kcal"), /* @__PURE__ */ React.createElement("div", { className: "items-grid-label" }), items.map(({ item, ii }, idx) => {
-          const qty = getCount(item.id);
-          const isActive = qty > 0;
-          if (item.variable) {
-            const g = varGrams[item.id] || 0;
-            const portionKcal = g > 0 ? Math.round(g * item.kcalPerG) : 0;
-            const totalVar = portionKcal * qty;
-            return /* @__PURE__ */ React.createElement(React.Fragment, { key: ii }, idx > 0 && /* @__PURE__ */ React.createElement("div", { className: "items-grid-sep" }), /* @__PURE__ */ React.createElement("div", { className: `item-name${isActive ? " item-cell-active" : ""}` }, /* @__PURE__ */ React.createElement("span", null, highlightName(item.name))), /* @__PURE__ */ React.createElement("div", { className: `item-portion${isActive ? " item-cell-active" : ""}` }, /* @__PURE__ */ React.createElement(
-              "input",
-              {
-                type: "number",
-                className: "grams-input",
-                "aria-label": `Grammi di ${item.name}`,
-                placeholder: "Grammi",
-                value: g || "",
-                onChange: (e) => {
-                  e.stopPropagation();
-                  const val = parseInt(e.target.value, 10);
-                  setVarGrams((prev) => {
-                    if (!val || val <= 0) {
-                      const { [item.id]: _, ...rest } = prev;
-                      return rest;
-                    }
-                    return { ...prev, [item.id]: val };
-                  });
-                  if (val > 0 && getCount(item.id) > 0) {
-                    const newKcal = Math.round(val * item.kcalPerG);
-                    setLog((prev) => {
-                      for (let i = prev.length - 1; i >= 0; i--) {
-                        if (prev[i].type === "item" && prev[i].id === item.id) {
-                          const updated = [...prev];
-                          updated[i] = { ...updated[i], grams: val, kcal: newKcal };
-                          return updated;
-                        }
-                      }
-                      return prev;
-                    });
-                  }
-                },
-                onClick: (e) => e.stopPropagation(),
-                min: "0"
-              }
-            )), /* @__PURE__ */ React.createElement("div", { className: `item-kcal-cell${isActive ? " item-cell-active" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "item-kcal" }, g > 0 ? isActive ? totalVar : portionKcal : "\u2013", g > 0 && isActive && qty > 1 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: "var(--text-dimmer)", marginLeft: 3 } }, "\xD7", qty)), /* @__PURE__ */ React.createElement(KcalBar, { kcal: portionKcal, max: maxItemKcal })), /* @__PURE__ */ React.createElement("div", { className: isActive ? "item-cell-active" : "", style: { minHeight: 44, padding: "0 14px 0 0", display: "flex", alignItems: "center", justifyContent: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { className: "counter", onClick: (e) => e.stopPropagation(), role: "group", "aria-label": item.name }, /* @__PURE__ */ React.createElement("button", { className: `counter-btn${isActive ? "" : " minus-disabled"}`, onClick: (e) => dec(item.id, e), "aria-label": `Rimuovi ${item.name}`, "aria-disabled": !isActive }, "\u2212"), /* @__PURE__ */ React.createElement("span", { className: "counter-num", "aria-label": `${qty} porzioni` }, qty), /* @__PURE__ */ React.createElement("button", { className: "counter-btn plus", onClick: (e) => inc(item.id, e), "aria-label": `Aggiungi ${item.name}` }, "+"))));
-          }
-          return /* @__PURE__ */ React.createElement(React.Fragment, { key: ii }, idx > 0 && /* @__PURE__ */ React.createElement("div", { className: "items-grid-sep" }), /* @__PURE__ */ React.createElement("div", { className: `item-name${isActive ? " item-cell-active" : ""}` }, /* @__PURE__ */ React.createElement("span", null, highlightName(item.name))), /* @__PURE__ */ React.createElement("div", { className: `item-portion${isActive ? " item-cell-active" : ""}` }, item.portion), /* @__PURE__ */ React.createElement("div", { className: `item-kcal-cell${isActive ? " item-cell-active" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "item-kcal" }, isActive ? item.kcal * qty : item.kcal, isActive && qty > 1 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: "var(--text-dimmer)", marginLeft: 3 } }, "\xD7", qty)), /* @__PURE__ */ React.createElement(KcalBar, { kcal: item.kcal, max: maxItemKcal })), /* @__PURE__ */ React.createElement("div", { className: isActive ? "item-cell-active" : "", style: { minHeight: 44, padding: "0 14px 0 0", display: "flex", alignItems: "center", justifyContent: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { className: "counter", onClick: (e) => e.stopPropagation(), role: "group", "aria-label": item.name }, /* @__PURE__ */ React.createElement("button", { className: `counter-btn${isActive ? "" : " minus-disabled"}`, onClick: (e) => dec(item.id, e), "aria-label": `Rimuovi ${item.name}`, "aria-disabled": !isActive }, "\u2212"), /* @__PURE__ */ React.createElement("span", { className: "counter-num", "aria-label": `${qty} porzioni` }, qty), /* @__PURE__ */ React.createElement("button", { className: "counter-btn plus", onClick: (e) => inc(item.id, e), "aria-label": `Aggiungi ${item.name}` }, "+"))));
-        })));
-      });
-    })(), (() => {
-      const extrasKcal = extras.reduce((s, e) => s + e.kcal, 0);
-      const hasExtras = extras.length > 0;
-      return /* @__PURE__ */ React.createElement("div", { className: `category-card${hasExtras ? " has-checked" : ""}`, style: { marginTop: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, padding: "12px 14px 0", fontWeight: 600, fontSize: 14 } }, /* @__PURE__ */ React.createElement("span", { className: "cat-icon", "aria-hidden": "true" }, "\u{1F9FE}"), /* @__PURE__ */ React.createElement("span", { className: "cat-name" }, user ? "Extra" : "Aggiungi alimento"), hasExtras && /* @__PURE__ */ React.createElement("span", { className: "cat-kcal-badge" }, "+", extrasKcal, " kcal"), user && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: "#a1a1aa", fontWeight: 400 } }, "calorie libere")), /* @__PURE__ */ React.createElement("div", { className: "extra-input-row" }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          className: "extra-kcal-input",
-          type: "text",
-          "aria-label": "Nome alimento",
-          placeholder: "cosa hai mangiato\u2026",
-          value: extraName,
-          onChange: (e) => setExtraName(e.target.value),
-          onKeyDown: (e) => {
-            if (e.key === "Enter") addExtra();
-          },
-          style: { flex: 2 }
-        }
-      ), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          className: "extra-kcal-input",
-          type: "number",
-          "aria-label": "Calorie",
-          placeholder: "kcal",
-          value: extraInput,
-          onChange: (e) => setExtraInput(e.target.value),
-          onKeyDown: (e) => {
-            if (e.key === "Enter") addExtra();
-          },
-          min: "1",
-          style: { flex: 1, minWidth: 0 }
-        }
-      ), /* @__PURE__ */ React.createElement("button", { className: "extra-add-btn", onClick: addExtra, "aria-label": "Aggiungi alimento" }, "+")), hasExtras && /* @__PURE__ */ React.createElement("div", { className: "extra-list" }, extras.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.uid || item.name, className: "extra-item" }, /* @__PURE__ */ React.createElement("span", { className: "extra-item-label" }, item.name), /* @__PURE__ */ React.createElement("div", { className: "extra-item-right" }, /* @__PURE__ */ React.createElement("span", { className: "extra-item-kcal" }, item.kcal, " kcal"), /* @__PURE__ */ React.createElement("button", { className: "extra-remove-btn", onClick: () => removeExtra(item.uid), "aria-label": `Rimuovi ${item.name}` }, "\xD7"))))));
-    })(), user && /* @__PURE__ */ React.createElement("div", { className: "legend" }, [["var(--color-positive)", "<250 kcal"], ["var(--color-warning)", "250\u2013400 kcal"], ["var(--color-negative)", ">400 kcal"]].map(([color, label]) => /* @__PURE__ */ React.createElement("span", { key: label, style: { display: "flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 } }), label))), !user && /* @__PURE__ */ React.createElement("div", { className: "guest-banner" }, /* @__PURE__ */ React.createElement("div", { className: "guest-banner-title" }, "Accedi per sbloccare tutto"), /* @__PURE__ */ React.createElement("div", { className: "guest-banner-body" }, "Con un account Google puoi gestire la tua lista alimenti personalizzata, consultare lo storico settimanale, sincronizzare i dati su tutti i tuoi dispositivi e tanto altro."), /* @__PURE__ */ React.createElement("button", { className: "guest-banner-btn", onClick: login }, "Accedi con Google"))), user && activeTab === "menu" && /* @__PURE__ */ React.createElement(MenuTab, { log, schedule }), user && activeTab === "storico" && /* @__PURE__ */ React.createElement(
+    ), adminSearchQuery && /* @__PURE__ */ React.createElement("button", { className: "search-clear", onClick: () => setAdminSearchQuery(""), "aria-label": "Cancella ricerca" }, "\xD7")))), /* @__PURE__ */ React.createElement("main", { id: "main-content", className: "content", onTouchStart, onTouchEnd }, (!user || activeTab === "oggi") && /* @__PURE__ */ React.createElement(
+      TrackerTab,
+      {
+        user,
+        dietData,
+        searchQuery,
+        openIdx,
+        setOpenIdx,
+        varGrams,
+        setVarGrams,
+        setLog,
+        extras,
+        extraName,
+        setExtraName,
+        extraInput,
+        setExtraInput,
+        addExtra,
+        removeExtra,
+        getCount,
+        inc,
+        dec,
+        catKcal,
+        maxItemKcal,
+        login
+      }
+    ), user && activeTab === "menu" && /* @__PURE__ */ React.createElement(MenuTab, { log, schedule }), user && activeTab === "storico" && /* @__PURE__ */ React.createElement(
       StoricoTab,
       {
         historyLoading,
