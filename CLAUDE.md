@@ -84,6 +84,10 @@ users/
       foods: {
         dietData: [ { category, icon, items: [{ id, name, portion, kcal, variable?, kcalPerG? }] } ]
       }
+      schedule: {
+        schedule: [ { key, label, end } ],
+        defaultKcal: 2000
+      }
     days/
       2026-04-24: {
         counts:   { "b4x8q3": 2, "u6r3k8": 1, ... },
@@ -155,15 +159,14 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - **Alimenti a porzione variabile** (`variable: true, kcalPerG: N`): input "Grammi" nella colonna porzione, kcal si aggiorna live
 - Bottoni +/− sempre visibili: il − è opaco (75%) e non cliccabile finché qty = 0
 - Totale kcal live con barra di progresso colorata (verde/giallo/rosso)
-- Goal calorico fisso a 2000 kcal nell'header (non editabile — il target si edita per giorno nello Storico)
+- Goal calorico nell'header = `defaultKcal` dell'utente (non editabile qui — si cambia nelle Impostazioni o per giorno nello Storico)
 - Shake animation quando si supera il target per la prima volta
 - Barra di ricerca per filtrare gli alimenti per nome (solo loggati)
-- Bottone "chiudi tutto" per chiudere tutti gli accordion aperti
 - Feedback tattile (vibrazione) al tap su +
 - Reset manuale con conferma (modale custom)
 - Legenda colori barre kcal in fondo alla lista
-- Logo testuale sostituito con `logo-main-horizontal.png` nell'header — responsive: 36px/155px a <390px, 44px/210px a ≥390px, 56px/270px a ≥768px
-- Header responsive: gap bottoni 6px a <390px, 8px a ≥390px; testo "Esci" nascosto a <390px (`.auth-btn-label`), solo avatar visibile
+- Logo testuale sostituito con `logo-main-horizontal.png` nell'header — responsive: 43px/155px a <390px, 52px/210px a ≥390px, 56px/270px a ≥768px
+- Header responsive: gap bottoni 6px a <390px, 8px a ≥390px
 
 ### Extra (campo libero)
 - Card in fondo alla lista con due input: nome alimento + kcal
@@ -177,11 +180,27 @@ Usare sempre `git add .` quando si committa (non specificare file singoli).
 - **Fasce orarie:** Fuori Orario / Colazione / Merenda metà mattina / Pranzo / Merenda pomeriggio / Cena
 - **Sezione 🍺 Extra:** tutti gli alcolici (categoria "Alcol") appaiono qui indipendentemente dall'orario
 
-### Tab Orari (solo loggati)
-- Permette di modificare le fasce orarie dei pasti (Colazione, Pranzo, Cena, Merenda, ecc.) e i relativi orari di fine
-- I dati sono salvati su Firestore sotto `config/schedule`
-- Sempre visibile quando loggato
-- L'input orario è un **text input HH:MM** (non `type="time"`) — garantisce formato 24 ore indipendentemente dalla lingua del browser
+### Menu profilo (solo loggati)
+- Clic sull'avatar nell'header apre un dropdown con due voci: ⚙️ **Impostazioni** e 🚪 **Logout**
+- Il dropdown si chiude cliccando fuori
+- Logout usa ancora la modale di conferma custom
+
+### Pagina Impostazioni (overlay full-screen)
+- Si apre cliccando ⚙️ Impostazioni nel menu profilo
+- È un overlay fixed (`z-index: 50`) con header, corpo scrollable e footer
+- Premendo × o Escape chiude senza salvare (se il wizard non è in controllo)
+- **Sezione Calorie giornaliere:** input numerico per `defaultKcal` — quante calorie bruci in media ogni giorno (TDEE). Usato come target di default per i nuovi giorni. Il target per un giorno specifico rimane modificabile dallo Storico.
+- **Sezione Fasce orarie:** stesse impostazioni del vecchio tab Orari (label + orario di fine per ogni fascia). L'input orario è un **text input HH:MM** (non `type="time"`) — garantisce formato 24 ore.
+- **Bottone Salva:** salva tutto su Firestore (`config/schedule` con campi `schedule` e `defaultKcal`), aggiorna lo state locale e imposta `target` di oggi a `defaultKcal`.
+- Le modifiche alle fasce orarie sono in draft locale finché non si preme Salva (a differenza del vecchio tab Orari che salvava live).
+
+### defaultKcal — Calorie giornaliere default
+- Salvato su Firestore in `config/schedule.defaultKcal` (stesso documento delle fasce orarie)
+- Letto al login insieme a `schedule`; default 2000 se assente
+- Usato come fallback per `target` quando non esiste un documento del giorno o il giorno non ha un `target` esplicito
+- Cambiare `defaultKcal` nelle Impostazioni aggiorna anche `target` del giorno corrente
+- Il target del singolo giorno (Storico) rimane sempre editabile e ha precedenza su `defaultKcal`
+- Per gli utenti non loggati: `target` viene da `localStorage` (`kcal_target`), default 2000
 
 ### Tab Alimenti (solo loggati)
 - Gestione completa della lista alimenti direttamente nell'app
@@ -213,16 +232,16 @@ Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col de
 ### Wizard guidato (solo loggati)
 - Pulsante 🧙 nell'header (visibile solo da loggato) che apre una guida a step
 - **Auto-apertura al primo login:** se `config/foods` non esiste su Firestore (primo accesso), il wizard si apre automaticamente dopo `setDataReady(true)` tramite il flag `autoOpenWizard`. Vale per tutti gli utenti (owner incluso). Dalle visite successive `config/foods` esiste già, quindi il wizard non si riapre da solo.
-- `WIZARD_STEPS` — array di step definito fuori da `App()`, con campi `tab`, `selector`, `title`, `text`, `last`
+- `WIZARD_STEPS` — array di step definito fuori da `App()`, con campi `tab`, `selector`, `title`, `text`, `last`, `openSettings`
 - Ogni step può cambiare il tab attivo e mettere in spotlight un elemento DOM (tramite `selector`)
 - **Spotlight:** 4 div `.wiz-mask` che mascherano l'area fuori dall'elemento; bordo pulsante `.wizard-spotlight-border` (animazione `wizardPulse`)
-- **Tab switching:** `useEffect([wizardOpen, wizardStep])` imposta `activeTab` se lo step ha un `tab`
+- **Tab switching + settings:** `useEffect([wizardOpen, wizardStep])` imposta `activeTab` se lo step ha un `tab`; se lo step ha `openSettings: true` apre l'overlay Impostazioni (e lo chiude quando si passa ad altri step o si chiude il wizard)
 - **Misurazione spotlight:** `useEffect([wizardOpen, wizardStep, activeTab])` con doppio `requestAnimationFrame` + `scrollIntoView` per garantire che il DOM sia stabile prima di misurare
 - **Tooltip:** posizionato con `top` fisso — logica: prova sotto lo spotlight → prova sopra → se né sopra né sotto hanno spazio (elemento molto alto), clamp dentro il viewport. Usa `TOOLTIP_H = 240` come stima altezza tooltip
 - **Emoji tema dinamica:** il testo dello step 1 contiene `{themeIcon}` che viene sostituito a render time con `🌙` (tema light) o `☀️` (tema dark)
-- **Fine wizard:** il bottone "Fatto!" chiude il wizard **e** riporta al tab "oggi**
-- **Selector `data-wizard`:** i pulsanti dei tab Alimenti, Orari, Storico hanno `data-wizard="alimenti-tab"` etc. per essere targettati dagli step che mostrano il tab stesso in spotlight
-- Steps attuali (10 totali): Benvenuto → Controlli header → Contatore+barra kcal → Tracker calorie → Extra → Alimenti (tab) → Aggiungi alimenti → Orari (tab) → Configura orari → Storico
+- **Fine wizard:** il bottone "Fatto!" chiude il wizard **e** riporta al tab "oggi"
+- **Selector `data-wizard`:** i pulsanti dei tab Alimenti e Storico hanno `data-wizard="alimenti-tab"` etc. per essere targettati dagli step che mostrano il tab stesso in spotlight
+- Steps attuali (10 totali): Benvenuto → Controlli header → Contatore+barra kcal → Tracker calorie → Extra → Alimenti (tab) → Aggiungi alimenti → Storico → Menu profilo → Impostazioni (apre overlay)
 
 ### Autenticazione
 - Bottone "Accedi" nell'header (Google OAuth)
@@ -246,7 +265,7 @@ Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col de
 - **Vista pasti nel giorno:** se il giorno ha `log` mostra raggruppato per fascia oraria; altrimenti flat list `items`
 
 #### target giornaliero = calorie bruciate (TDEE)
-`day.target` rappresenta le calorie bruciate stimate per quel giorno (default 2000). Il surplus/deficit reale è `totalKcal − target`. Il target dell'header è fisso a 2000 e non è editabile.
+`day.target` rappresenta le calorie bruciate stimate per quel giorno (default = `defaultKcal` dell'utente). Il surplus/deficit reale è `totalKcal − target`. Il target dell'header mostra `defaultKcal` e si modifica dalle Impostazioni (o per singolo giorno dallo Storico).
 
 **Editing target in Storico:** ogni giorno mostra `{totalKcal} kcal` e sotto `di {target}` (underline tratteggiato). Cliccando si apre un input inline che salva su Firestore e aggiorna tutta la UI in memoria (`setHistory`).
 
@@ -289,7 +308,7 @@ const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2); // kg
 - Swipe orizzontale sul `<main>` per passare tra i tab
 - Indicatore tab animato con `cubic-bezier`
 - Header e `.tabs-bar` sono avvolti in `<div className="sticky-top">` (`position: sticky; top: 0; z-index: 10`) — stickano insieme. Il `.header` non ha più `position: sticky` proprio; il bordo inferiore è su `.tabs-bar`; quando l'utente non è loggato (nessuna `.tabs-bar`) il bordo viene ripristinato via `.sticky-top:not(:has(.tabs-bar)) .header`.
-- Tutti i tab fluiscono da sinistra, nessun spacer `flex: 1` — Alimenti e Orari non sono più giustificati a destra
+- Tutti i tab fluiscono da sinistra, nessun spacer `flex: 1`
 - `.tabs-inner` ha `overflow-x: auto; overflow-y: clip; scrollbar-width: none` per consentire lo scroll orizzontale su schermi molto piccoli senza clippare l'indicatore attivo (`bottom: -1px`, tollerato da `padding-bottom: 1px`)
 
 ### Tema

@@ -359,17 +359,17 @@ const WIZARD_STEPS = [
     text: "Questa guida ti mostra le funzionalità principali. Puoi riaprirla in qualsiasi momento dal pulsante 🧙 nell'header.",
   },
   {
-    tab: null, selector: ".header-top-right", last: false,
+    tab: null, selector: ".header-top-right",
     title: "I controlli dell'app",
-    text: "Da sinistra: ❌ azzera le calorie del giorno, {themeIcon} cambia tema, 🧙 riapri questa guida, e il pulsante per uscire dall'account.",
+    text: "Da sinistra: ❌ azzera le calorie del giorno, {themeIcon} cambia tema, 🧙 riapri questa guida, e il tuo avatar per aprire il menu profilo.",
   },
   {
-    tab: null, selector: ".kcal-row", selectorEnd: ".progress-track", last: false,
+    tab: null, selector: ".kcal-row", selectorEnd: ".progress-track",
     title: "Il contatore calorie",
     text: "Il numero grande sono le kcal assunte oggi. A destra il tuo obiettivo; la differenza ti dice quante kcal ti rimangono (o di quanto hai sforato). La barra sotto si riempie man mano che mangi: diventa gialla avvicinandoti all'obiettivo e rossa se lo superi.",
   },
   {
-    tab: "oggi", selector: ".category-card", last: false,
+    tab: "oggi", selector: ".category-card",
     title: "Tracker calorie",
     text: "Gli alimenti sono divisi per categoria. Apri un accordion e usa + e − per registrare le porzioni. Il totale si aggiorna in tempo reale.",
   },
@@ -379,29 +379,34 @@ const WIZARD_STEPS = [
     text: "Hai mangiato qualcosa fuori dalla lista? Aggiungilo con nome e calorie. Viene sommato al totale della giornata.",
   },
   {
-    tab: "alimenti", selector: "[data-wizard='alimenti-tab']", last: false,
+    tab: "alimenti", selector: "[data-wizard='alimenti-tab']",
     title: "Gestisci i tuoi alimenti",
     text: "Dal tab Alimenti puoi costruire la tua lista personalizzata: categorie, porzioni e calorie tutte configurabili.",
   },
   {
-    tab: "alimenti", selector: ".admin-add-cat-btn", last: false,
+    tab: "alimenti", selector: ".admin-add-cat-btn",
     title: "Aggiungi categorie e alimenti",
     text: "Crea le tue categorie e aggiungi alimenti con porzioni e calorie. Puoi trascinare le righe per riordinare.",
   },
   {
-    tab: "orari", selector: "[data-wizard='orari-tab']", last: false,
-    title: "Fasce orarie",
-    text: "Dal tab Orari puoi personalizzare gli orari dei tuoi pasti: colazione, pranzo, cena e merende.",
-  },
-  {
-    tab: "orari", selector: ".orari-tab", last: false,
-    title: "Configura i tuoi orari",
-    text: "L'app usa queste fasce per raggruppare gli alimenti nel tab Menu. Modifica gli orari di fine di ogni fascia per adattarli alle tue abitudini.",
-  },
-  {
-    tab: "storico", selector: "[data-wizard='storico-tab']", last: false,
+    tab: "storico", selector: "[data-wizard='storico-tab']",
     title: "Storico settimanale",
     text: "Qui trovi il riepilogo di ogni settimana: calorie consumate, deficit o surplus e una proiezione di fine settimana. Si popola automaticamente giorno dopo giorno.",
+  },
+  {
+    tab: null, openProfileMenu: true, selector: ".profile-menu-wrap", selectorEnd: ".profile-dropdown",
+    title: "Menu profilo",
+    text: "Clicca sull'avatar in alto a destra per aprire questo menu: trovi le impostazioni dell'app e il pulsante per uscire dall'account.",
+  },
+  {
+    tab: null, openSettings: true, selector: ".settings-section",
+    title: "Calorie giornaliere",
+    text: "Qui imposti quante calorie bruci mediamente ogni giorno (il tuo TDEE). Sarà l'obiettivo di default per ogni nuovo giorno — puoi sempre modificarlo per un giorno specifico dallo Storico.",
+  },
+  {
+    tab: null, openSettings: true, selector: ".settings-section", last: true,
+    title: "Fasce orarie",
+    text: "Personalizza gli orari di fine di ogni fascia pasto. L'app li usa per raggruppare gli alimenti nel tab Menu e nello Storico. Le modifiche si applicano a tutto lo storico.",
   },
 ];
 
@@ -411,6 +416,10 @@ function App() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
   const [spotlightRect, setSpotlightRect] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [settingsDraft, setSettingsDraft] = useState({ defaultKcal: "2000", schedule: DEFAULT_SCHEDULE });
+  const [defaultKcal, setDefaultKcal] = useState(2000);
   const [counts, setCounts] = useState(() => loadLocalData().counts);
   const [extras, setExtras] = useState(() => loadLocalData().extras);
   const [varGrams, setVarGrams] = useState(() => loadLocalData().varGrams);
@@ -453,6 +462,7 @@ function App() {
   const sortableItemRefs = useRef({});
   const sortableItemInstances = useRef({});
   const isDraggingRef = useRef(false);
+  const profileMenuRef = useRef(null);
   const hoverOpenTimerRef = useRef(null);
   const hoverOpenCatRef = useRef(null);
   const adminOpenCatsRef = useRef(adminOpenCats);
@@ -536,6 +546,8 @@ function App() {
             db.collection("users").doc(u.uid).collection("config").doc("foods").get(),
             db.collection("users").doc(u.uid).collection("config").doc("schedule").get(),
           ]);
+          const loadedDefaultKcal = (schedSnap.exists && schedSnap.data().defaultKcal) ? schedSnap.data().defaultKcal : 2000;
+          setDefaultKcal(loadedDefaultKcal);
           if (schedSnap.exists && schedSnap.data().schedule) {
             setSchedule(schedSnap.data().schedule);
           }
@@ -603,11 +615,12 @@ function App() {
             setExtras(loadedExtras);
             setVarGrams(mvg);
             setLog(data.log || []);
-            if (data.target) setTarget(data.target);
+            setTarget(data.target || loadedDefaultKcal);
             if (migrated) {
               db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).update({ counts: mc, varGrams: mvg }).catch(e => console.error("Migration update error:", e));
             }
           }
+          if (!daySnap.exists) setTarget(loadedDefaultKcal);
           setDataReady(true);
           if (isFirstLogin) setAutoOpenWizard(true);
         } catch (e) {
@@ -808,9 +821,16 @@ function App() {
   }, [dataReady, autoOpenWizard]);
 
   useEffect(() => {
-    if (!wizardOpen) return;
+    if (!wizardOpen) { setSettingsOpen(false); setProfileMenuOpen(false); return; }
     const step = WIZARD_STEPS[wizardStep];
     if (step.tab) setActiveTab(step.tab);
+    if (step.openSettings) {
+      setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] });
+      setSettingsOpen(true);
+    } else {
+      setSettingsOpen(false);
+    }
+    setProfileMenuOpen(!!step.openProfileMenu);
   }, [wizardOpen, wizardStep]);
 
   useEffect(() => {
@@ -840,6 +860,22 @@ function App() {
     }, 400);
     return () => clearTimeout(t);
   }, [wizardOpen, wizardStep, activeTab]);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const handler = (e) => {
+      if (wizardOpen) return;
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [profileMenuOpen, wizardOpen]);
 
   const login = () => {
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -907,7 +943,6 @@ function App() {
     if (log.length > 0) t.push("menu");
     t.push("storico");
     t.push("alimenti");
-    t.push("orari");
     return t;
   };
 
@@ -963,11 +998,21 @@ function App() {
 
   // --- Admin tab functions ---
 
-  const saveScheduleToFirestore = (newSchedule) => {
+  const saveSettingsToFirestore = (newSchedule, newDefaultKcal) => {
     if (!user) return;
     db.collection("users").doc(user.uid).collection("config").doc("schedule")
-      .set({ schedule: newSchedule })
-      .catch(e => console.error("Schedule save error:", e));
+      .set({ schedule: newSchedule, defaultKcal: newDefaultKcal })
+      .catch(e => console.error("Settings save error:", e));
+  };
+
+  const saveSettings = () => {
+    const parsed = parseInt(settingsDraft.defaultKcal, 10);
+    const newDefaultKcal = (parsed > 0) ? parsed : 2000;
+    setDefaultKcal(newDefaultKcal);
+    setSchedule(settingsDraft.schedule);
+    setTarget(newDefaultKcal);
+    saveSettingsToFirestore(settingsDraft.schedule, newDefaultKcal);
+    setSettingsOpen(false);
   };
 
   const saveDietToFirestore = (newDietData) => {
@@ -1185,10 +1230,21 @@ function App() {
                 <button className="wizard-help-btn" onClick={() => { setWizardStep(0); setSpotlightRect(null); setWizardOpen(true); }} aria-label="Apri guida funzionalità">🧙</button>
               )}
               {user === undefined ? null : user ? (
-                <button className="auth-btn logged" onClick={logout} aria-label={`Esci dall'account ${user.displayName || ''}`}>
-                  {user.photoURL && <img src={user.photoURL} className="auth-avatar" alt="" />}
-                  <span className="auth-btn-label">Esci</span>
-                </button>
+                <div className="profile-menu-wrap" ref={profileMenuRef}>
+                  <button className="auth-btn logged" onClick={() => setProfileMenuOpen(v => !v)} aria-label="Menu profilo" aria-expanded={profileMenuOpen} aria-haspopup="menu">
+                    {user.photoURL && <img src={user.photoURL} className="auth-avatar" alt="" />}
+                  </button>
+                  {profileMenuOpen && (
+                    <div className="profile-dropdown" role="menu">
+                      <button className="profile-menu-item" role="menuitem" onClick={() => { setProfileMenuOpen(false); setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] }); setSettingsOpen(true); }}>
+                        <span aria-hidden="true">⚙️</span> Impostazioni
+                      </button>
+                      <button className="profile-menu-item profile-menu-item-logout" role="menuitem" onClick={() => { setProfileMenuOpen(false); logout(); }}>
+                        <span aria-hidden="true">🚪</span> Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <button className="auth-btn" onClick={login}>Accedi</button>
               )}
@@ -1221,7 +1277,6 @@ function App() {
             {log.length > 0 && <button ref={el => tabRefs.current["menu"] = el} className={`tab-btn${activeTab === "menu" ? " active" : ""}`} onClick={() => setActiveTab("menu")}>Menu</button>}
             <button ref={el => tabRefs.current["storico"] = el} data-wizard="storico-tab" className={`tab-btn${activeTab === "storico" ? " active" : ""}`} onClick={() => setActiveTab("storico")}>Storico</button>
             <button ref={el => tabRefs.current["alimenti"] = el} data-wizard="alimenti-tab" className={`tab-btn${activeTab === "alimenti" ? " active" : ""}`} onClick={() => setActiveTab("alimenti")}>Alimenti</button>
-            <button ref={el => tabRefs.current["orari"] = el} data-wizard="orari-tab" className={`tab-btn${activeTab === "orari" ? " active" : ""}`} onClick={() => setActiveTab("orari")}>Orari</button>
             <div className="tab-indicator" style={{ left: indicatorStyle.left, width: indicatorStyle.width }} />
           </div>
         </div>
@@ -2037,63 +2092,101 @@ function App() {
           </div>
         )}
 
-        {user && activeTab === "orari" && (
-          <div className="orari-tab">
-            <div className="orari-slot orari-slot-fixed">
-              <span className="orari-label-text">Fuori Orario</span>
-              <span className="orari-range-text">00:00 — 05:29</span>
-            </div>
-            {schedule.map((slot, i) => {
-              const startMin = i === 0 ? 330 : schedule[i - 1].end + 1;
-              const prevEnd = i === 0 ? 329 : schedule[i - 1].end;
-              const nextEnd = i === schedule.length - 1 ? 1440 : schedule[i + 1].end;
-              return (
-                <div key={slot.key} className="orari-slot">
-                  <input
-                    className="orari-label-input"
-                    aria-label={`Nome fascia ${slot.label}`}
-                    value={slot.label}
-                    onChange={e => {
-                      const newSchedule = schedule.map((s, j) => j === i ? { ...s, label: e.target.value } : s);
-                      setSchedule(newSchedule);
-                      saveScheduleToFirestore(newSchedule);
-                    }}
-                  />
-                  <div className="orari-times">
-                    <span className="orari-start">{minutesToTime(startMin)}</span>
-                    <span className="orari-sep">—</span>
-                    <input
-                      key={`time-${slot.key}-${slot.end}`}
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="HH:MM"
-                      className="orari-time-input"
-                      aria-label={`Fine fascia ${slot.label}`}
-                      defaultValue={minutesToTime(slot.end)}
-                      onBlur={e => {
-                        const raw = e.target.value.trim();
-                        if (!raw.match(/^\d{1,2}:\d{2}$/)) { e.target.value = minutesToTime(slot.end); return; }
-                        const newEnd = timeToMinutes(raw);
-                        if (isNaN(newEnd) || newEnd <= prevEnd || newEnd >= nextEnd) { e.target.value = minutesToTime(slot.end); return; }
-                        const newSchedule = schedule.map((s, j) => j === i ? { ...s, end: newEnd } : s);
-                        setSchedule(newSchedule);
-                        saveScheduleToFirestore(newSchedule);
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-            <div className="orari-slot orari-slot-fixed">
-              <span className="orari-label-text">Fuori Orario</span>
-              <span className="orari-range-text">{minutesToTime(schedule[schedule.length - 1].end + 1)} — 23:59</span>
-            </div>
-            <div className="orari-note">
-              ℹ️ Gli orari si applicano a tutto lo storico. Se sposti la fine del Pranzo da 15:00 a 14:30, i pasti loggati tra 14:30 e 15:00 — anche mesi fa — vengono spostati nella fascia successiva.
+      </main>
+
+      {user && settingsOpen && (
+        <div
+          className="settings-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Impostazioni"
+          onKeyDown={e => { if (e.key === "Escape" && !wizardOpen) setSettingsOpen(false); }}
+        >
+          <div className="settings-header">
+            <div className="settings-header-inner">
+              <button className="settings-close" onClick={() => setSettingsOpen(false)} aria-label="Chiudi impostazioni" autoFocus>×</button>
+              <span className="settings-title">Impostazioni</span>
             </div>
           </div>
-        )}
-      </main>
+          <div className="settings-body">
+            <section className="settings-section">
+              <h2 className="settings-section-title">Calorie giornaliere</h2>
+              <p className="settings-section-desc">Quante calorie bruci in media ogni giorno (TDEE). Sarà il tuo obiettivo di default per i nuovi giorni. Puoi sempre modificarlo per un giorno specifico dallo Storico.</p>
+              <div className="settings-field">
+                <label className="settings-label" htmlFor="settings-default-kcal">Calorie al giorno</label>
+                <input
+                  id="settings-default-kcal"
+                  className="settings-input"
+                  type="number"
+                  min="500"
+                  max="9999"
+                  value={settingsDraft.defaultKcal}
+                  onChange={e => setSettingsDraft(d => ({ ...d, defaultKcal: e.target.value }))}
+                />
+              </div>
+            </section>
+
+            <section className="settings-section">
+              <h2 className="settings-section-title">Fasce orarie</h2>
+              <p className="settings-section-desc">Orari di fine di ogni fascia pasto. Si applicano a tutto lo storico, anche ai giorni passati.</p>
+              <div className="orari-tab settings-orari">
+                <div className="orari-slot orari-slot-fixed">
+                  <span className="orari-label-text">Fuori Orario</span>
+                  <span className="orari-range-text">00:00 — 05:29</span>
+                </div>
+                {settingsDraft.schedule.map((slot, i) => {
+                  const startMin = i === 0 ? 330 : settingsDraft.schedule[i - 1].end + 1;
+                  const prevEnd = i === 0 ? 329 : settingsDraft.schedule[i - 1].end;
+                  const nextEnd = i === settingsDraft.schedule.length - 1 ? 1440 : settingsDraft.schedule[i + 1].end;
+                  return (
+                    <div key={slot.key} className="orari-slot">
+                      <input
+                        className="orari-label-input"
+                        aria-label={`Nome fascia ${slot.label}`}
+                        value={slot.label}
+                        onChange={e => {
+                          const newSchedule = settingsDraft.schedule.map((s, j) => j === i ? { ...s, label: e.target.value } : s);
+                          setSettingsDraft(d => ({ ...d, schedule: newSchedule }));
+                        }}
+                      />
+                      <div className="orari-times">
+                        <span className="orari-start">{minutesToTime(startMin)}</span>
+                        <span className="orari-sep">—</span>
+                        <input
+                          key={`time-${slot.key}-${slot.end}`}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="HH:MM"
+                          className="orari-time-input"
+                          aria-label={`Fine fascia ${slot.label}`}
+                          defaultValue={minutesToTime(slot.end)}
+                          onBlur={e => {
+                            const raw = e.target.value.trim();
+                            if (!raw.match(/^\d{1,2}:\d{2}$/)) { e.target.value = minutesToTime(slot.end); return; }
+                            const newEnd = timeToMinutes(raw);
+                            if (isNaN(newEnd) || newEnd <= prevEnd || newEnd >= nextEnd) { e.target.value = minutesToTime(slot.end); return; }
+                            const newSchedule = settingsDraft.schedule.map((s, j) => j === i ? { ...s, end: newEnd } : s);
+                            setSettingsDraft(d => ({ ...d, schedule: newSchedule }));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="orari-slot orari-slot-fixed">
+                  <span className="orari-label-text">Fuori Orario</span>
+                  <span className="orari-range-text">{minutesToTime(settingsDraft.schedule[settingsDraft.schedule.length - 1].end + 1)} — 23:59</span>
+                </div>
+              </div>
+            </section>
+          </div>
+          <div className="settings-footer">
+            <div className="settings-footer-inner">
+              <button className="settings-save-btn" onClick={saveSettings}>Salva</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {wizardOpen && (() => {
         const W = window.innerWidth, H = window.innerHeight;

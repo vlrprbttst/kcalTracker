@@ -655,20 +655,17 @@ const WIZARD_STEPS = [{
 }, {
   tab: null,
   selector: ".header-top-right",
-  last: false,
   title: "I controlli dell'app",
-  text: "Da sinistra: ❌ azzera le calorie del giorno, {themeIcon} cambia tema, 🧙 riapri questa guida, e il pulsante per uscire dall'account."
+  text: "Da sinistra: ❌ azzera le calorie del giorno, {themeIcon} cambia tema, 🧙 riapri questa guida, e il tuo avatar per aprire il menu profilo."
 }, {
   tab: null,
   selector: ".kcal-row",
   selectorEnd: ".progress-track",
-  last: false,
   title: "Il contatore calorie",
   text: "Il numero grande sono le kcal assunte oggi. A destra il tuo obiettivo; la differenza ti dice quante kcal ti rimangono (o di quanto hai sforato). La barra sotto si riempie man mano che mangi: diventa gialla avvicinandoti all'obiettivo e rossa se lo superi."
 }, {
   tab: "oggi",
   selector: ".category-card",
-  last: false,
   title: "Tracker calorie",
   text: "Gli alimenti sono divisi per categoria. Apri un accordion e usa + e − per registrare le porzioni. Il totale si aggiorna in tempo reale."
 }, {
@@ -680,33 +677,38 @@ const WIZARD_STEPS = [{
 }, {
   tab: "alimenti",
   selector: "[data-wizard='alimenti-tab']",
-  last: false,
   title: "Gestisci i tuoi alimenti",
   text: "Dal tab Alimenti puoi costruire la tua lista personalizzata: categorie, porzioni e calorie tutte configurabili."
 }, {
   tab: "alimenti",
   selector: ".admin-add-cat-btn",
-  last: false,
   title: "Aggiungi categorie e alimenti",
   text: "Crea le tue categorie e aggiungi alimenti con porzioni e calorie. Puoi trascinare le righe per riordinare."
 }, {
-  tab: "orari",
-  selector: "[data-wizard='orari-tab']",
-  last: false,
-  title: "Fasce orarie",
-  text: "Dal tab Orari puoi personalizzare gli orari dei tuoi pasti: colazione, pranzo, cena e merende."
-}, {
-  tab: "orari",
-  selector: ".orari-tab",
-  last: false,
-  title: "Configura i tuoi orari",
-  text: "L'app usa queste fasce per raggruppare gli alimenti nel tab Menu. Modifica gli orari di fine di ogni fascia per adattarli alle tue abitudini."
-}, {
   tab: "storico",
   selector: "[data-wizard='storico-tab']",
-  last: false,
   title: "Storico settimanale",
   text: "Qui trovi il riepilogo di ogni settimana: calorie consumate, deficit o surplus e una proiezione di fine settimana. Si popola automaticamente giorno dopo giorno."
+}, {
+  tab: null,
+  openProfileMenu: true,
+  selector: ".profile-menu-wrap",
+  selectorEnd: ".profile-dropdown",
+  title: "Menu profilo",
+  text: "Clicca sull'avatar in alto a destra per aprire questo menu: trovi le impostazioni dell'app e il pulsante per uscire dall'account."
+}, {
+  tab: null,
+  openSettings: true,
+  selector: ".settings-section",
+  title: "Calorie giornaliere",
+  text: "Qui imposti quante calorie bruci mediamente ogni giorno (il tuo TDEE). Sarà l'obiettivo di default per ogni nuovo giorno — puoi sempre modificarlo per un giorno specifico dallo Storico."
+}, {
+  tab: null,
+  openSettings: true,
+  selector: ".settings-section",
+  last: true,
+  title: "Fasce orarie",
+  text: "Personalizza gli orari di fine di ogni fascia pasto. L'app li usa per raggruppare gli alimenti nel tab Menu e nello Storico. Le modifiche si applicano a tutto lo storico."
 }];
 function App() {
   const [user, setUser] = useState(undefined);
@@ -714,6 +716,13 @@ function App() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
   const [spotlightRect, setSpotlightRect] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [settingsDraft, setSettingsDraft] = useState({
+    defaultKcal: "2000",
+    schedule: DEFAULT_SCHEDULE
+  });
+  const [defaultKcal, setDefaultKcal] = useState(2000);
   const [counts, setCounts] = useState(() => loadLocalData().counts);
   const [extras, setExtras] = useState(() => loadLocalData().extras);
   const [varGrams, setVarGrams] = useState(() => loadLocalData().varGrams);
@@ -765,6 +774,7 @@ function App() {
   const sortableItemRefs = useRef({});
   const sortableItemInstances = useRef({});
   const isDraggingRef = useRef(false);
+  const profileMenuRef = useRef(null);
   const hoverOpenTimerRef = useRef(null);
   const hoverOpenCatRef = useRef(null);
   const adminOpenCatsRef = useRef(adminOpenCats);
@@ -844,6 +854,8 @@ function App() {
       try {
         // Load day data, food list and schedule in parallel
         const [daySnap, foodsSnap, schedSnap] = await Promise.all([db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).get(), db.collection("users").doc(u.uid).collection("config").doc("foods").get(), db.collection("users").doc(u.uid).collection("config").doc("schedule").get()]);
+        const loadedDefaultKcal = schedSnap.exists && schedSnap.data().defaultKcal ? schedSnap.data().defaultKcal : 2000;
+        setDefaultKcal(loadedDefaultKcal);
         if (schedSnap.exists && schedSnap.data().schedule) {
           setSchedule(schedSnap.data().schedule);
         }
@@ -928,7 +940,7 @@ function App() {
           setExtras(loadedExtras);
           setVarGrams(mvg);
           setLog(data.log || []);
-          if (data.target) setTarget(data.target);
+          setTarget(data.target || loadedDefaultKcal);
           if (migrated) {
             db.collection("users").doc(u.uid).collection("days").doc(ACTIVE_DAY()).update({
               counts: mc,
@@ -936,6 +948,7 @@ function App() {
             }).catch(e => console.error("Migration update error:", e));
           }
         }
+        if (!daySnap.exists) setTarget(loadedDefaultKcal);
         setDataReady(true);
         if (isFirstLogin) setAutoOpenWizard(true);
       } catch (e) {
@@ -1167,9 +1180,23 @@ function App() {
     }
   }, [dataReady, autoOpenWizard]);
   useEffect(() => {
-    if (!wizardOpen) return;
+    if (!wizardOpen) {
+      setSettingsOpen(false);
+      setProfileMenuOpen(false);
+      return;
+    }
     const step = WIZARD_STEPS[wizardStep];
     if (step.tab) setActiveTab(step.tab);
+    if (step.openSettings) {
+      setSettingsDraft({
+        defaultKcal: String(defaultKcal),
+        schedule: [...schedule]
+      });
+      setSettingsOpen(true);
+    } else {
+      setSettingsOpen(false);
+    }
+    setProfileMenuOpen(!!step.openProfileMenu);
   }, [wizardOpen, wizardStep]);
   useEffect(() => {
     if (!wizardOpen) {
@@ -1217,6 +1244,23 @@ function App() {
     }, 400);
     return () => clearTimeout(t);
   }, [wizardOpen, wizardStep, activeTab]);
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const handler = e => {
+      if (wizardOpen) return;
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler, {
+      passive: true
+    });
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [profileMenuOpen, wizardOpen]);
   const login = () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).catch(console.error);
@@ -1308,7 +1352,6 @@ function App() {
     if (log.length > 0) t.push("menu");
     t.push("storico");
     t.push("alimenti");
-    t.push("orari");
     return t;
   };
   const onTouchStart = e => {
@@ -1375,11 +1418,21 @@ function App() {
 
   // --- Admin tab functions ---
 
-  const saveScheduleToFirestore = newSchedule => {
+  const saveSettingsToFirestore = (newSchedule, newDefaultKcal) => {
     if (!user) return;
     db.collection("users").doc(user.uid).collection("config").doc("schedule").set({
-      schedule: newSchedule
-    }).catch(e => console.error("Schedule save error:", e));
+      schedule: newSchedule,
+      defaultKcal: newDefaultKcal
+    }).catch(e => console.error("Settings save error:", e));
+  };
+  const saveSettings = () => {
+    const parsed = parseInt(settingsDraft.defaultKcal, 10);
+    const newDefaultKcal = parsed > 0 ? parsed : 2000;
+    setDefaultKcal(newDefaultKcal);
+    setSchedule(settingsDraft.schedule);
+    setTarget(newDefaultKcal);
+    saveSettingsToFirestore(settingsDraft.schedule, newDefaultKcal);
+    setSettingsOpen(false);
   };
   const saveDietToFirestore = newDietData => {
     if (!user) return;
@@ -1669,17 +1722,45 @@ function App() {
       setWizardOpen(true);
     },
     "aria-label": "Apri guida funzionalit\xE0"
-  }, "\uD83E\uDDD9"), user === undefined ? null : user ? /*#__PURE__*/React.createElement("button", {
+  }, "\uD83E\uDDD9"), user === undefined ? null : user ? /*#__PURE__*/React.createElement("div", {
+    className: "profile-menu-wrap",
+    ref: profileMenuRef
+  }, /*#__PURE__*/React.createElement("button", {
     className: "auth-btn logged",
-    onClick: logout,
-    "aria-label": `Esci dall'account ${user.displayName || ''}`
+    onClick: () => setProfileMenuOpen(v => !v),
+    "aria-label": "Menu profilo",
+    "aria-expanded": profileMenuOpen,
+    "aria-haspopup": "menu"
   }, user.photoURL && /*#__PURE__*/React.createElement("img", {
     src: user.photoURL,
     className: "auth-avatar",
     alt: ""
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "auth-btn-label"
-  }, "Esci")) : /*#__PURE__*/React.createElement("button", {
+  })), profileMenuOpen && /*#__PURE__*/React.createElement("div", {
+    className: "profile-dropdown",
+    role: "menu"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "profile-menu-item",
+    role: "menuitem",
+    onClick: () => {
+      setProfileMenuOpen(false);
+      setSettingsDraft({
+        defaultKcal: String(defaultKcal),
+        schedule: [...schedule]
+      });
+      setSettingsOpen(true);
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true"
+  }, "\u2699\uFE0F"), " Impostazioni"), /*#__PURE__*/React.createElement("button", {
+    className: "profile-menu-item profile-menu-item-logout",
+    role: "menuitem",
+    onClick: () => {
+      setProfileMenuOpen(false);
+      logout();
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true"
+  }, "\uD83D\uDEAA"), " Logout"))) : /*#__PURE__*/React.createElement("button", {
     className: "auth-btn",
     onClick: login
   }, "Accedi"))), /*#__PURE__*/React.createElement("div", {
@@ -1734,12 +1815,7 @@ function App() {
     "data-wizard": "alimenti-tab",
     className: `tab-btn${activeTab === "alimenti" ? " active" : ""}`,
     onClick: () => setActiveTab("alimenti")
-  }, "Alimenti"), /*#__PURE__*/React.createElement("button", {
-    ref: el => tabRefs.current["orari"] = el,
-    "data-wizard": "orari-tab",
-    className: `tab-btn${activeTab === "orari" ? " active" : ""}`,
-    onClick: () => setActiveTab("orari")
-  }, "Orari"), /*#__PURE__*/React.createElement("div", {
+  }, "Alimenti"), /*#__PURE__*/React.createElement("div", {
     className: "tab-indicator",
     style: {
       left: indicatorStyle.left,
@@ -2822,18 +2898,67 @@ function App() {
     className: "admin-add-cat-btn",
     onClick: () => setAdminNewCat(true),
     "aria-label": "Aggiungi nuova categoria"
-  }, "+ Aggiungi categoria"))), user && activeTab === "orari" && /*#__PURE__*/React.createElement("div", {
-    className: "orari-tab"
+  }, "+ Aggiungi categoria")))), user && settingsOpen && /*#__PURE__*/React.createElement("div", {
+    className: "settings-overlay",
+    role: "dialog",
+    "aria-modal": "true",
+    "aria-label": "Impostazioni",
+    onKeyDown: e => {
+      if (e.key === "Escape" && !wizardOpen) setSettingsOpen(false);
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "settings-header"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "settings-header-inner"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "settings-close",
+    onClick: () => setSettingsOpen(false),
+    "aria-label": "Chiudi impostazioni",
+    autoFocus: true
+  }, "\xD7"), /*#__PURE__*/React.createElement("span", {
+    className: "settings-title"
+  }, "Impostazioni"))), /*#__PURE__*/React.createElement("div", {
+    className: "settings-body"
+  }, /*#__PURE__*/React.createElement("section", {
+    className: "settings-section"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "settings-section-title"
+  }, "Calorie giornaliere"), /*#__PURE__*/React.createElement("p", {
+    className: "settings-section-desc"
+  }, "Quante calorie bruci in media ogni giorno (TDEE). Sar\xE0 il tuo obiettivo di default per i nuovi giorni. Puoi sempre modificarlo per un giorno specifico dallo Storico."), /*#__PURE__*/React.createElement("div", {
+    className: "settings-field"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "settings-label",
+    htmlFor: "settings-default-kcal"
+  }, "Calorie al giorno"), /*#__PURE__*/React.createElement("input", {
+    id: "settings-default-kcal",
+    className: "settings-input",
+    type: "number",
+    min: "500",
+    max: "9999",
+    value: settingsDraft.defaultKcal,
+    onChange: e => setSettingsDraft(d => ({
+      ...d,
+      defaultKcal: e.target.value
+    }))
+  }))), /*#__PURE__*/React.createElement("section", {
+    className: "settings-section"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "settings-section-title"
+  }, "Fasce orarie"), /*#__PURE__*/React.createElement("p", {
+    className: "settings-section-desc"
+  }, "Orari di fine di ogni fascia pasto. Si applicano a tutto lo storico, anche ai giorni passati."), /*#__PURE__*/React.createElement("div", {
+    className: "orari-tab settings-orari"
   }, /*#__PURE__*/React.createElement("div", {
     className: "orari-slot orari-slot-fixed"
   }, /*#__PURE__*/React.createElement("span", {
     className: "orari-label-text"
   }, "Fuori Orario"), /*#__PURE__*/React.createElement("span", {
     className: "orari-range-text"
-  }, "00:00 \u2014 05:29")), schedule.map((slot, i) => {
-    const startMin = i === 0 ? 330 : schedule[i - 1].end + 1;
-    const prevEnd = i === 0 ? 329 : schedule[i - 1].end;
-    const nextEnd = i === schedule.length - 1 ? 1440 : schedule[i + 1].end;
+  }, "00:00 \u2014 05:29")), settingsDraft.schedule.map((slot, i) => {
+    const startMin = i === 0 ? 330 : settingsDraft.schedule[i - 1].end + 1;
+    const prevEnd = i === 0 ? 329 : settingsDraft.schedule[i - 1].end;
+    const nextEnd = i === settingsDraft.schedule.length - 1 ? 1440 : settingsDraft.schedule[i + 1].end;
     return /*#__PURE__*/React.createElement("div", {
       key: slot.key,
       className: "orari-slot"
@@ -2842,12 +2967,14 @@ function App() {
       "aria-label": `Nome fascia ${slot.label}`,
       value: slot.label,
       onChange: e => {
-        const newSchedule = schedule.map((s, j) => j === i ? {
+        const newSchedule = settingsDraft.schedule.map((s, j) => j === i ? {
           ...s,
           label: e.target.value
         } : s);
-        setSchedule(newSchedule);
-        saveScheduleToFirestore(newSchedule);
+        setSettingsDraft(d => ({
+          ...d,
+          schedule: newSchedule
+        }));
       }
     }), /*#__PURE__*/React.createElement("div", {
       className: "orari-times"
@@ -2874,12 +3001,14 @@ function App() {
           e.target.value = minutesToTime(slot.end);
           return;
         }
-        const newSchedule = schedule.map((s, j) => j === i ? {
+        const newSchedule = settingsDraft.schedule.map((s, j) => j === i ? {
           ...s,
           end: newEnd
         } : s);
-        setSchedule(newSchedule);
-        saveScheduleToFirestore(newSchedule);
+        setSettingsDraft(d => ({
+          ...d,
+          schedule: newSchedule
+        }));
       }
     })));
   }), /*#__PURE__*/React.createElement("div", {
@@ -2888,9 +3017,14 @@ function App() {
     className: "orari-label-text"
   }, "Fuori Orario"), /*#__PURE__*/React.createElement("span", {
     className: "orari-range-text"
-  }, minutesToTime(schedule[schedule.length - 1].end + 1), " \u2014 23:59")), /*#__PURE__*/React.createElement("div", {
-    className: "orari-note"
-  }, "\u2139\uFE0F Gli orari si applicano a tutto lo storico. Se sposti la fine del Pranzo da 15:00 a 14:30, i pasti loggati tra 14:30 e 15:00 \u2014 anche mesi fa \u2014 vengono spostati nella fascia successiva."))), wizardOpen && (() => {
+  }, minutesToTime(settingsDraft.schedule[settingsDraft.schedule.length - 1].end + 1), " \u2014 23:59"))))), /*#__PURE__*/React.createElement("div", {
+    className: "settings-footer"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "settings-footer-inner"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "settings-save-btn",
+    onClick: saveSettings
+  }, "Salva")))), wizardOpen && (() => {
     const W = window.innerWidth,
       H = window.innerHeight;
     const eff = spotlightRect ?? {
