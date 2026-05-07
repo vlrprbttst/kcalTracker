@@ -5,21 +5,43 @@ App personale per tracciare le calorie giornaliere. Pubblicata su GitHub Pages. 
 
 **Live:** https://vlrprbttst.github.io/kcalTracker  
 **Repo:** https://github.com/vlrprbttst/kcalTracker  
-**File principali:** `index.html` (scheletro HTML), `style.css` (tutto il CSS), `app.jsx` (sorgente JSX), `app.js` (compilato — quello che carica il browser)  
-**File di riferimento alimenti:** la lista alimenti è in `app.jsx` nell'array `SEED_DIET_DATA` (seed iniziale), ma in produzione viene caricata da Firestore (`users/{uid}/config/foods`).
+**File principali:** `index.html` (scheletro HTML), `style.css` (tutto il CSS), sorgenti JSX in `src/`, `app.js` (bundle — quello che carica il browser)  
+**File di riferimento alimenti:** la lista alimenti è in `src/seed.js` nell'array `SEED_DIET_DATA` (seed iniziale), ma in produzione viene caricata da Firestore (`users/{uid}/config/foods`).
+
+## Mappa dei moduli (dove vive cosa)
+Per ridurre il tempo di lookup quando si lavora su una feature, leggi solo il modulo rilevante:
+
+| Cosa stai modificando | File da aprire |
+|---|---|
+| Tab "Oggi" (tracker calorie, contatori, extra, banner guest) | `src/tabs/TrackerTab.jsx` |
+| Tab Menu (raggruppamento per fascia oraria, sezione Alcol) | `src/tabs/MenuTab.jsx` |
+| Tab Storico (settimane, balance, edit target, snackbar proiezione) | `src/tabs/StoricoTab.jsx` |
+| Tab Alimenti (admin: edit/add/delete, SortableJS, search) | `src/tabs/AlimentiAdminTab.jsx` |
+| Wizard guidato (steps, spotlight, tooltip) | `src/components/Wizard.jsx` |
+| Pagina Impostazioni (defaultKcal, fasce orarie) | `src/components/SettingsOverlay.jsx` |
+| Modale di conferma generica (reset, logout, elimina) | `src/components/ConfirmModal.jsx` |
+| Barra kcal colorata sui singoli alimenti | `src/components/KcalBar.jsx` |
+| Header, profile menu, sticky-top, tab routing, login/logout, sync Firestore, debounce, theme, swipe | `src/app.jsx` |
+| Firebase config, `auth`, `db`, `ALLOWED_UID` | `src/firebase.js` |
+| `SEED_DIET_DATA` + `seedItemById`/`seedItemCategory` | `src/seed.js` |
+| `ACTIVE_DAY`, `TODAY`, `genId`, `migrateCountKeys`, `loadLocalData`, `loadTarget`, `computeTotal`, `buildItemsList` | `src/utils.js` |
+| `DEFAULT_SCHEDULE`, `minutesToTime`, `timeToMinutes`, `getMealSlot`, `groupLogByMeal`, `groupEntries` | `src/schedule.js` |
+| `getWeekStart`, `formatShortDate`, `groupByWeek`, `getBimesterOf`, `bimesterLabel`, `addBimesters`, `getMonthName`, `formatDate` | `src/history.js` |
+| Bundling, hash SRI, query string `?v=` | `build.js` |
 
 ---
 
 ## Stack tecnico
 - React 18.3.1 via CDN (versione pinnata, SRI hash)
-- **app.jsx pre-compilato in app.js con Babel Node** — Babel non è più nel browser
+- **Sorgenti modulari in `src/` bundlati con esbuild in `app.js`** — un singolo IIFE caricato dal browser. Niente Babel-in-browser, niente bundler runtime
+- ES modules (`import`/`export`) usati internamente; `React`, `firebase`, `Sortable` letti come globali da CDN (no `import` in moduli)
 - Firebase 10.12.2 (compat SDK via CDN, versione pinnata, SRI hash):
   - **Authentication** — Google OAuth
   - **Firestore** — salvataggio dati giornalieri, storico, e lista alimenti
 - SortableJS 1.15.2 via CDN (no SRI hash) — drag & drop nel tab Alimenti
 - GitHub Pages per l'hosting (branch `master`, aggiornamento automatico ad ogni push)
 - Dark/light theme con CSS variables
-- `build.js` + `package.json` per la compilazione locale (Node.js richiesto)
+- `build.js` + `package.json` per la compilazione locale (Node.js + esbuild)
 
 ---
 
@@ -123,7 +145,7 @@ users/
 ## Regole importanti
 
 ### Aggiunta/modifica alimenti
-Puoi aggiungere, rimuovere e riordinare alimenti liberamente — sia via tab Alimenti nell'app, sia modificando `SEED_DIET_DATA` in `app.jsx` (solo per modifiche strutturali, es. aggiungere una categoria al seed iniziale).
+Puoi aggiungere, rimuovere e riordinare alimenti liberamente — sia via tab Alimenti nell'app, sia modificando `SEED_DIET_DATA` in `src/seed.js` (solo per modifiche strutturali, es. aggiungere una categoria al seed iniziale).
 
 **L'unica regola: non riusare mai un ID già usato per un alimento diverso.** Il nome può cambiare, l'ID è per sempre.
 
@@ -136,10 +158,10 @@ Per gli alimenti a porzione variabile usa il toggle "Variabile" nel tab Alimenti
 **Attenzione:** non pushare mai a metà giornata se stai cambiando un alimento fisso in variabile — la sanitizzazione al carico azzera il count se varGrams è assente.
 
 ### Build
-**Dopo ogni modifica a `app.jsx`, eseguire sempre `npm run build` prima di committare.**
+**Dopo ogni modifica a un file in `src/`, eseguire sempre `npm run build` prima di committare.**
 
 ```bash
-npm run build   # compila app.jsx → app.js
+npm run build   # esbuild bundla src/app.jsx → app.js
 ```
 
 ### Git
@@ -232,11 +254,11 @@ Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col de
 ### Wizard guidato (solo loggati)
 - Pulsante 🧙 nell'header (visibile solo da loggato) che apre una guida a step
 - **Auto-apertura al primo login:** se `config/foods` non esiste su Firestore (primo accesso), il wizard si apre automaticamente dopo `setDataReady(true)` tramite il flag `autoOpenWizard`. Vale per tutti gli utenti (owner incluso). Dalle visite successive `config/foods` esiste già, quindi il wizard non si riapre da solo.
-- `WIZARD_STEPS` — array di step definito fuori da `App()`, con campi `tab`, `selector`, `title`, `text`, `last`, `openSettings`
+- `WIZARD_STEPS` — array di step esportato da `src/components/Wizard.jsx`, con campi `tab`, `selector`, `title`, `text`, `last`, `openSettings`. Importato anche in `src/app.jsx` per l'orchestration effect (step → tab/settings/profile-menu)
 - Ogni step può cambiare il tab attivo e mettere in spotlight un elemento DOM (tramite `selector`)
 - **Spotlight:** 4 div `.wiz-mask` che mascherano l'area fuori dall'elemento; bordo pulsante `.wizard-spotlight-border` (animazione `wizardPulse`)
-- **Tab switching + settings:** `useEffect([wizardOpen, wizardStep])` imposta `activeTab` se lo step ha un `tab`; se lo step ha `openSettings: true` apre l'overlay Impostazioni (e lo chiude quando si passa ad altri step o si chiude il wizard)
-- **Misurazione spotlight:** `useEffect([wizardOpen, wizardStep, activeTab])` con doppio `requestAnimationFrame` + `scrollIntoView` per garantire che il DOM sia stabile prima di misurare
+- **Tab switching + settings (in `src/app.jsx`):** `useEffect([wizardOpen, wizardStep])` imposta `activeTab` se lo step ha un `tab`; se lo step ha `openSettings: true` apre l'overlay Impostazioni (e lo chiude quando si passa ad altri step o si chiude il wizard). Resta in App perché coordina state cross-componente.
+- **Misurazione spotlight (interna a `Wizard`):** `useEffect([open, step, activeTab])` con doppio `requestAnimationFrame` + `scrollIntoView` per garantire che il DOM sia stabile prima di misurare. Lo state `spotlightRect` vive dentro `Wizard.jsx`.
 - **Tooltip:** posizionato con `top` fisso — logica: prova sotto lo spotlight → prova sopra → se né sopra né sotto hanno spazio (elemento molto alto), clamp dentro il viewport. Usa `TOOLTIP_H = 240` come stima altezza tooltip
 - **Emoji tema dinamica:** il testo dello step 1 contiene `{themeIcon}` che viene sostituito a render time con `🌙` (tema light) o `☀️` (tema dark)
 - **Fine wizard:** il bottone "Fatto!" chiude il wizard **e** riporta al tab "oggi"
@@ -322,7 +344,7 @@ const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2); // kg
 ## Dettagli tecnici importanti
 
 ### dietData — da globale a state dinamico
-`SEED_DIET_DATA` è l'array hardcoded in `app.jsx` usato come seed e fallback per la migrazione legacy.
+`SEED_DIET_DATA` è l'array hardcoded in `src/seed.js` usato come seed e fallback per la migrazione legacy.
 
 Al login, `dietData` viene caricato da Firestore (`config/foods`) in parallelo con i dati del giorno. Se `config/foods` non esiste, viene seminato da `SEED_DIET_DATA`. Il componente mantiene `dietData` come React state.
 
@@ -367,13 +389,13 @@ const ACTIVE_DAY = () => {
 Non usare `toISOString()` — restituisce UTC e causa sfasamenti.
 
 ### SortableJS nel tab Alimenti
-Due istanze Sortable distinte:
+Tutto il codice SortableJS vive in `src/tabs/AlimentiAdminTab.jsx`. Cleanup totale al cambio tab è automatico via React unmount (il componente è renderizzato solo se `activeTab === "alimenti"`). Due istanze Sortable distinte:
 
-**Item sortable** — `useEffect([adminOpenCats, activeTab, adminSearchQuery])`, container = div interno alla categoria aperta. Refs: `sortableItemRefs` (dict keyed per nome categoria) e `sortableItemInstances`. Handle `.admin-drag-handle`. Dipende da `adminOpenCats` (Set, plurale), `activeTab` e `adminSearchQuery` perché il container si monta/smonta (la search view è un ramo else che smonta i ref). All'inizio del loop su `adminOpenCats` controlla se `instance.el !== el` (istanza stantia su nodo smontato): se sì, destroy + delete prima di ricreare. Usa `adminOpenCatsRef`, `userRef` e `dietDataRef` per closure-safe access in `onEnd`.
+**Item sortable** — `useEffect([adminOpenCats, adminSearchQuery])`, container = div interno alla categoria aperta. Refs: `sortableItemRefs` (dict keyed per nome categoria) e `sortableItemInstances`. Handle `.admin-drag-handle`. Dipende da `adminOpenCats` (Set, plurale) e `adminSearchQuery` perché il container si monta/smonta (la search view è un ramo else che smonta i ref). All'inizio del loop su `adminOpenCats` controlla se `instance.el !== el` (istanza stantia su nodo smontato): se sì, destroy + delete prima di ricreare. Usa `adminOpenCatsRef`, `userRef` e `dietDataRef` per closure-safe access in `onEnd`.
 
 **Note sul `onEnd` con `group: 'items'`:** Verificato sulla source di SortableJS 1.15.2 — `onEnd` spara **solo sul sortable sorgente** (non sulla destinazione). Il guard `if (from !== el) return;` è una misura difensiva innocua (no-op per il sorgente). Il salvataggio Firestore è fuori dal callback `setDietData` (non dentro) per evitare race condition con write successive: se il save del drag completasse dopo il save di un delete, Firestore verrebbe riscritto con lo stato pre-cancellazione.
 
-**Category sortable** — `useEffect([activeTab, adminSearchQuery])`, container = div che racchiude solo le `.category-card` (sotto-div di `.admin-tab`, prima del bottone "+ Aggiungi categoria") (`sortableCatsRef`), handle `.admin-cat-drag-handle`. Il container non include il bottone "+ Aggiungi categoria" per evitare sfasamenti sugli indici. Le category-card usano `key={cat.category}` (non `key={catIdx}`) per evitare la collisione React+SortableJS: con chiavi stabili React segue il nodo DOM per identità invece di riconciliare per posizione. In `onEnd` aggiorna `dietData` tramite `dietDataRef.current` (non functional update) e salva su Firestore fuori dal callback.
+**Category sortable** — `useEffect([adminSearchQuery])`, container = div che racchiude solo le `.category-card` (sotto-div di `.admin-tab`, prima del bottone "+ Aggiungi categoria") (`sortableCatsRef`), handle `.admin-cat-drag-handle`. Il container non include il bottone "+ Aggiungi categoria" per evitare sfasamenti sugli indici. Le category-card usano `key={cat.category}` (non `key={catIdx}`) per evitare la collisione React+SortableJS: con chiavi stabili React segue il nodo DOM per identità invece di riconciliare per posizione. In `onEnd` aggiorna `dietData` tramite `dietDataRef.current` (non functional update) e salva su Firestore fuori dal callback.
 
 ### genId
 ```js
@@ -408,7 +430,7 @@ L'app è sviluppata per essere compliant WCAG AAA 2.2. Ogni nuova funzionalità 
 ---
 
 ## Lista alimenti
-La lista completa è gestita in Firestore (`config/foods`). `SEED_DIET_DATA` in `app.jsx` è la versione di partenza.  
+La lista completa è gestita in Firestore (`config/foods`). `SEED_DIET_DATA` in `src/seed.js` è la versione di partenza.  
 Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 
 ---
@@ -416,14 +438,17 @@ Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 ## File nella repo
 - `index.html` — scheletro HTML (head, root div, CDN scripts con SRI, SortableJS, CSP meta tag)
 - `style.css` — tutto il CSS dell'app
-- `app.jsx` — sorgente JSX React — **non caricato dal browser**
-- `app.js` — output compilato — **quello che carica il browser**
-- `build.js` — script di compilazione
-- `package.json` — devDependencies + script `build`
+- `src/app.jsx` — guscio dell'app React (state principale, sync Firestore, header, tab routing) — **non caricato dal browser**
+- `src/firebase.js`, `src/seed.js`, `src/utils.js`, `src/schedule.js`, `src/history.js` — costanti, helper puri, lookup
+- `src/components/` — `KcalBar.jsx`, `ConfirmModal.jsx`, `SettingsOverlay.jsx`, `Wizard.jsx`
+- `src/tabs/` — `TrackerTab.jsx`, `MenuTab.jsx`, `StoricoTab.jsx`, `AlimentiAdminTab.jsx`
+- `app.js` — bundle IIFE prodotto da esbuild — **quello che carica il browser**
+- `build.js` — script di build (esbuild + hash SHA-256 per cache busting)
+- `package.json` — devDependencies (`esbuild`) + script `build`
 - `package-lock.json` — lockfile npm
 - `manifest.json` — PWA manifest
 - `logo-main.png` — icona app PWA (favicon, apple-touch-icon, manifest)
-- `logo-main-horizontal.png` — logo testuale nell'header (img in app.jsx)
+- `logo-main-horizontal.png` — logo testuale nell'header
 - `logo.png` — icona precedente (non più usata)
 - `logo2.png` — logo precedente (non più usato)
 - `no.gif` — gif accesso negato
@@ -441,8 +466,8 @@ Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
 
 ## Come lavorare su questo progetto
 1. Modifiche al CSS → `style.css`, poi **`npm run build`** (aggiorna l'hash CSS in `index.html`)
-2. Modifiche alla logica/UI → `app.jsx`, poi **`npm run build`**
-3. Aggiunta/modifica alimenti → direttamente dal **tab Alimenti** nell'app (loggato), oppure in `SEED_DIET_DATA` in `app.jsx` per modifiche strutturali al seed
+2. Modifiche alla logica/UI → file pertinente in `src/` (vedi "Mappa dei moduli" sopra), poi **`npm run build`**
+3. Aggiunta/modifica alimenti → direttamente dal **tab Alimenti** nell'app (loggato), oppure in `SEED_DIET_DATA` in `src/seed.js` per modifiche strutturali al seed
 4. Push → `git add . && git commit -m "..." && git push` — solo quando Valerio lo chiede
 5. GitHub Pages → si aggiorna in 1-2 minuti dal push
 6. Per testare in locale → live server su `127.0.0.1:5500`
