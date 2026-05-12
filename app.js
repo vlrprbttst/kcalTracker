@@ -1960,4 +1960,10 @@
     ), installBanner && /* @__PURE__ */ React.createElement("div", { className: "install-banner", role: "complementary", "aria-label": "Installa l'app" }, /* @__PURE__ */ React.createElement("div", { className: "install-banner-text" }, /* @__PURE__ */ React.createElement("strong", null, "Installa kcalTracker"), installBanner === "android" ? /* @__PURE__ */ React.createElement("span", null, "Aggiungila alla schermata home per un accesso rapido") : /* @__PURE__ */ React.createElement("span", null, "Tocca \u2B06 in basso, poi \xABAggiungi alla schermata Home\xBB")), /* @__PURE__ */ React.createElement("div", { className: "install-banner-actions" }, installBanner === "android" && /* @__PURE__ */ React.createElement("button", { className: "install-btn", onClick: handleInstall }, "Installa"), /* @__PURE__ */ React.createElement("button", { className: "install-dismiss", onClick: dismissInstall, "aria-label": "Chiudi banner installazione" }, "\xD7"))));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ React.createElement(App, null));
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/kcalTracker/sw.js").catch(() => {
+      });
+    });
+  }
 })();
