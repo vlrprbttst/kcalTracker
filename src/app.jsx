@@ -49,6 +49,7 @@ function App() {
   const [confirmModal, setConfirmModal] = useState(null);
   const [installEvent, setInstallEvent] = useState(null);
   const [installBanner, setInstallBanner] = useState(null); // "android" | "ios" | null
+  const [pwaInteracted, setPwaInteracted] = useState(() => localStorage.getItem('pwa_dismissed') === '1');
 
   // dietData state — loaded from Firestore on login, seeded from SEED_DIET_DATA if absent
   const [dietData, setDietData] = useState(SEED_DIET_DATA);
@@ -87,11 +88,13 @@ function App() {
 
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    if (isStandalone || localStorage.getItem('pwa_dismissed')) return;
+    if (isStandalone) return;
+    const isDismissed = !!localStorage.getItem('pwa_dismissed');
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const isSafariOnly = /safari/i.test(navigator.userAgent) && !/chrome|chromium|crios|fxios/i.test(navigator.userAgent);
-    if (isIOS && isSafariOnly) { setInstallBanner("ios"); return; }
-    const handler = (e) => { e.preventDefault(); setInstallEvent(e); setInstallBanner("android"); };
+    if (isIOS && isSafariOnly) { if (!isDismissed) setInstallBanner("ios"); return; }
+    // Always capture the event so the menu item can trigger install after banner is dismissed
+    const handler = (e) => { e.preventDefault(); setInstallEvent(e); if (!isDismissed) setInstallBanner("android"); };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
@@ -113,6 +116,7 @@ function App() {
   const dismissInstall = () => {
     setInstallBanner(null);
     localStorage.setItem('pwa_dismissed', '1');
+    setPwaInteracted(true);
   };
 
   const saveDebounceRef = useRef(null);
@@ -536,6 +540,19 @@ function App() {
                           navigator.share(shareData);
                         }}>
                           <span aria-hidden="true">📤</span> Condividi app
+                        </button>
+                      )}
+                      {pwaInteracted && !(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) && (
+                        <button className="profile-menu-item" role="menuitem" onClick={() => {
+                          setProfileMenuOpen(false);
+                          if (installEvent) {
+                            handleInstall();
+                          } else {
+                            const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+                            if (isIOS) setInstallBanner("ios");
+                          }
+                        }}>
+                          <span aria-hidden="true">📲</span> Installa app
                         </button>
                       )}
                       <button className="profile-menu-item profile-menu-item-logout" role="menuitem" onClick={() => { setProfileMenuOpen(false); logout(); }}>
