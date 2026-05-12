@@ -609,8 +609,8 @@ function App() {
       {user && (
         <div className="tabs-bar" role="navigation" aria-label="Sezioni principali">
           <div className="tabs-inner">
-            <button ref={el => tabRefs.current["oggi"] = el} className={`tab-btn${activeTab === "oggi" ? " active" : ""}`} onClick={() => setActiveTab("oggi")}>Oggi</button>
-            {log.length > 0 && <button ref={el => tabRefs.current["menu"] = el} className={`tab-btn${activeTab === "menu" ? " active" : ""}`} onClick={() => setActiveTab("menu")}>Menu</button>}
+            <button ref={el => tabRefs.current["oggi"] = el} className={`tab-btn${activeTab === "oggi" ? " active" : ""}`} onClick={() => setActiveTab("oggi")}>Menu</button>
+            {log.length > 0 && <button ref={el => tabRefs.current["menu"] = el} className={`tab-btn${activeTab === "menu" ? " active" : ""}`} onClick={() => setActiveTab("menu")}>Oggi</button>}
             <button ref={el => tabRefs.current["storico"] = el} data-wizard="storico-tab" className={`tab-btn${activeTab === "storico" ? " active" : ""}`} onClick={() => setActiveTab("storico")}>Storico</button>
             <button ref={el => tabRefs.current["alimenti"] = el} data-wizard="alimenti-tab" className={`tab-btn${activeTab === "alimenti" ? " active" : ""}`} onClick={() => setActiveTab("alimenti")}>Alimenti</button>
             <div className="tab-indicator" style={{ left: indicatorStyle.left, width: indicatorStyle.width }} />
