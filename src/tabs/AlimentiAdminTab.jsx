@@ -308,11 +308,11 @@ export default function AlimentiAdminTab({
           if (!results.length) return <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-dim)', fontSize: 14 }}>Nessun alimento trovato</div>;
           return results.map(({ cat, items }) => (
             <div key={cat.category} className="category-card">
-              <div className="admin-cat-row" style={{ cursor: 'default' }}>
+              <button type="button" className="category-btn" aria-expanded="true" style={{ cursor: 'default' }}>
                 <span className="cat-icon" aria-hidden="true">{cat.icon}</span>
                 <span className="cat-name">{cat.category}</span>
                 <span className="cat-meta">{items.length} {items.length === 1 ? "alimento" : "alimenti"}</span>
-              </div>
+              </button>
               <div className="admin-items-list">
                 {items.map(item => (
                   <div key={item.id} className="admin-item-row">
