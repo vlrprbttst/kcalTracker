@@ -559,7 +559,7 @@ function App() {
                           } catch (_) {}
                           navigator.share(shareData);
                         }}>
-                          <span aria-hidden="true">📤</span> Condividi app
+                          <span aria-hidden="true">📤</span> Condividi
                         </button>
                       )}
                       {pwaInteracted && !(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) && (
@@ -572,7 +572,7 @@ function App() {
                             if (isIOS) setInstallBanner("ios");
                           }
                         }}>
-                          <span aria-hidden="true">📲</span> Installa app
+                          <span aria-hidden="true">📲</span> Installa
                         </button>
                       )}
                       <button className="profile-menu-item profile-menu-item-logout" role="menuitem" onClick={() => { setProfileMenuOpen(false); logout(); }}>
