@@ -1805,9 +1805,19 @@
       setProfileMenuOpen(false);
       setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] });
       setSettingsOpen(true);
-    } }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u2699\uFE0F"), " Impostazioni"), navigator.share && /* @__PURE__ */ React.createElement("button", { className: "profile-menu-item", role: "menuitem", onClick: () => {
+    } }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u2699\uFE0F"), " Impostazioni"), navigator.share && /* @__PURE__ */ React.createElement("button", { className: "profile-menu-item", role: "menuitem", onClick: async () => {
       setProfileMenuOpen(false);
-      navigator.share({ title: "kcalTracker", text: "Traccia le calorie con me su kcalTracker!", url: "https://vlrprbttst.github.io/kcalTracker" });
+      const shareData = { title: "kcalTracker", text: "Traccia le calorie con me su kcalTracker!", url: "https://vlrprbttst.github.io/kcalTracker" };
+      try {
+        const res = await fetch("https://vlrprbttst.github.io/kcalTracker/logo-main.png");
+        const blob = await res.blob();
+        const file = new File([blob], "kcalTracker.png", { type: blob.type });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          shareData.files = [file];
+        }
+      } catch (_) {
+      }
+      navigator.share(shareData);
     } }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u{1F4E4}"), " Condividi app"), /* @__PURE__ */ React.createElement("button", { className: "profile-menu-item profile-menu-item-logout", role: "menuitem", onClick: () => {
       setProfileMenuOpen(false);
       logout();

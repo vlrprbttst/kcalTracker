@@ -490,7 +490,19 @@ function App() {
                         <span aria-hidden="true">⚙️</span> Impostazioni
                       </button>
                       {navigator.share && (
-                        <button className="profile-menu-item" role="menuitem" onClick={() => { setProfileMenuOpen(false); navigator.share({ title: 'kcalTracker', text: 'Traccia le calorie con me su kcalTracker!', url: 'https://vlrprbttst.github.io/kcalTracker' }); }}>
+                        <button className="profile-menu-item" role="menuitem" onClick={async () => {
+                          setProfileMenuOpen(false);
+                          const shareData = { title: 'kcalTracker', text: 'Traccia le calorie con me su kcalTracker!', url: 'https://vlrprbttst.github.io/kcalTracker' };
+                          try {
+                            const res = await fetch('https://vlrprbttst.github.io/kcalTracker/logo-main.png');
+                            const blob = await res.blob();
+                            const file = new File([blob], 'kcalTracker.png', { type: blob.type });
+                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                              shareData.files = [file];
+                            }
+                          } catch (_) {}
+                          navigator.share(shareData);
+                        }}>
                           <span aria-hidden="true">📤</span> Condividi app
                         </button>
                       )}
