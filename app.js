@@ -1469,6 +1469,7 @@
       localStorage.setItem("kcal_theme", lightTheme ? "light" : "dark");
     }, [lightTheme]);
     useEffect3(() => {
+      if (new URLSearchParams(location.search).has("reset-pwa")) localStorage.removeItem("pwa_dismissed");
       const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
       if (isStandalone) return;
       const isDismissed = !!localStorage.getItem("pwa_dismissed");

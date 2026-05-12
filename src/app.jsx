@@ -87,6 +87,7 @@ function App() {
   }, [lightTheme]);
 
   useEffect(() => {
+    if (new URLSearchParams(location.search).has('reset-pwa')) localStorage.removeItem('pwa_dismissed');
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     if (isStandalone) return;
     const isDismissed = !!localStorage.getItem('pwa_dismissed');
