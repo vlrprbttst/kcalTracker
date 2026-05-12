@@ -489,6 +489,11 @@ function App() {
                       <button className="profile-menu-item" role="menuitem" onClick={() => { setProfileMenuOpen(false); setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] }); setSettingsOpen(true); }}>
                         <span aria-hidden="true">⚙️</span> Impostazioni
                       </button>
+                      {navigator.share && (
+                        <button className="profile-menu-item" role="menuitem" onClick={() => { setProfileMenuOpen(false); navigator.share({ title: 'kcalTracker', text: 'Traccia le calorie con me su kcalTracker!', url: 'https://vlrprbttst.github.io/kcalTracker' }); }}>
+                          <span aria-hidden="true">📤</span> Condividi app
+                        </button>
+                      )}
                       <button className="profile-menu-item profile-menu-item-logout" role="menuitem" onClick={() => { setProfileMenuOpen(false); logout(); }}>
                         <span aria-hidden="true">🚪</span> Logout
                       </button>
