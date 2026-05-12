@@ -1,15 +1,7 @@
-const CACHE = 'kcal-v1';
-const PRECACHE = [
-  '/kcalTracker/',
-  '/kcalTracker/index.html',
-];
+const CACHE = 'kcal-v2';
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
@@ -23,13 +15,12 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  // pass-through per Firebase e CDN esterni
   if (url.origin !== location.origin) return;
   e.respondWith(
     fetch(e.request)
       .then(res => {
         const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
+        caches.open(CACHE).then(c => c.put(e.request, clone)).catch(() => {});
         return res;
       })
       .catch(() => caches.match(e.request))

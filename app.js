@@ -1479,13 +1479,29 @@
         if (!isDismissed) setInstallBanner("ios");
         return;
       }
-      const handler = (e) => {
+      const handler = async (e) => {
         e.preventDefault();
         setInstallEvent(e);
+        if ("serviceWorker" in navigator) {
+          try {
+            await navigator.serviceWorker.ready;
+          } catch (_) {
+          }
+        }
         if (!isDismissed) setInstallBanner("android");
       };
+      const installed = () => {
+        setInstallBanner(null);
+        setInstallEvent(null);
+        localStorage.setItem("pwa_dismissed", "1");
+        setPwaInteracted(true);
+      };
       window.addEventListener("beforeinstallprompt", handler);
-      return () => window.removeEventListener("beforeinstallprompt", handler);
+      window.addEventListener("appinstalled", installed);
+      return () => {
+        window.removeEventListener("beforeinstallprompt", handler);
+        window.removeEventListener("appinstalled", installed);
+      };
     }, []);
     useEffect3(() => {
       document.body.classList.toggle("has-install-banner", !!installBanner);

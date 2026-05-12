@@ -94,10 +94,29 @@ function App() {
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const isSafariOnly = /safari/i.test(navigator.userAgent) && !/chrome|chromium|crios|fxios/i.test(navigator.userAgent);
     if (isIOS && isSafariOnly) { if (!isDismissed) setInstallBanner("ios"); return; }
-    // Always capture the event so the menu item can trigger install after banner is dismissed
-    const handler = (e) => { e.preventDefault(); setInstallEvent(e); if (!isDismissed) setInstallBanner("android"); };
+    // Always capture the event so the menu item can trigger install after banner is dismissed.
+    // Wait for SW to be fully active before showing banner — Chrome may fire beforeinstallprompt
+    // before the SW is in "activated" state, which causes silent install failures on first visit.
+    const handler = async (e) => {
+      e.preventDefault();
+      setInstallEvent(e);
+      if ('serviceWorker' in navigator) {
+        try { await navigator.serviceWorker.ready; } catch (_) {}
+      }
+      if (!isDismissed) setInstallBanner("android");
+    };
+    const installed = () => {
+      setInstallBanner(null);
+      setInstallEvent(null);
+      localStorage.setItem('pwa_dismissed', '1');
+      setPwaInteracted(true);
+    };
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', installed);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installed);
+    };
   }, []);
 
   useEffect(() => {
