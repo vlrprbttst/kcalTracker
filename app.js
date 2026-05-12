@@ -1435,6 +1435,8 @@
     const [autoOpenWizard, setAutoOpenWizard] = useState3(false);
     const [lightTheme, setLightTheme] = useState3(() => localStorage.getItem("kcal_theme") === "light");
     const [confirmModal, setConfirmModal] = useState3(null);
+    const [installEvent, setInstallEvent] = useState3(null);
+    const [installBanner, setInstallBanner] = useState3(null);
     const [dietData, setDietData] = useState3(SEED_DIET_DATA);
     const [schedule, setSchedule] = useState3(DEFAULT_SCHEDULE);
     const profileMenuRef = useRef2(null);
@@ -1465,6 +1467,39 @@
       document.body.classList.toggle("light", lightTheme);
       localStorage.setItem("kcal_theme", lightTheme ? "light" : "dark");
     }, [lightTheme]);
+    useEffect3(() => {
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+      if (isStandalone || localStorage.getItem("pwa_dismissed")) return;
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const isSafariOnly = /safari/i.test(navigator.userAgent) && !/chrome|chromium|crios|fxios/i.test(navigator.userAgent);
+      if (isIOS && isSafariOnly) {
+        setInstallBanner("ios");
+        return;
+      }
+      const handler = (e) => {
+        e.preventDefault();
+        setInstallEvent(e);
+        setInstallBanner("android");
+      };
+      window.addEventListener("beforeinstallprompt", handler);
+      return () => window.removeEventListener("beforeinstallprompt", handler);
+    }, []);
+    useEffect3(() => {
+      document.body.classList.toggle("has-install-banner", !!installBanner);
+      return () => document.body.classList.remove("has-install-banner");
+    }, [installBanner]);
+    const handleInstall = async () => {
+      if (!installEvent) return;
+      installEvent.prompt();
+      const { outcome } = await installEvent.userChoice;
+      setInstallBanner(null);
+      setInstallEvent(null);
+      if (outcome === "accepted") localStorage.setItem("pwa_dismissed", "1");
+    };
+    const dismissInstall = () => {
+      setInstallBanner(null);
+      localStorage.setItem("pwa_dismissed", "1");
+    };
     const saveDebounceRef = useRef2(null);
     const prevOverTarget = useRef2(false);
     useEffect3(() => {
@@ -1922,7 +1957,7 @@
         setActiveTab,
         activeTab
       }
-    ));
+    ), installBanner && /* @__PURE__ */ React.createElement("div", { className: "install-banner", role: "complementary", "aria-label": "Installa l'app" }, /* @__PURE__ */ React.createElement("div", { className: "install-banner-text" }, /* @__PURE__ */ React.createElement("strong", null, "Installa kcalTracker"), installBanner === "android" ? /* @__PURE__ */ React.createElement("span", null, "Aggiungila alla schermata home per un accesso rapido") : /* @__PURE__ */ React.createElement("span", null, "Tocca \u2B06 in basso, poi \xABAggiungi alla schermata Home\xBB")), /* @__PURE__ */ React.createElement("div", { className: "install-banner-actions" }, installBanner === "android" && /* @__PURE__ */ React.createElement("button", { className: "install-btn", onClick: handleInstall }, "Installa"), /* @__PURE__ */ React.createElement("button", { className: "install-dismiss", onClick: dismissInstall, "aria-label": "Chiudi banner installazione" }, "\xD7"))));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ React.createElement(App, null));
 })();
