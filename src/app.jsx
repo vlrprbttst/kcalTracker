@@ -583,10 +583,21 @@ function App() {
           <div className="kcal-row" aria-live="polite" aria-atomic="true">
             <span className={`kcal-consumed${shakeTarget ? " shake" : ""}`} style={{ color: barColor }}>{totalKcal}</span>
             <span className="kcal-sep">/</span>
-            <span className="kcal-target-wrap">
-              <span className="kcal-target" aria-label={`Obiettivo calorico: ${target} kcal`}>{target}</span>
-              <span className="kcal-label">kcal</span>
-            </span>
+            {user ? (
+              <button
+                className="kcal-target-wrap kcal-target-btn"
+                aria-label={`Obiettivo calorico: ${target} kcal — clicca per modificare`}
+                onClick={() => { setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] }); setSettingsOpen(true); }}
+              >
+                <span className="kcal-target">{target}</span>
+                <span className="kcal-label">kcal</span>
+              </button>
+            ) : (
+              <span className="kcal-target-wrap">
+                <span className="kcal-target" aria-label={`Obiettivo calorico: ${target} kcal`}>{target}</span>
+                <span className="kcal-label">kcal</span>
+              </span>
+            )}
             <span className="kcal-remaining">
               {remaining >= 0 ? `${remaining} rimanenti` : `${Math.abs(remaining)} in eccesso`}
             </span>
