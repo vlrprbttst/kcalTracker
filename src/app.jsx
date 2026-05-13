@@ -532,8 +532,8 @@ function App() {
               {user === undefined ? null : user ? (
                 <div className="profile-menu-wrap" ref={profileMenuRef}>
                   <button className="auth-btn logged" onClick={() => setProfileMenuOpen(v => !v)} aria-label="Menu profilo" aria-expanded={profileMenuOpen} aria-haspopup="menu">
-                    {user.photoURL && <img src={user.photoURL} className="auth-avatar" alt="" />}
                     {user.displayName && <span className="auth-name">{user.displayName}</span>}
+                    {user.photoURL && <img src={user.photoURL} className="auth-avatar" alt="" />}
                   </button>
                   {profileMenuOpen && (
                     <div className="profile-dropdown" role="menu">
