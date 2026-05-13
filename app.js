@@ -379,7 +379,19 @@
   }
 
   // src/components/SettingsOverlay.jsx
-  function SettingsOverlay({ open, setOpen, wizardOpen, draft, setDraft, onSave, lightTheme, setLightTheme }) {
+  function SettingsOverlay({ open, setOpen, wizardOpen, draft, setDraft, onSave, lightTheme, setLightTheme, scrollToKcal }) {
+    const kcalSectionRef = React.useRef(null);
+    React.useEffect(() => {
+      if (!open || !scrollToKcal) return;
+      requestAnimationFrame(() => {
+        const el = kcalSectionRef.current;
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("settings-section-flash");
+        const t = setTimeout(() => el.classList.remove("settings-section-flash"), 900);
+        return () => clearTimeout(t);
+      });
+    }, [open, scrollToKcal]);
     if (!open) return null;
     return /* @__PURE__ */ React.createElement(
       "div",
@@ -409,7 +421,7 @@
           "aria-pressed": lightTheme
         },
         "\u2600\uFE0F Chiaro"
-      )))), /* @__PURE__ */ React.createElement("section", { className: "settings-section", "data-wizard": "settings-kcal" }, /* @__PURE__ */ React.createElement("h2", { className: "settings-section-title" }, "Calorie giornaliere"), /* @__PURE__ */ React.createElement("p", { className: "settings-section-desc" }, "Quante calorie bruci in media ogni giorno (TDEE). Sar\xE0 il tuo obiettivo di default per i nuovi giorni. Puoi sempre modificarlo per un giorno specifico dallo Storico."), /* @__PURE__ */ React.createElement("div", { className: "settings-field" }, /* @__PURE__ */ React.createElement("label", { className: "settings-label", htmlFor: "settings-default-kcal" }, "Calorie al giorno"), /* @__PURE__ */ React.createElement(
+      )))), /* @__PURE__ */ React.createElement("section", { ref: kcalSectionRef, className: "settings-section", "data-wizard": "settings-kcal" }, /* @__PURE__ */ React.createElement("h2", { className: "settings-section-title" }, "Calorie giornaliere"), /* @__PURE__ */ React.createElement("p", { className: "settings-section-desc" }, "Quante calorie bruci in media ogni giorno (TDEE). Sar\xE0 il tuo obiettivo di default per i nuovi giorni. Puoi sempre modificarlo per un giorno specifico dallo Storico."), /* @__PURE__ */ React.createElement("div", { className: "settings-field" }, /* @__PURE__ */ React.createElement("label", { className: "settings-label", htmlFor: "settings-default-kcal" }, "Calorie al giorno"), /* @__PURE__ */ React.createElement(
         "input",
         {
           id: "settings-default-kcal",
@@ -1441,6 +1453,7 @@
     const [wizardOpen, setWizardOpen] = useState3(false);
     const [wizardStep, setWizardStep] = useState3(0);
     const [settingsOpen, setSettingsOpen] = useState3(false);
+    const [settingsScrollToKcal, setSettingsScrollToKcal] = useState3(false);
     const [profileMenuOpen, setProfileMenuOpen] = useState3(false);
     const [settingsDraft, setSettingsDraft] = useState3({ defaultKcal: "2000", schedule: DEFAULT_SCHEDULE });
     const [defaultKcal, setDefaultKcal] = useState3(2e3);
@@ -1889,6 +1902,7 @@
     return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("a", { href: "#main-content", className: "skip-link" }, "Vai al contenuto principale"), /* @__PURE__ */ React.createElement(ConfirmModal, { modal: confirmModal, onClose: () => setConfirmModal(null) }), notAllowed && /* @__PURE__ */ React.createElement("div", { className: "modal-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "modal-title" }, /* @__PURE__ */ React.createElement("div", { className: "modal" }, /* @__PURE__ */ React.createElement("img", { src: "no.gif", alt: "", role: "presentation", style: { width: 313, maxWidth: "100%", height: "auto", borderRadius: 8, marginBottom: 12 } }), /* @__PURE__ */ React.createElement("div", { id: "modal-title", className: "modal-title" }, "Accesso non disponibile"), /* @__PURE__ */ React.createElement("div", { className: "modal-text" }, "Gli slot disponibili sono esauriti. Riprova pi\xF9 avanti."), /* @__PURE__ */ React.createElement("button", { className: "modal-btn", onClick: () => setNotAllowed(false) }, "Ok, capito"))), /* @__PURE__ */ React.createElement("div", { className: "sticky-top" }, /* @__PURE__ */ React.createElement("header", { className: "header" }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 520, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { className: "header-top" }, /* @__PURE__ */ React.createElement("img", { src: "logo-main-horizontal.png", alt: "kcalTracker", className: "app-logo" }), /* @__PURE__ */ React.createElement("div", { className: "header-top-right" }, user === void 0 ? null : user ? /* @__PURE__ */ React.createElement("div", { className: "profile-menu-wrap", ref: profileMenuRef }, /* @__PURE__ */ React.createElement("button", { className: "auth-btn logged", onClick: () => setProfileMenuOpen((v) => !v), "aria-label": "Menu profilo", "aria-expanded": profileMenuOpen, "aria-haspopup": "menu" }, user.photoURL && /* @__PURE__ */ React.createElement("img", { src: user.photoURL, className: "auth-avatar", alt: "" })), profileMenuOpen && /* @__PURE__ */ React.createElement("div", { className: "profile-dropdown", role: "menu" }, /* @__PURE__ */ React.createElement("button", { className: "profile-menu-item", role: "menuitem", onClick: () => {
       setProfileMenuOpen(false);
       setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] });
+      setSettingsScrollToKcal(false);
       setSettingsOpen(true);
     } }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u2699\uFE0F"), " Impostazioni"), navigator.share && /* @__PURE__ */ React.createElement("button", { className: "profile-menu-item", role: "menuitem", onClick: async () => {
       setProfileMenuOpen(false);
@@ -1921,6 +1935,7 @@
         "aria-label": `Obiettivo calorico: ${target} kcal \u2014 clicca per modificare`,
         onClick: () => {
           setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] });
+          setSettingsScrollToKcal(true);
           setSettingsOpen(true);
         }
       },
@@ -2017,7 +2032,8 @@
         setDraft: setSettingsDraft,
         onSave: saveSettings,
         lightTheme,
-        setLightTheme
+        setLightTheme,
+        scrollToKcal: settingsScrollToKcal
       }
     ), /* @__PURE__ */ React.createElement(
       Wizard,

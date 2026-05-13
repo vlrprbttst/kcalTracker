@@ -20,6 +20,7 @@ function App() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsScrollToKcal, setSettingsScrollToKcal] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [settingsDraft, setSettingsDraft] = useState({ defaultKcal: "2000", schedule: DEFAULT_SCHEDULE });
   const [defaultKcal, setDefaultKcal] = useState(2000);
@@ -535,7 +536,7 @@ function App() {
                   </button>
                   {profileMenuOpen && (
                     <div className="profile-dropdown" role="menu">
-                      <button className="profile-menu-item" role="menuitem" onClick={() => { setProfileMenuOpen(false); setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] }); setSettingsOpen(true); }}>
+                      <button className="profile-menu-item" role="menuitem" onClick={() => { setProfileMenuOpen(false); setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] }); setSettingsScrollToKcal(false); setSettingsOpen(true); }}>
                         <span aria-hidden="true">⚙️</span> Impostazioni
                       </button>
                       {navigator.share && (
@@ -587,7 +588,7 @@ function App() {
               <button
                 className="kcal-target-wrap kcal-target-btn"
                 aria-label={`Obiettivo calorico: ${target} kcal — clicca per modificare`}
-                onClick={() => { setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] }); setSettingsOpen(true); }}
+                onClick={() => { setSettingsDraft({ defaultKcal: String(defaultKcal), schedule: [...schedule] }); setSettingsScrollToKcal(true); setSettingsOpen(true); }}
               >
                 <span className="kcal-target">{target}</span>
                 <span className="kcal-label">kcal</span>
@@ -729,6 +730,7 @@ function App() {
           onSave={saveSettings}
           lightTheme={lightTheme}
           setLightTheme={setLightTheme}
+          scrollToKcal={settingsScrollToKcal}
         />
       )}
 

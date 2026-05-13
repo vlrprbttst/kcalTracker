@@ -1,6 +1,20 @@
 import { minutesToTime, timeToMinutes } from '../schedule.js';
 
-export default function SettingsOverlay({ open, setOpen, wizardOpen, draft, setDraft, onSave, lightTheme, setLightTheme }) {
+export default function SettingsOverlay({ open, setOpen, wizardOpen, draft, setDraft, onSave, lightTheme, setLightTheme, scrollToKcal }) {
+  const kcalSectionRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!open || !scrollToKcal) return;
+    requestAnimationFrame(() => {
+      const el = kcalSectionRef.current;
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('settings-section-flash');
+      const t = setTimeout(() => el.classList.remove('settings-section-flash'), 900);
+      return () => clearTimeout(t);
+    });
+  }, [open, scrollToKcal]);
+
   if (!open) return null;
   return (
     <div
@@ -36,7 +50,7 @@ export default function SettingsOverlay({ open, setOpen, wizardOpen, draft, setD
           </div>
         </section>
 
-        <section className="settings-section" data-wizard="settings-kcal">
+        <section ref={kcalSectionRef} className="settings-section" data-wizard="settings-kcal">
           <h2 className="settings-section-title">Calorie giornaliere</h2>
           <p className="settings-section-desc">Quante calorie bruci in media ogni giorno (TDEE). Sarà il tuo obiettivo di default per i nuovi giorni. Puoi sempre modificarlo per un giorno specifico dallo Storico.</p>
           <div className="settings-field">

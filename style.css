@@ -1204,6 +1204,12 @@ body.light .wizard-btn-skip:hover { color: #18181b; }
 .settings-section {
   padding-top: 24px;
 }
+@keyframes settingsFlash {
+  0%   { background: transparent; }
+  25%  { background: color-mix(in srgb, var(--accent) 18%, transparent); border-radius: 8px; }
+  100% { background: transparent; }
+}
+.settings-section-flash { animation: settingsFlash 0.9s ease-out; }
 .settings-section + .settings-section {
   border-top: 1px solid var(--border);
   margin-top: 8px;
