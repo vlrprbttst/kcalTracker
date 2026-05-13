@@ -4,12 +4,12 @@ export const WIZARD_STEPS = [
   {
     tab: null, selector: null,
     title: "Benvenuto in kcalTracker",
-    text: "Questa guida ti mostra le funzionalità principali. Puoi riaprirla in qualsiasi momento dal pulsante 🧙 nell'header.",
+    text: "Questa guida ti mostra le funzionalità principali dell'app. Premi Avanti per iniziare.",
   },
   {
-    tab: null, selector: ".header-top-right",
-    title: "I controlli dell'app",
-    text: "Da sinistra: ❌ azzera le calorie del giorno, {themeIcon} cambia tema, 🧙 riapri questa guida, e il tuo avatar per aprire il menu profilo.",
+    tab: null, openProfileMenu: true, selector: ".profile-menu-wrap", selectorEnd: ".profile-dropdown",
+    title: "Menu profilo",
+    text: "Clicca sull'avatar in alto a destra per aprire questo menu: trovi le impostazioni dell'app e il pulsante per uscire dall'account.",
   },
   {
     tab: null, selector: ".kcal-row", selectorEnd: ".progress-track",
@@ -20,6 +20,11 @@ export const WIZARD_STEPS = [
     tab: "oggi", selector: ".category-card",
     title: "Tracker calorie",
     text: "Gli alimenti sono divisi per categoria. Apri un accordion e usa + e − per registrare le porzioni. Il totale si aggiorna in tempo reale.",
+  },
+  {
+    tab: "oggi", selector: ".tracker-toolbar",
+    title: "I controlli del tracker",
+    text: "❌ reset azzera tutte le calorie del giorno corrente. A sinistra, 'chiudi tutto' chiude l'accordion aperto — compare solo quando ce n'è uno aperto.",
   },
   {
     tab: "oggi", selector: ".category-card", last: true,
@@ -42,23 +47,23 @@ export const WIZARD_STEPS = [
     text: "Qui trovi il riepilogo di ogni settimana: calorie consumate, deficit o surplus e una proiezione di fine settimana. Si popola automaticamente giorno dopo giorno.",
   },
   {
-    tab: null, openProfileMenu: true, selector: ".profile-menu-wrap", selectorEnd: ".profile-dropdown",
-    title: "Menu profilo",
-    text: "Clicca sull'avatar in alto a destra per aprire questo menu: trovi le impostazioni dell'app e il pulsante per uscire dall'account.",
+    tab: null, openSettings: true, selector: ".settings-theme-toggle",
+    title: "Tema",
+    text: "Passa dal tema scuro a quello chiaro con un tap. La preferenza viene salvata automaticamente.",
   },
   {
-    tab: null, openSettings: true, selector: ".settings-section",
+    tab: null, openSettings: true, selector: "[data-wizard='settings-kcal']",
     title: "Calorie giornaliere",
     text: "Qui imposti quante calorie bruci mediamente ogni giorno (il tuo TDEE). Sarà l'obiettivo di default per ogni nuovo giorno — puoi sempre modificarlo per un giorno specifico dallo Storico.",
   },
   {
-    tab: null, openSettings: true, selector: ".settings-section", last: true,
+    tab: null, openSettings: true, selector: "[data-wizard='settings-orari']", last: true,
     title: "Fasce orarie",
     text: "Personalizza gli orari di fine di ogni fascia pasto. L'app li usa per raggruppare gli alimenti nel tab Menu e nello Storico. Le modifiche si applicano a tutto lo storico.",
   },
 ];
 
-export default function Wizard({ open, step, setStep, setOpen, lightTheme, setActiveTab, activeTab }) {
+export default function Wizard({ open, step, setStep, setOpen, setActiveTab, activeTab }) {
   const [spotlightRect, setSpotlightRect] = useState(null);
 
   useEffect(() => {
@@ -125,7 +130,7 @@ export default function Wizard({ open, step, setStep, setOpen, lightTheme, setAc
         <div className="wizard-step-body">
           <div className="wizard-step-indicator">{step + 1} / {WIZARD_STEPS.length}</div>
           <div id="wizard-title" className="wizard-title">{WIZARD_STEPS[step].title}</div>
-          <div className="wizard-text">{WIZARD_STEPS[step].text.replace('{themeIcon}', lightTheme ? '🌙' : '☀️')}</div>
+          <div className="wizard-text">{WIZARD_STEPS[step].text}</div>
           <div className="wizard-actions">
             <div className="wizard-actions-left">
               {step > 0 && (

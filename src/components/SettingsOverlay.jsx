@@ -1,6 +1,6 @@
 import { minutesToTime, timeToMinutes } from '../schedule.js';
 
-export default function SettingsOverlay({ open, setOpen, wizardOpen, draft, setDraft, onSave }) {
+export default function SettingsOverlay({ open, setOpen, wizardOpen, draft, setDraft, onSave, lightTheme, setLightTheme }) {
   if (!open) return null;
   return (
     <div
@@ -18,6 +18,25 @@ export default function SettingsOverlay({ open, setOpen, wizardOpen, draft, setD
       </div>
       <div className="settings-body">
         <section className="settings-section">
+          <h2 className="settings-section-title">Tema</h2>
+          <div className="settings-field">
+            <span className="settings-label">Aspetto</span>
+            <div className="settings-theme-toggle">
+              <button
+                className={`settings-theme-opt${!lightTheme ? ' active' : ''}`}
+                onClick={() => setLightTheme(false)}
+                aria-pressed={!lightTheme}
+              >🌙 Scuro</button>
+              <button
+                className={`settings-theme-opt${lightTheme ? ' active' : ''}`}
+                onClick={() => setLightTheme(true)}
+                aria-pressed={lightTheme}
+              >☀️ Chiaro</button>
+            </div>
+          </div>
+        </section>
+
+        <section className="settings-section" data-wizard="settings-kcal">
           <h2 className="settings-section-title">Calorie giornaliere</h2>
           <p className="settings-section-desc">Quante calorie bruci in media ogni giorno (TDEE). Sarà il tuo obiettivo di default per i nuovi giorni. Puoi sempre modificarlo per un giorno specifico dallo Storico.</p>
           <div className="settings-field">
@@ -34,7 +53,7 @@ export default function SettingsOverlay({ open, setOpen, wizardOpen, draft, setD
           </div>
         </section>
 
-        <section className="settings-section">
+        <section className="settings-section" data-wizard="settings-orari">
           <h2 className="settings-section-title">Fasce orarie</h2>
           <p className="settings-section-desc">Orari di fine di ogni fascia pasto. Si applicano a tutto lo storico, anche ai giorni passati.</p>
           <div className="orari-tab settings-orari">

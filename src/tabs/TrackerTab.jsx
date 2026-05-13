@@ -13,11 +13,23 @@ export default function TrackerTab({
   catKcal,
   maxItemKcal,
   login,
+  onReset,
 }) {
+  const query = searchQuery.trim().toLowerCase();
   return (
     <>
+      {user && (
+        <div className="tracker-toolbar">
+          <button
+            className="tracker-close-all-btn"
+            style={{ visibility: (!query && openIdx !== null) ? 'visible' : 'hidden' }}
+            onClick={() => setOpenIdx(null)}
+            aria-label="Chiudi accordion aperto"
+          >chiudi tutto</button>
+          <button className="reset-btn" onClick={onReset} aria-label="Azzera le calorie di oggi">❌ reset</button>
+        </div>
+      )}
       {user && (() => {
-        const query = searchQuery.trim().toLowerCase();
         const visibleCats = dietData.map((cat, ci) => ({
           cat, ci,
           items: query

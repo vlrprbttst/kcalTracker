@@ -262,7 +262,7 @@ function App() {
           }
           if (!daySnap.exists) setTarget(loadedDefaultKcal);
           setDataReady(true);
-          if (isFirstLogin) setAutoOpenWizard(true);
+          if (isFirstLogin || new URLSearchParams(location.search).has('wizard')) setAutoOpenWizard(true);
         } catch (e) {
           console.error("Firestore load error — save disabled to prevent data loss:", e);
         }
@@ -528,13 +528,6 @@ function App() {
           <div className="header-top">
             <img src="logo-main-horizontal.png" alt="kcalTracker" className="app-logo" />
             <div className="header-top-right">
-              <button className="reset-btn" onClick={handleReset} aria-label="Azzera le calorie di oggi">❌</button>
-              <button className="theme-btn" onClick={() => setLightTheme(t => !t)} aria-label={lightTheme ? "Passa al tema scuro" : "Passa al tema chiaro"}>
-                {lightTheme ? "🌙" : "☀️"}
-              </button>
-              {user && (
-                <button className="wizard-help-btn" onClick={() => { setWizardStep(0); setWizardOpen(true); }} aria-label="Apri guida funzionalità">🧙</button>
-              )}
               {user === undefined ? null : user ? (
                 <div className="profile-menu-wrap" ref={profileMenuRef}>
                   <button className="auth-btn logged" onClick={() => setProfileMenuOpen(v => !v)} aria-label="Menu profilo" aria-expanded={profileMenuOpen} aria-haspopup="menu">
@@ -677,6 +670,7 @@ function App() {
             catKcal={catKcal}
             maxItemKcal={maxItemKcal}
             login={login}
+            onReset={handleReset}
           />
         )}
 
@@ -722,6 +716,8 @@ function App() {
           draft={settingsDraft}
           setDraft={setSettingsDraft}
           onSave={saveSettings}
+          lightTheme={lightTheme}
+          setLightTheme={setLightTheme}
         />
       )}
 
@@ -730,7 +726,6 @@ function App() {
         step={wizardStep}
         setStep={setWizardStep}
         setOpen={setWizardOpen}
-        lightTheme={lightTheme}
         setActiveTab={setActiveTab}
         activeTab={activeTab}
       />

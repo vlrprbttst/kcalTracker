@@ -103,6 +103,25 @@ input { font-family: inherit; }
 @media (min-width: 390px) { .app-logo { height: 52px; max-width: 210px; top: -3px; } }
 @media (min-width: 768px) { .app-logo { height: 56px; max-width: 270px; } }
 
+.tracker-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  min-height: 28px;
+}
+.tracker-close-all-btn {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  transition: color .15s, border-color .15s;
+}
+.tracker-close-all-btn:hover { color: var(--accent); border-color: var(--accent); }
+
 .reset-btn {
   font-size: 12px;
   font-weight: 500;
@@ -115,20 +134,26 @@ input { font-family: inherit; }
 }
 .reset-btn:hover { color: var(--color-negative); border-color: var(--color-negative); }
 
-.theme-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-dim);
-  font-size: 15px;
-  width: 30px;
-  height: 26px;
+.settings-theme-toggle {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color .15s, border-color .15s;
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+  overflow: hidden;
 }
-.theme-btn:hover { color: var(--accent); border-color: var(--accent); }
+.settings-theme-opt {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.settings-theme-opt.active {
+  background: var(--accent);
+  color: #fff;
+}
+.settings-theme-opt:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 .wizard-help-btn {
   background: transparent;
@@ -162,7 +187,7 @@ input { font-family: inherit; }
 .auth-btn:hover { color: var(--accent); border-color: var(--accent); }
 .auth-btn.logged { padding: 3px; }
 .auth-btn.logged:hover { border-color: var(--accent); }
-.auth-avatar { width: 22px; height: 22px; border-radius: 50%; display: block; }
+.auth-avatar { width: 32px; height: 32px; border-radius: 50%; display: block; }
 
 .profile-menu-wrap { position: relative; }
 .profile-dropdown {
