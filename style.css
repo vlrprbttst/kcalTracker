@@ -190,7 +190,7 @@ input { font-family: inherit; }
 .auth-avatar { width: 32px; height: 32px; border-radius: 50%; display: block; }
 .auth-name { font-size: 13px; font-weight: 500; color: var(--text-dim); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.profile-menu-wrap { position: relative; }
+.profile-menu-wrap { position: relative; display: flex; align-items: center; gap: 8px; }
 .profile-dropdown {
   position: absolute;
   top: calc(100% + 6px);
