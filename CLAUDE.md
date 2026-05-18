@@ -1,26 +1,26 @@
-# kcalTracker — Contesto completo del progetto
+# kcalTracker — Contesto progetto
 
 ## Cos'è
-App personale per tracciare le calorie giornaliere. Pubblicata su GitHub Pages. Sviluppata con Valerio Pierbattista (omegaiori@gmail.com).
+App personale tracking calorie giornaliere. GitHub Pages. Sviluppata con Valerio Pierbattista (omegaiori@gmail.com).
 
-**Live:** https://vlrprbttst.github.io/kcalTracker  
-**Repo:** https://github.com/vlrprbttst/kcalTracker  
-**File principali:** `index.html` (scheletro HTML), `style.css` (tutto il CSS), sorgenti JSX in `src/`, `app.js` (bundle — quello che carica il browser)  
-**File di riferimento alimenti:** la lista alimenti è in `src/seed.js` nell'array `SEED_DIET_DATA` (seed iniziale), ma in produzione viene caricata da Firestore (`users/{uid}/config/foods`).
+**Live:** https://vlrprbttst.github.io/kcalTracker
+**Repo:** https://github.com/vlrprbttst/kcalTracker
+**File principali:** `index.html` (scheletro), `style.css`, sorgenti JSX in `src/`, `app.js` (bundle caricato dal browser).
+**Lista alimenti:** `src/seed.js` (`SEED_DIET_DATA`, seed iniziale). In produzione caricata da Firestore (`users/{uid}/config/foods`).
 
 ## Mappa dei moduli (dove vive cosa)
-Per ridurre il tempo di lookup quando si lavora su una feature, leggi solo il modulo rilevante:
+Leggi solo il modulo rilevante:
 
 | Cosa stai modificando | File da aprire |
 |---|---|
-| Tab "Oggi" (tracker calorie, contatori, extra, banner guest) | `src/tabs/TrackerTab.jsx` |
-| Tab Menu (raggruppamento per fascia oraria, sezione Alcol) | `src/tabs/MenuTab.jsx` |
-| Tab Storico (settimane, balance, edit target, snackbar proiezione) | `src/tabs/StoricoTab.jsx` |
+| Tab "Oggi" (tracker, contatori, extra, banner guest) | `src/tabs/TrackerTab.jsx` |
+| Tab Menu (raggruppamento fascia oraria, sezione Alcol) | `src/tabs/MenuTab.jsx` |
+| Tab Storico (settimane, balance, edit target, snackbar) | `src/tabs/StoricoTab.jsx` |
 | Tab Alimenti (admin: edit/add/delete, SortableJS, search) | `src/tabs/AlimentiAdminTab.jsx` |
 | Wizard guidato (steps, spotlight, tooltip) | `src/components/Wizard.jsx` |
-| Pagina Impostazioni (defaultKcal, fasce orarie) | `src/components/SettingsOverlay.jsx` |
-| Modale di conferma generica (reset, logout, elimina) | `src/components/ConfirmModal.jsx` |
-| Barra kcal colorata sui singoli alimenti | `src/components/KcalBar.jsx` |
+| Impostazioni (defaultKcal, fasce orarie) | `src/components/SettingsOverlay.jsx` |
+| Modale conferma generica | `src/components/ConfirmModal.jsx` |
+| Barra kcal colorata | `src/components/KcalBar.jsx` |
 | Header, profile menu, sticky-top, tab routing, login/logout, sync Firestore, debounce, theme, swipe | `src/app.jsx` |
 | Firebase config, `auth`, `db`, `ALLOWED_UID` | `src/firebase.js` |
 | `SEED_DIET_DATA` + `seedItemById`/`seedItemCategory` | `src/seed.js` |
@@ -32,38 +32,36 @@ Per ridurre il tempo di lookup quando si lavora su una feature, leggi solo il mo
 ---
 
 ## Stack tecnico
-- React 18.3.1 via CDN (versione pinnata, SRI hash)
-- **Sorgenti modulari in `src/` bundlati con esbuild in `app.js`** — un singolo IIFE caricato dal browser. Niente Babel-in-browser, niente bundler runtime
-- ES modules (`import`/`export`) usati internamente; `React`, `firebase`, `Sortable` letti come globali da CDN (no `import` in moduli)
-- Firebase 10.12.2 (compat SDK via CDN, versione pinnata, SRI hash):
-  - **Authentication** — Google OAuth
-  - **Firestore** — salvataggio dati giornalieri, storico, e lista alimenti
-- SortableJS 1.15.2 via CDN (no SRI hash) — drag & drop nel tab Alimenti
-- GitHub Pages per l'hosting (branch `master`, aggiornamento automatico ad ogni push)
-- Dark/light theme con CSS variables
-- `build.js` + `package.json` per la compilazione locale (Node.js + esbuild)
+- React 18.3.1 via CDN (pinnato, SRI hash)
+- Sorgenti `src/` bundlati con esbuild → `app.js` (IIFE singolo). No Babel-in-browser, no bundler runtime.
+- ES modules internamente; `React`, `firebase`, `Sortable` globali da CDN
+- Firebase 10.12.2 (compat SDK, CDN pinnato, SRI): Auth (Google OAuth) + Firestore
+- SortableJS 1.15.2 via CDN (no SRI) — drag & drop tab Alimenti
+- GitHub Pages hosting (branch `master`, auto-deploy on push)
+- Dark/light theme via CSS variables
+- `build.js` + `package.json` (Node.js + esbuild)
 
 ---
 
 ## Firebase
 - **Project ID:** `kcaltracker-5dd56`
 - **Auth domain:** `kcaltracker-5dd56.firebaseapp.com`
-- **API Key:** `AIzaSyBCY1ONerEeZ6Ysa34222hZ-JzJ_rIjcZI` (sicuro da esporre nel frontend per Firebase)
+- **API Key:** `AIzaSyBCY1ONerEeZ6Ysa34222hZ-JzJ_rIjcZI` (safe da esporre, Firebase)
 - **ALLOWED_UID / OWNER_UID:** `f1rMJWrezfORvihvxM5EspY3FsA3` (Valerio — owner, riceve seed e auto-merge da `SEED_DIET_DATA`)
-- **maxUsers:** `5` (slot totali, incluso owner)
+- **maxUsers:** `5`
 - **Domini autorizzati:** `localhost`, `127.0.0.1`, `vlrprbttst.github.io`
 
 ### Accesso multi-utente
-L'accesso è gestito dal documento `config/access` su Firestore:
+Gestito da `config/access`:
 ```json
 { "allowedUids": ["f1rMJWrezfORvihvxM5EspY3FsA3", ...], "maxUsers": 5 }
 ```
-Al login, l'app legge `config/access`:
-- UID già in lista → accede normalmente
-- UID non in lista + slot disponibili → si aggiunge automaticamente (`arrayUnion`) e accede
+Al login:
+- UID in lista → accede
+- UID non in lista + slot disponibili → `arrayUnion` + accede
 - UID non in lista + lista piena → signOut + modale "Accesso non disponibile"
 
-I nuovi utenti partono con lista alimenti vuota (`[]`). Seed e auto-merge da `SEED_DIET_DATA` sono riservati all'owner (`ALLOWED_UID`).
+Nuovi utenti partono con `[]`. Seed/auto-merge `SEED_DIET_DATA` solo owner.
 
 ### Firestore Security Rules
 ```
@@ -94,285 +92,231 @@ service cloud.firestore {
 
 ### Struttura dati Firestore
 ```
-config/
-  access: {
-    allowedUids: ["f1rMJWrezfORvihvxM5EspY3FsA3", ...],
-    maxUsers: 5
-  }
+config/access: { allowedUids: [...], maxUsers: 5 }
 
-users/
-  {uid}/
-    config/
-      foods: {
-        dietData: [ { category, icon, items: [{ id, name, portion, kcal, variable?, kcalPerG? }] } ]
-      }
-      schedule: {
-        schedule: [ { key, label, end } ],
-        defaultKcal: 2000
-      }
-    days/
-      2026-04-24: {
-        counts:   { "b4x8q3": 2, "u6r3k8": 1, ... },
-        varGrams: { "b4x8q3": 150, "g9j3w7": 200 },
-        extras:   [{ uid: "abc123", name: "kebab", kcal: 650 }],
-        log: [
-          { type: "item",  id: "u6r3k8", name: "Uova strapazzate", kcal: 230, grams: 0,   category: "Uova",  ts: "2026-04-24T08:10:00.000Z" },
-          { type: "item",  id: "b4x8q3", name: "Basmati cotto",    kcal: 200, grams: 150, category: "Carboidrati", ts: "2026-04-24T13:05:00.000Z" },
-          { type: "extra", uid: "abc123", name: "kebab",            kcal: 650, grams: 0,   ts: "2026-04-24T20:30:00.000Z" },
-        ],
-        target:    2000,
-        totalKcal: 1450,
-        items:     ["Uova strapazzate", "Basmati cotto 150g (200 kcal)", "kebab (extra, 650 kcal)"],
-        date:      "2026-04-24",
-        updatedAt: timestamp
-      }
+users/{uid}/
+  config/
+    foods: { dietData: [ { category, icon, items: [{ id, name, portion, kcal, variable?, kcalPerG? }] } ] }
+    schedule: { schedule: [ { key, label, end } ], defaultKcal: 2000 }
+  days/{YYYY-MM-DD}: {
+    counts:   { "<id>": N, ... },           // ID stabili opachi 6 char
+    varGrams: { "<id>": grams, ... },
+    extras:   [{ uid, name, kcal }],
+    log:      [{ type: "item"|"extra", id?, uid?, name, kcal, grams, category?, ts }],
+    target, totalKcal, items: [...], date, updatedAt
+  }
 ```
 
-**Note sui campi:**
-- `config/foods.dietData`: lista alimenti completa, modificabile dal tab Alimenti. Al primo login dell'owner viene seminata da `SEED_DIET_DATA`; i nuovi utenti partono da lista vuota (`[]`).
-- `counts` / `varGrams`: chiavi = ID stabili opachi a 6 caratteri
-- `extras`: ogni extra ha un `uid` opaco generato al momento dell'aggiunta
-- `log`: array cronologico — vale solo per il giorno corrente
-- `items`: stringhe leggibili per lo storico — immune a modifiche future agli alimenti
-- Il debounce di salvataggio dei dati giornalieri è **400ms**
-- Il salvataggio di `config/foods` è **immediato** ad ogni modifica nel tab Alimenti
+**Note campi:**
+- `config/foods.dietData`: lista alimenti, editabile da tab Alimenti. Owner: seminata da `SEED_DIET_DATA`. Altri: `[]`.
+- `counts`/`varGrams`: chiavi = ID stabili 6 char
+- `extras`: `uid` opaco per tracking nel log
+- `log`: cronologico, solo giorno corrente
+- `items`: stringhe leggibili per storico, immuni a future modifiche alimenti
+- Debounce dati giornalieri: **400ms**. Save `config/foods`: **immediato**.
 
-### Migrazione automatica
-`migrateCountKeys()` converte i vecchi documenti con chiavi `"ci_ii"` al formato ID stabile. Usa `SEED_DIET_DATA` come riferimento (la migrazione è storica, i dati sono già migrati).
+### Migrazione
+`migrateCountKeys()` converte vecchi documenti `"ci_ii"` → ID stabili. Usa `SEED_DIET_DATA`. Dati già migrati.
 
 ---
 
 ## Regole importanti
 
 ### Aggiunta/modifica alimenti
-Puoi aggiungere, rimuovere e riordinare alimenti liberamente — sia via tab Alimenti nell'app, sia modificando `SEED_DIET_DATA` in `src/seed.js` (solo per modifiche strutturali, es. aggiungere una categoria al seed iniziale).
+Aggiungi/rimuovi/riordina liberamente (tab Alimenti o `SEED_DIET_DATA` per modifiche al seed).
 
-**L'unica regola: non riusare mai un ID già usato per un alimento diverso.** Il nome può cambiare, l'ID è per sempre.
+**Regola unica: mai riusare un ID per alimento diverso.** Nome può cambiare, ID è per sempre.
 
-Quando aggiungi un nuovo alimento via codice, genera un ID opaco a 6 caratteri (es. `k3m7p2`). L'app genera automaticamente l'ID quando si aggiunge dal tab Alimenti.
+Nuovi alimenti via codice: ID opaco 6 char base-36 (es. `k3m7p2`). Tab Alimenti genera auto.
 
-Per gli alimenti a porzione variabile usa il toggle "Variabile" nel tab Alimenti e inserisci i grammi di riferimento e le kcal corrispondenti (es. 100g = 140 kcal → il `kcalPerG` viene calcolato automaticamente). Non inserire mai `kcalPerG` a mano nel codice — usare sempre la divisione `kcal / g`.
+Variabili: toggle "Variabile" nel tab. Inserisci g + kcal corrispondenti → `kcalPerG` calcolato auto. **Mai inserire `kcalPerG` a mano nel codice.**
 
-**Categoria Alcol → sezione Extra nel Menu:** tutti gli item con `category: "Alcol"` finiscono automaticamente nella sezione "🍺 Extra" del tab Menu e dello Storico.
+**Categoria "Alcol" → sezione Extra** in tab Menu e Storico.
 
-**Attenzione:** non pushare mai a metà giornata se stai cambiando un alimento fisso in variabile — la sanitizzazione al carico azzera il count se varGrams è assente.
+**Attenzione:** non pushare a metà giornata cambiando fisso → variabile. Sanitization al carico azzera count se `varGrams` assente.
 
 ### Build
-**Dopo ogni modifica a un file in `src/`, eseguire sempre `npm run build` prima di committare.**
+**Dopo ogni modifica a `src/`, sempre `npm run build` prima del commit.**
 
 ```bash
 npm run build   # esbuild bundla src/app.jsx → app.js
 ```
 
 ### Git
-Usare sempre `git add .` quando si committa (non specificare file singoli).
+Sempre `git add .` (mai file singoli).
 
 ### Push
-**Non pushare mai autonomamente.** Aspettare che Valerio lo dica esplicitamente.
+**Mai pushare autonomamente.** Aspetta esplicita richiesta Valerio.
 
 ---
 
 ## Funzionalità implementate
 
 ### Tracker (tab "Oggi")
-- Lista alimenti divisa in categorie, ognuna è un accordion
-- Layout interno accordion: **CSS Grid** (`1fr auto 56px 84px`) — nome flessibile, porzione auto, kcal e counter fissi
-- Contatore +/− per porzione (supporta stessa voce più volte)
-- **Alimenti a porzione variabile** (`variable: true, kcalPerG: N`): input "Grammi" nella colonna porzione, kcal si aggiorna live
-- Bottoni +/− sempre visibili: il − è opaco (75%) e non cliccabile finché qty = 0
-- Totale kcal live con barra di progresso colorata (verde/giallo/rosso)
-- Goal calorico nell'header = `defaultKcal` dell'utente (non editabile qui — si cambia nelle Impostazioni o per giorno nello Storico)
-- Shake animation quando si supera il target per la prima volta
-- Barra di ricerca per filtrare gli alimenti per nome (solo loggati)
-- Feedback tattile (vibrazione) al tap su +
-- Reset manuale con conferma (modale custom)
-- Legenda colori barre kcal in fondo alla lista
-- Logo testuale sostituito con `logo-main-horizontal.png` nell'header — responsive: 43px/155px a <390px, 52px/210px a ≥390px, 56px/270px a ≥768px
-- Header responsive: gap bottoni 6px a <390px, 8px a ≥390px
+- Lista alimenti in accordion per categoria. Layout interno: CSS Grid `1fr auto 56px 84px`
+- Contatore +/− per porzione (multi-tap supportato)
+- Alimenti variabili (`variable: true, kcalPerG: N`): input "Grammi", kcal aggiornato live
+- − opaco (75%) e disabilitato a qty 0
+- Totale kcal live, barra colorata (verde/giallo/rosso)
+- Goal header = `defaultKcal` utente (editabile da Impostazioni o Storico per giorno)
+- Shake animation al primo overshoot
+- Ricerca filtra per nome (solo loggati)
+- Vibrazione al tap +
+- Reset con conferma (modale custom)
+- Legenda colori barre kcal fondo lista
+- Logo `logo-main-horizontal.png` responsive: 43/155px <390px, 52/210px ≥390px, 56/270px ≥768px. Gap bottoni: 6px <390px, 8px ≥390px
 
 ### Extra (campo libero)
-- Card in fondo alla lista con due input: nome alimento + kcal
-- Gli extra hanno un `uid` opaco per essere tracciati nel log
-- Gli extra appaiono come lista con bottone × per rimuoverli
-- Si sommano al totale kcal
+- Card fondo lista: nome + kcal
+- `uid` opaco per tracking nel log
+- Lista con × per rimuovere
+- Si sommano al totale
 
-### Tab Menu (solo loggati, appare solo con almeno un alimento loggato)
-- Mostra tutto ciò che è stato loggato oggi, raggruppato per fascia oraria
-- **Voci duplicate raggruppate:** stesso alimento ripetuto più volte appare come "Bao ×3"
-- **Fasce orarie:** Fuori Orario / Colazione / Merenda metà mattina / Pranzo / Merenda pomeriggio / Cena
-- **Sezione 🍺 Extra:** tutti gli alcolici (categoria "Alcol") appaiono qui indipendentemente dall'orario
+### Tab Menu (loggati, ≥1 alimento loggato)
+- Loggato oggi raggruppato per fascia oraria. Duplicati uniti ("Bao ×3")
+- Fasce: Fuori Orario / Colazione / Merenda mattina / Pranzo / Merenda pomeriggio / Cena
+- Sezione 🍺 Extra: tutta categoria "Alcol" qui a prescindere dall'orario
 
-### Menu profilo (solo loggati)
-- Clic sull'avatar nell'header apre un dropdown con due voci: ⚙️ **Impostazioni** e 🚪 **Logout**
-- Il dropdown si chiude cliccando fuori
-- Logout usa ancora la modale di conferma custom
+### Menu profilo (loggati)
+- Clic avatar → dropdown: ⚙️ Impostazioni, 🚪 Logout
+- Chiude a clic fuori
+- Logout = modale custom
 
-### Pagina Impostazioni (overlay full-screen)
-- Si apre cliccando ⚙️ Impostazioni nel menu profilo
-- È un overlay fixed (`z-index: 50`) con header, corpo scrollable e footer
-- Premendo × o Escape chiude senza salvare (se il wizard non è in controllo)
-- **Sezione Calorie giornaliere:** input numerico per `defaultKcal` — quante calorie bruci in media ogni giorno (TDEE). Usato come target di default per i nuovi giorni. Il target per un giorno specifico rimane modificabile dallo Storico.
-- **Sezione Fasce orarie:** stesse impostazioni del vecchio tab Orari (label + orario di fine per ogni fascia). L'input orario è un **text input HH:MM** (non `type="time"`) — garantisce formato 24 ore.
-- **Bottone Salva:** salva tutto su Firestore (`config/schedule` con campi `schedule` e `defaultKcal`), aggiorna lo state locale e imposta `target` di oggi a `defaultKcal`.
-- Le modifiche alle fasce orarie sono in draft locale finché non si preme Salva (a differenza del vecchio tab Orari che salvava live).
+### Impostazioni (overlay full-screen)
+- Apre da ⚙️ nel profilo. Overlay fixed `z-index: 50`. × o Esc chiude (se wizard non in controllo)
+- **Calorie giornaliere:** input `defaultKcal` (TDEE). Target default nuovi giorni. Singolo giorno editabile da Storico.
+- **Fasce orarie:** label + end HH:MM (text input, non `type="time"` — garantisce 24h)
+- Salva → Firestore (`config/schedule`: `schedule` + `defaultKcal`), aggiorna state, imposta `target` di oggi a `defaultKcal`
+- Modifiche fasce in draft locale fino al salva
 
-### defaultKcal — Calorie giornaliere default
-- Salvato su Firestore in `config/schedule.defaultKcal` (stesso documento delle fasce orarie)
-- Letto al login insieme a `schedule`; default 2000 se assente
-- Usato come fallback per `target` quando non esiste un documento del giorno o il giorno non ha un `target` esplicito
-- Cambiare `defaultKcal` nelle Impostazioni aggiorna anche `target` del giorno corrente
-- Il target del singolo giorno (Storico) rimane sempre editabile e ha precedenza su `defaultKcal`
-- Per gli utenti non loggati: `target` viene da `localStorage` (`kcal_target`), default 2000
+### defaultKcal
+- `config/schedule.defaultKcal`. Default 2000 se assente.
+- Fallback `target` quando giorno senza `target` esplicito
+- Cambio `defaultKcal` aggiorna anche `target` giorno corrente
+- Target singolo giorno (Storico) precede `defaultKcal`
+- Guest: `target` da `localStorage` (`kcal_target`), default 2000
 
-### Tab Alimenti (solo loggati)
-- Gestione completa della lista alimenti direttamente nell'app
-- **Struttura:** categorie come accordion, ognuna con la lista degli item interni
-- **Per ogni item:** visualizzazione nome + kcal/porzione, bottone modifica (✏️) e elimina (🗑️)
-- **Modifica inline:** form con campi nome, porzione (nascosta se variabile), toggle variabile, kcal (fissi) o `[Xg = Y kcal]` (variabili)
-- **Alimenti variabili nel form:** due input `[g di riferimento] g = [kcal] kcal` — `kcalPerG` calcolato al salvataggio. Il campo porzione è nascosto (sempre "g"). Spuntare "Variabile" resetta il campo porzione.
-- **Display nella lista:** alimenti variabili mostrano `X kcal/100g` (non `kcalPerG kcal/g`)
-- **Editing alimento variabile esistente:** pre-popola `100g` e `Math.round(kcalPerG × 100)` kcal
-- **Aggiunta item:** bottone "+ Aggiungi alimento" in fondo a ogni categoria aperta
-- **Aggiunta categoria:** bottone "+ Aggiungi categoria" in fondo alla lista
-- **Eliminazione categoria:** bottone "Elimina categoria" in fondo all'accordion aperto
-- **Ricerca:** barra di ricerca nell'header (visibile quando `activeTab === "alimenti"`), stato `adminSearchQuery`. In search mode mostra una vista flat filtrata (niente accordion, niente drag handle) con highlight del testo. Cliccando ✏️ dai risultati si cancella la query, si apre la categoria corrispondente e si avvia il form di modifica. 🗑️ funziona direttamente. La query viene resettata quando si cambia tab.
-- **Drag & drop item** (SortableJS): handle `⠿` su ogni riga per riordinare gli item all'interno della stessa categoria — funziona su mouse e touch
-- **Drag & drop categorie** (SortableJS): handle `⠿` a sinistra del titolo categoria per riordinare le categorie — insertion sort classico, salvataggio immediato su Firestore
-- **Salvataggio:** ogni modifica (add/edit/delete/reorder) salva immediatamente su Firestore `config/foods`
-- **Prima apertura post-deploy (owner):** se `config/foods` non esiste, viene seminato da `SEED_DIET_DATA`
-- **Prima apertura (altri utenti):** se `config/foods` non esiste, parte da lista vuota (`[]`)
-- **Auto-merge al login:** solo per l'owner — se `config/foods` esiste ma mancano item/categorie presenti in `SEED_DIET_DATA`, vengono aggiunti automaticamente. Garantisce che nuovi alimenti aggiunti via codice appaiano anche dopo aggiornamenti. **ATTENZIONE:** per le categorie SEED mancanti da Firestore, gli item vengono filtrati per `firestoreIds` prima di aggiungerli: questo previene la duplicazione di item che l'utente aveva spostato in un'altra categoria prima di eliminare quella originale.
-- Eliminare un item con conteggi attivi oggi mostra un warning — il conteggio giornaliero non viene modificato
+### Tab Alimenti (loggati)
+- Categorie come accordion. Per item: nome + kcal/porzione, ✏️ + 🗑️
+- Modifica inline: nome, porzione (nascosta se variabile), toggle variabile, kcal o `[Xg = Y kcal]`
+- Variabili: due input `[g rif] g = [kcal] kcal` → `kcalPerG` al save. Porzione nascosta (sempre "g"). Toggle resetta porzione.
+- Display lista variabili: `X kcal/100g` (non `kcalPerG kcal/g`)
+- Edit variabile esistente: pre-popola `100g` e `Math.round(kcalPerG × 100)` kcal
+- "+ Aggiungi alimento" fondo categoria aperta. "+ Aggiungi categoria" fondo lista. "Elimina categoria" fondo accordion
+- **Ricerca:** barra header (visibile se `activeTab === "alimenti"`), state `adminSearchQuery`. Vista flat filtrata con highlight. ✏️ da search: clear query + apre categoria + form edit. 🗑️ diretto. Reset query al cambio tab.
+- **Drag & drop item** (SortableJS): handle `⠿` per riga, riordina dentro categoria. Mouse + touch.
+- **Drag & drop categorie:** handle `⠿` a sinistra titolo. Save immediato Firestore.
+- Save: immediato a ogni mod (add/edit/delete/reorder) su `config/foods`
+- Prima apertura owner: seminato da `SEED_DIET_DATA`. Altri utenti: lista vuota.
+- **Auto-merge owner login:** se `config/foods` esiste ma mancano item/categorie da `SEED_DIET_DATA`, aggiunti auto. Per categorie SEED mancanti, item filtrati per `firestoreIds` prima di aggiungere → previene duplicazione di item spostati prima dell'elimina categoria originale.
+- Eliminare item con count attivo oggi: warning, conteggio non modificato
 
 ### Modali di conferma
-Tutti i `window.confirm` sono stati sostituiti con modali custom coerenti col design dell'app:
-- **Reset** e **Logout**: modale con bottoni Annulla / Conferma (accent)
-- **Elimina alimento** e **Elimina categoria**: modale con bottone Conferma in rosso (danger)
-- Stato: `confirmModal = { title, message, onConfirm, danger? } | null`
-- Escape chiude la modale
+Tutti `window.confirm` → modali custom:
+- **Reset, Logout:** Annulla / Conferma (accent)
+- **Elimina alimento/categoria:** Conferma rosso (danger)
+- State: `confirmModal = { title, message, onConfirm, danger? } | null`
+- Esc chiude
 
-### Wizard guidato (solo loggati)
-- Pulsante 🧙 nell'header (visibile solo da loggato) che apre una guida a step
-- **Auto-apertura al primo login:** se `config/foods` non esiste su Firestore (primo accesso), il wizard si apre automaticamente dopo `setDataReady(true)` tramite il flag `autoOpenWizard`. Vale per tutti gli utenti (owner incluso). Dalle visite successive `config/foods` esiste già, quindi il wizard non si riapre da solo.
-- `WIZARD_STEPS` — array di step esportato da `src/components/Wizard.jsx`, con campi `tab`, `selector`, `title`, `text`, `last`, `openSettings`. Importato anche in `src/app.jsx` per l'orchestration effect (step → tab/settings/profile-menu)
-- Ogni step può cambiare il tab attivo e mettere in spotlight un elemento DOM (tramite `selector`)
-- **Spotlight:** 4 div `.wiz-mask` che mascherano l'area fuori dall'elemento; bordo pulsante `.wizard-spotlight-border` (animazione `wizardPulse`)
-- **Tab switching + settings (in `src/app.jsx`):** `useEffect([wizardOpen, wizardStep])` imposta `activeTab` se lo step ha un `tab`; se lo step ha `openSettings: true` apre l'overlay Impostazioni (e lo chiude quando si passa ad altri step o si chiude il wizard). Resta in App perché coordina state cross-componente.
-- **Misurazione spotlight (interna a `Wizard`):** `useEffect([open, step, activeTab])` con doppio `requestAnimationFrame` + `scrollIntoView` per garantire che il DOM sia stabile prima di misurare. Lo state `spotlightRect` vive dentro `Wizard.jsx`.
-- **Tooltip:** posizionato con `top` fisso — logica: prova sotto lo spotlight → prova sopra → se né sopra né sotto hanno spazio (elemento molto alto), clamp dentro il viewport. Usa `TOOLTIP_H = 240` come stima altezza tooltip
-- **Emoji tema dinamica:** il testo dello step 1 contiene `{themeIcon}` che viene sostituito a render time con `🌙` (tema light) o `☀️` (tema dark)
-- **Fine wizard:** il bottone "Fatto!" chiude il wizard **e** riporta al tab "oggi"
-- **Selector `data-wizard`:** i pulsanti dei tab Alimenti e Storico hanno `data-wizard="alimenti-tab"` etc. per essere targettati dagli step che mostrano il tab stesso in spotlight
-- Steps attuali (11 totali): Benvenuto → Controlli header → Contatore+barra kcal → Tracker calorie → Extra → Alimenti (tab) → Aggiungi alimenti → Storico → Menu profilo → Calorie giornaliere (apre overlay) → Fasce orarie (overlay)
+### Wizard guidato (loggati)
+- 🧙 nell'header (solo loggati). Guida a step.
+- **Auto-apertura primo login:** se `config/foods` assente, wizard apre auto dopo `setDataReady(true)` tramite flag `autoOpenWizard`. Tutti utenti (incluso owner). Successive visite: `config/foods` esiste, wizard non riapre.
+- `WIZARD_STEPS` in `src/components/Wizard.jsx`, campi: `tab`, `selector`, `title`, `text`, `last`, `openSettings`. Anche importato in `src/app.jsx` per orchestration (step → tab/settings/profile-menu).
+- Step può cambiare tab attivo + spotlight DOM (via `selector`)
+- **Spotlight:** 4 div `.wiz-mask` mascherano fuori. Bordo `.wizard-spotlight-border` (animazione `wizardPulse`).
+- **Tab switching + settings (`src/app.jsx`):** `useEffect([wizardOpen, wizardStep])` imposta `activeTab` se step ha `tab`; se ha `openSettings`, apre overlay (chiude su altri step o close wizard). Resta in App per coord cross-componente.
+- **Misurazione spotlight (in `Wizard`):** `useEffect([open, step, activeTab])` con doppio `requestAnimationFrame` + `scrollIntoView`. State `spotlightRect` interno.
+- **Tooltip:** `top` fisso. Logica: prova sotto → prova sopra → clamp viewport. `TOOLTIP_H = 240`.
+- Emoji tema dinamica: testo step 1 contiene `{themeIcon}` sostituito a render (🌙 light / ☀️ dark)
+- "Fatto!" chiude wizard + torna tab "oggi"
+- Selector `data-wizard` su pulsanti tab Alimenti/Storico
+- 11 step: Benvenuto → Controlli header → Contatore+barra → Tracker → Extra → Alimenti tab → Aggiungi alimenti → Storico → Profile menu → Calorie giornaliere (apre overlay) → Fasce orarie (overlay)
 
 ### Autenticazione
-- Bottone "Accedi" nell'header (Google OAuth)
-- Accesso multi-utente dinamico via `config/access` (vedi sezione Firebase): max 5 utenti, primo-arriva-primo-servito
-- Da loggato: sync Firestore (debounced 400ms per dati giornalieri, immediato per lista alimenti)
-- Da non loggato: localStorage, nessuno storico, reset automatico al cambio giorno
-- Al logout: counts, extras, varGrams, log si azzerano; dietData torna a SEED_DIET_DATA
+- "Accedi" header (Google OAuth)
+- Multi-utente via `config/access`, max 5, primo-arriva
+- Loggato: sync Firestore (debounce 400ms dati / immediato lista alimenti)
+- Guest: localStorage, no storico, reset al cambio giorno
+- Logout: counts/extras/varGrams/log azzerati; dietData → SEED_DIET_DATA
 
-### Esperienza non loggata (MVP guest)
-- Nessuna lista alimenti — solo il campo **"Aggiungi alimento"** (nome libero + kcal)
-- Banner beta con bottone "Accedi con Google"
-- I dati sono in localStorage, si azzerano al cambio di giornata dietetica (05:30)
-- Tab Menu, Storico e Alimenti non compaiono
+### Guest (MVP)
+- No lista alimenti — solo "Aggiungi alimento" libero (nome + kcal)
+- Banner beta + "Accedi con Google"
+- Dati localStorage, azzerati a 05:30 (cambio giorno dietetico)
+- Tab Menu/Storico/Alimenti nascosti
 
-### Storico (tab "Storico", solo loggati)
-- **Paginazione bimestrale** con nav ← prec / succ →
-- **Settimana in corso**: card sempre aperta, non chiudibile, header viola
-- **Settimane passate**: accordion; se completa mostra balance deficit/surplus
-- Settimane dal venerdì al giovedì
+### Storico (loggati)
+- Paginazione bimestrale con ← prec / succ →
+- Settimana corrente: card aperta non chiudibile, header viola
+- Passate: accordion; complete mostrano balance deficit/surplus
+- Settimane venerdì → giovedì
 - Verde = deficit, rosso = surplus
-- **Vista pasti nel giorno:** se il giorno ha `log` mostra raggruppato per fascia oraria; altrimenti flat list `items`
+- **Vista pasti:** se giorno ha `log` raggruppa per fascia; altrimenti flat `items`
 
-#### target giornaliero = calorie bruciate (TDEE)
-`day.target` rappresenta le calorie bruciate stimate per quel giorno (default = `defaultKcal` dell'utente). Il surplus/deficit reale è `totalKcal − target`. Il target dell'header mostra `defaultKcal` e si modifica dalle Impostazioni (o per singolo giorno dallo Storico).
+#### target giornaliero = TDEE
+`day.target` = kcal bruciate stimate (default = `defaultKcal`). Surplus/deficit reale = `totalKcal − target`. Header mostra `defaultKcal`, editabile da Impostazioni o per giorno da Storico.
 
-**Editing target in Storico:** ogni giorno mostra `{totalKcal} kcal` e sotto `di {target}` (underline tratteggiato). Cliccando si apre un input inline che salva su Firestore e aggiorna tutta la UI in memoria (`setHistory`).
+**Edit in Storico:** giorno mostra `{totalKcal} kcal` + `di {target}` (underline tratteggiato). Clic → input inline, save Firestore + `setHistory`.
 
-Regole di editabilità:
-- **Settimana in corso**: editabile
-- **Settimane passate complete** (7 giorni): editabile
-- **Settimane passate incomplete** (<7 giorni): non editabile, "di X" statico
+Editabilità:
+- Settimana corrente: editabile
+- Passate complete (7gg): editabile
+- Passate incomplete (<7gg): non editabile, "di X" statico
 
 #### Calcoli basati su target giornalieri
-Tutti i calcoli usano la somma dei `day.target` effettivi, non un fisso 14.000:
-
-- **Balance settimana passata completa**: `totalConsumed − weeklyTarget` dove `weeklyTarget = days.reduce((s,d) => s + (d.target||2000), 0)`
-- **Balance settimana incompleta**: non mostrato (warning dati parziali)
-- **"Media settimanale" settimana completa**: somma target giornalieri effettivi
-- **"Media settimanale" settimana in corso**: `pastDaysTarget + 2000 × (7 − week.days.length)` (giorni rimanenti stimati a 2000)
-- **"Media settimanale" settimana incompleta**: fisso 14.000
+Usa somma `day.target` effettivi, non fisso 14.000:
+- Balance passata completa: `totalConsumed − weeklyTarget` (`weeklyTarget = sum(day.target||2000)`)
+- Balance incompleta: non mostrato (dati parziali)
+- Media settimanale completa: somma target giornalieri
+- Media corrente: `pastDaysTarget + 2000 × (7 − week.days.length)`
+- Media incompleta: fisso 14.000
 
 #### Snackbar proiezione fine settimana
-Visibile nella card "Settimana in corso" **dal lunedì in poi** (`daysFromFriday >= 3`, dove venerdì=0).
-
-Formula:
-```js
-const daysFromFriday = (d.getDay() + 2) % 7; // Ven=0, Sab=1, Dom=2, Lun=3, Mar=4, Mer=5, Gio=6
-const weekKcal = week.days.reduce(...);        // kcal giorni passati (da Firestore, escluso oggi)
-const daysAfterToday = 6 - daysFromFriday;     // giorni rimanenti dopo oggi
-const projectedTotal = weekKcal + Math.max(totalKcal, target) + target * daysAfterToday;
-// Math.max(totalKcal, target): oggi si assume almeno il target giornaliero
-const pastDaysTarget = week.days.reduce((s, day) => s + (day.target || 2000), 0);
-const weeklyProjectedTarget = pastDaysTarget + target + target * daysAfterToday;
-const projectedSurplus = projectedTotal - weeklyProjectedTarget;
-const weightDelta = (Math.abs(projectedSurplus) / 7700).toFixed(2); // kg
-```
-
-- **Surplus** (`projectedSurplus > 0`): banner giallo (`.surplus-snackbar`) con ⚠️ — "Surplus ad oggi: +X kcal / potresti aumentare di circa Y kg"
-- **Deficit** (`projectedSurplus <= 0`): banner verde (`.deficit-snackbar`) con ✅ — "Deficit ad oggi: −X kcal / potresti perdere circa Y kg"
-- Scompare automaticamente a inizio nuova settimana (venerdì)
-- `week.days` non include oggi (la history filtra `ACTIVE_DAY()`); `totalKcal` è lo stato corrente del giorno in corso
+Card "Settimana corrente" da lunedì in poi (`daysFromFriday >= 3`, dove venerdì=0). Formula in `src/tabs/StoricoTab.jsx`. Output: surplus (giallo ⚠️) / deficit (verde ✅), delta peso = `|projectedSurplus| / 7700` kg. Scompare a nuova settimana (venerdì). `week.days` esclude oggi.
 
 ### Navigazione tab
-- Swipe orizzontale sul `<main>` per passare tra i tab
-- Indicatore tab animato con `cubic-bezier`
-- Header e `.tabs-bar` sono avvolti in `<div className="sticky-top">` (`position: sticky; top: 0; z-index: 10`) — stickano insieme. Il `.header` non ha più `position: sticky` proprio; il bordo inferiore è su `.tabs-bar`; quando l'utente non è loggato (nessuna `.tabs-bar`) il bordo viene ripristinato via `.sticky-top:not(:has(.tabs-bar)) .header`.
-- Tutti i tab fluiscono da sinistra, nessun spacer `flex: 1`
-- `.tabs-inner` ha `overflow-x: auto; overflow-y: clip; scrollbar-width: none` per consentire lo scroll orizzontale su schermi molto piccoli senza clippare l'indicatore attivo (`bottom: -1px`, tollerato da `padding-bottom: 1px`)
+- Swipe orizzontale su `<main>`
+- Indicatore animato `cubic-bezier`
+- Header + `.tabs-bar` in `<div className="sticky-top">` (`position: sticky; top: 0; z-index: 10`). Header non sticky proprio; bordo su `.tabs-bar`. Guest (no `.tabs-bar`): bordo ripristinato via `.sticky-top:not(:has(.tabs-bar)) .header`.
+- Tab fluiscono da sx, no spacer `flex: 1`
+- `.tabs-inner`: `overflow-x: auto; overflow-y: clip; scrollbar-width: none` — scroll orizz su schermi piccoli senza clippare indicatore attivo (`bottom: -1px`, tollerato da `padding-bottom: 1px`)
 
 ### Tema
-- Toggle ☀️/🌙 nell'header
-- Preferenza in localStorage
-- CSS variables su `body` / `body.light`
-- Tutti i colori WCAG AAA (7:1)
+- Toggle ☀️/🌙 header. Preferenza localStorage. CSS vars su `body` / `body.light`. Colori WCAG AAA (7:1).
 
 ---
 
-## Dettagli tecnici importanti
+## Dettagli tecnici
 
-### dietData — da globale a state dinamico
-`SEED_DIET_DATA` è l'array hardcoded in `src/seed.js` usato come seed e fallback per la migrazione legacy.
+### dietData — globale → state
+`SEED_DIET_DATA` in `src/seed.js` = seed + fallback migrazione legacy.
 
-Al login, `dietData` viene caricato da Firestore (`config/foods`) in parallelo con i dati del giorno. Se `config/foods` non esiste, viene seminato da `SEED_DIET_DATA`. Il componente mantiene `dietData` come React state.
+Al login: `dietData` caricato da Firestore (`config/foods`) in parallelo coi dati giorno. Se assente → seed da `SEED_DIET_DATA`. React state.
 
-`itemById` e `itemCategory` sono `useMemo` derivati da `dietData` — si ricalcolano ad ogni modifica della lista.
+`itemById` / `itemCategory` = `useMemo` derivati da `dietData`.
 
 ### Lookup maps
 ```js
-// globali (per loadLocalData e migrateCountKeys — usano SEED_DIET_DATA)
+// globali (loadLocalData, migrateCountKeys — usano SEED_DIET_DATA)
 const seedItemById = {};
 const seedItemCategory = {};
 
-// dentro App() — derivati da state
+// dentro App()
 const itemById = useMemo(() => { ... }, [dietData]);
 const itemCategory = useMemo(() => { ... }, [dietData]);
 ```
 
 ### Sanitizzazione al carico
-Al load da Firestore: se un alimento variabile ha `count > 0` ma `varGrams = 0`, il count viene azzerato. Usa `loadedItemById` (costruito dalla dietData caricata, non da SEED_DIET_DATA).
+Variabile con `count > 0` ma `varGrams = 0` → count azzerato. Usa `loadedItemById` (da dietData caricata, non SEED).
 
-### Debounce salvataggio
-400ms per i dati giornalieri. Il salvataggio di `config/foods` è sincrono (immediato).
+### Debounce
+400ms dati giornalieri. `config/foods` immediato.
 
-### dataReady flag
-Bloccato finché non sono caricati **tre** risorse in parallelo: dati del giorno, lista alimenti (`config/foods`), e schedule (`config/schedule`). Se uno dei fetch fallisce, `setDataReady(true)` non viene chiamato — il salvataggio non parte.
+### dataReady
+True solo quando caricate **tre** risorse: dati giorno + `config/foods` + `config/schedule`. Fetch fallito → no `setDataReady(true)` → no save.
 
 ### ACTIVE_DAY() — giornata dietetica
-La giornata dietetica inizia alle **05:30**.
-
+Giornata inizia **05:30**.
 ```js
 const ACTIVE_DAY = () => {
   const now = new Date();
@@ -385,29 +329,28 @@ const ACTIVE_DAY = () => {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 };
 ```
+**Mai `toISOString()`** — UTC, sfasamenti.
 
-Non usare `toISOString()` — restituisce UTC e causa sfasamenti.
+### SortableJS (tab Alimenti)
+Tutto codice in `src/tabs/AlimentiAdminTab.jsx`. Cleanup automatico via React unmount (componente render solo se `activeTab === "alimenti"`). Due istanze:
 
-### SortableJS nel tab Alimenti
-Tutto il codice SortableJS vive in `src/tabs/AlimentiAdminTab.jsx`. Cleanup totale al cambio tab è automatico via React unmount (il componente è renderizzato solo se `activeTab === "alimenti"`). Due istanze Sortable distinte:
+**Item sortable** — `useEffect([adminOpenCats, adminSearchQuery])`. Container = div interno categoria aperta. Refs: `sortableItemRefs` (dict per nome categoria), `sortableItemInstances`. Handle `.admin-drag-handle`. Dipende da `adminOpenCats` (Set) e `adminSearchQuery` (search smonta i ref). Inizio loop: check `instance.el !== el` (istanza stantia su nodo smontato) → destroy + delete prima di ricreare. Usa `adminOpenCatsRef`, `userRef`, `dietDataRef` per closure-safe in `onEnd`.
 
-**Item sortable** — `useEffect([adminOpenCats, adminSearchQuery])`, container = div interno alla categoria aperta. Refs: `sortableItemRefs` (dict keyed per nome categoria) e `sortableItemInstances`. Handle `.admin-drag-handle`. Dipende da `adminOpenCats` (Set, plurale) e `adminSearchQuery` perché il container si monta/smonta (la search view è un ramo else che smonta i ref). All'inizio del loop su `adminOpenCats` controlla se `instance.el !== el` (istanza stantia su nodo smontato): se sì, destroy + delete prima di ricreare. Usa `adminOpenCatsRef`, `userRef` e `dietDataRef` per closure-safe access in `onEnd`.
+**`onEnd` con `group: 'items'`:** verificato su source SortableJS 1.15.2 — `onEnd` fire solo su sortable sorgente, non destinazione. Guard `if (from !== el) return;` = difesa innocua. Save Firestore **fuori** dal callback `setDietData` (no race: save drag dopo save delete riscrive Firestore con stato pre-cancellazione).
 
-**Note sul `onEnd` con `group: 'items'`:** Verificato sulla source di SortableJS 1.15.2 — `onEnd` spara **solo sul sortable sorgente** (non sulla destinazione). Il guard `if (from !== el) return;` è una misura difensiva innocua (no-op per il sorgente). Il salvataggio Firestore è fuori dal callback `setDietData` (non dentro) per evitare race condition con write successive: se il save del drag completasse dopo il save di un delete, Firestore verrebbe riscritto con lo stato pre-cancellazione.
-
-**Category sortable** — `useEffect([adminSearchQuery])`, container = div che racchiude solo le `.category-card` (sotto-div di `.admin-tab`, prima del bottone "+ Aggiungi categoria") (`sortableCatsRef`), handle `.admin-cat-drag-handle`. Il container non include il bottone "+ Aggiungi categoria" per evitare sfasamenti sugli indici. Le category-card usano `key={cat.category}` (non `key={catIdx}`) per evitare la collisione React+SortableJS: con chiavi stabili React segue il nodo DOM per identità invece di riconciliare per posizione. In `onEnd` aggiorna `dietData` tramite `dietDataRef.current` (non functional update) e salva su Firestore fuori dal callback.
+**Category sortable** — `useEffect([adminSearchQuery])`. Container = div che racchiude solo `.category-card` (sotto-div di `.admin-tab`, prima del "+ Aggiungi categoria") (`sortableCatsRef`). Handle `.admin-cat-drag-handle`. Container esclude "+ Aggiungi categoria" (evita sfasamento indici). Categorie usano `key={cat.category}` (non `key={catIdx}`) — chiavi stabili: React segue nodo DOM per identità invece di riconciliare per posizione. `onEnd` aggiorna `dietData` via `dietDataRef.current` (no functional update), save Firestore fuori dal callback.
 
 ### genId
 ```js
 const genId = () => Math.random().toString(36).slice(2, 8);
 ```
-Genera ID opachi a 6 caratteri base-36. Usato per nuovi alimenti aggiunti dal tab Alimenti.
+ID opaco 6 char base-36.
 
 ---
 
 ## Accessibilità (WCAG AAA 2.2)
 
-L'app è sviluppata per essere compliant WCAG AAA 2.2. Ogni nuova funzionalità deve rispettare questi standard.
+App compliant WCAG AAA 2.2. Ogni feature deve rispettare.
 
 ### Colori (SC 1.4.6 — contrasto 7:1)
 
@@ -421,62 +364,57 @@ L'app è sviluppata per essere compliant WCAG AAA 2.2. Ogni nuova funzionalità 
 | `--color-negative` | `#fa8585` | `#991b1b` |
 | `--color-warning` | `#fbbf24` | `#78350f` |
 
-### Focus, Touch target, Motion, Semantic HTML
+### Focus/Touch/Motion/Semantic
 - Global `:focus-visible` 3px accent, offset 2px
-- Counter buttons: touch target 44×44px via `::before { inset: -11px }`
-- `@media (prefers-reduced-motion)` disabilita tutte le transizioni
-- Skip link, `role="navigation"`, `aria-expanded`, `aria-label` su tutti i bottoni icona
+- Counter buttons: touch target 44×44 via `::before { inset: -11px }`
+- `@media (prefers-reduced-motion)` disabilita transizioni
+- Skip link, `role="navigation"`, `aria-expanded`, `aria-label` su bottoni icona
 
 ---
 
 ## Lista alimenti
-La lista completa è gestita in Firestore (`config/foods`). `SEED_DIET_DATA` in `src/seed.js` è la versione di partenza.  
-Ogni voce ha un campo `id` opaco a 6 caratteri che non va mai modificato.
+Completa in Firestore (`config/foods`). `SEED_DIET_DATA` in `src/seed.js` = versione di partenza. `id` opaco 6 char mai modificare.
 
 ---
 
-## File nella repo
-- `index.html` — scheletro HTML (head, root div, CDN scripts con SRI, SortableJS, CSP meta tag)
-- `style.css` — tutto il CSS dell'app
-- `src/app.jsx` — guscio dell'app React (state principale, sync Firestore, header, tab routing) — **non caricato dal browser**
-- `src/firebase.js`, `src/seed.js`, `src/utils.js`, `src/schedule.js`, `src/history.js` — costanti, helper puri, lookup
+## File repo
+- `index.html` — scheletro (head, root, CDN scripts SRI, SortableJS, CSP meta)
+- `style.css` — tutto CSS
+- `src/app.jsx` — guscio React (state, sync Firestore, header, tab routing) — **non caricato dal browser**
+- `src/firebase.js`, `src/seed.js`, `src/utils.js`, `src/schedule.js`, `src/history.js` — costanti, helper, lookup
 - `src/components/` — `KcalBar.jsx`, `ConfirmModal.jsx`, `SettingsOverlay.jsx`, `Wizard.jsx`
 - `src/tabs/` — `TrackerTab.jsx`, `MenuTab.jsx`, `StoricoTab.jsx`, `AlimentiAdminTab.jsx`
-- `app.js` — bundle IIFE prodotto da esbuild — **quello che carica il browser**
-- `build.js` — script di build (esbuild + hash SHA-256 per cache busting)
-- `package.json` — devDependencies (`esbuild`) + script `build`
-- `package-lock.json` — lockfile npm
-- `manifest.json` — PWA manifest
-- `logo-main.png` — icona app PWA (favicon, apple-touch-icon, manifest)
-- `logo-main-horizontal.png` — logo testuale nell'header
-- `logo.png` — icona precedente (non più usata)
-- `logo2.png` — logo precedente (non più usato)
-- `no.gif` — gif accesso negato
-- `.gitignore` — esclude `.claude/`, `node_modules/`
+- `app.js` — bundle IIFE da esbuild — **caricato dal browser**
+- `build.js` — esbuild + SHA-256 cache busting
+- `package.json` / `package-lock.json`
+- `manifest.json` — PWA
+- `logo-main.png` (PWA icon), `logo-main-horizontal.png` (header)
+- `logo.png`, `logo2.png` (legacy), `no.gif` (accesso negato)
+- `.gitignore` — `.claude/`, `node_modules/`
 - `CLAUDE.md` — questo file
 
 ---
 
-## Idee discusse ma non implementate
-- **Grafico nello storico** — scartato per ora
-- **Nota giornaliera** — scartata per ora
-- **Google Fit integration** — impossibile, API dismessa dal 30/06/2025
+## Idee scartate
+- Grafico storico — scartato
+- Nota giornaliera — scartata
+- Google Fit — API dismessa 30/06/2025
 
 ---
 
-## Come lavorare su questo progetto
-1. Modifiche al CSS → `style.css`, poi **`npm run build`** (aggiorna l'hash CSS in `index.html`)
-2. Modifiche alla logica/UI → file pertinente in `src/` (vedi "Mappa dei moduli" sopra), poi **`npm run build`**
-3. Aggiunta/modifica alimenti → direttamente dal **tab Alimenti** nell'app (loggato), oppure in `SEED_DIET_DATA` in `src/seed.js` per modifiche strutturali al seed
-4. Push → `git add . && git commit -m "..." && git push` — solo quando Valerio lo chiede
-5. GitHub Pages → si aggiorna in 1-2 minuti dal push
-6. Per testare in locale → live server su `127.0.0.1:5500`
+## Come lavorare
+1. CSS → `style.css` + **`npm run build`** (aggiorna hash CSS in `index.html`)
+2. Logica/UI → file pertinente in `src/` (vedi "Mappa moduli") + **`npm run build`**
+3. Alimenti → tab Alimenti (loggato) o `SEED_DIET_DATA` per modifiche al seed
+4. Push → `git add . && git commit -m "..." && git push` — solo quando Valerio chiede
+5. GitHub Pages → aggiorna in 1-2 min
+6. Test locale → live server `127.0.0.1:5500`
 
 ### Cache PWA mobile
-`app.js`, `style.css` e `manifest.json` sono caricati con query string di versione (`?v=HASH`). Gli hash sono i primi 8 caratteri del SHA-256 dei rispettivi contenuti, aggiornati automaticamente da `build.js` ad ogni build. **Modificare qualsiasi di questi file senza fare `npm run build` non invalida la cache PWA mobile.**
+`app.js`, `style.css`, `manifest.json` caricati con `?v=HASH` (primi 8 char SHA-256, aggiornati da `build.js`). **Modificare senza `npm run build` non invalida la cache PWA.**
 
 ### Sicurezza
-- **SRI hash** su tutti gli script CDN incluso SortableJS (`sha384-BSxuMLxX+...`)
-- **Content Security Policy** via meta tag: `script-src` senza `unsafe-inline` (rimosso — non necessario, React non usa inline scripts); `style-src` mantiene `unsafe-inline` (necessario per gli stili inline di React)
-- **Babel non più nel browser**
-- **Versioni CDN pinnate**
+- SRI hash su tutti gli script CDN inclusi SortableJS (`sha384-BSxuMLxX+...`)
+- CSP via meta tag: `script-src` senza `unsafe-inline` (rimosso, React non usa inline scripts); `style-src` mantiene `unsafe-inline` (necessario per inline styles React)
+- Babel non in browser
+- Versioni CDN pinnate
