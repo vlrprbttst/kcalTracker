@@ -185,7 +185,7 @@ input { font-family: inherit; }
   gap: 6px;
 }
 .auth-btn:hover { color: var(--accent); border-color: var(--accent); }
-.auth-btn.logged { padding: 3px 8px; }
+.auth-btn.logged { padding: 3px; }
 .auth-btn.logged:hover { border-color: var(--accent); }
 .auth-avatar { width: 32px; height: 32px; border-radius: 50%; display: block; }
 .auth-name { font-size: 13px; font-weight: 500; color: var(--text-dim); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
