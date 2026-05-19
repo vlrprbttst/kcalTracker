@@ -1731,6 +1731,7 @@
     }, [activeTab, user]);
     useEffect3(() => {
       if (activeTab !== "alimenti") setAdminSearchQuery("");
+      window.scrollTo(0, 0);
     }, [activeTab]);
     useEffect3(() => {
       if (dataReady && autoOpenWizard) {

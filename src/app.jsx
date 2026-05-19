@@ -330,6 +330,7 @@ function App() {
 
   useEffect(() => {
     if (activeTab !== "alimenti") setAdminSearchQuery("");
+    window.scrollTo(0, 0);
   }, [activeTab]);
 
   useEffect(() => {
