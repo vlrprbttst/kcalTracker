@@ -1,5 +1,6 @@
 import { db } from '../firebase.js';
 import { genId } from '../utils.js';
+import OpenFoodFactsModal from '../components/OpenFoodFactsModal.jsx';
 
 const { useState, useEffect, useRef } = React;
 
@@ -9,6 +10,22 @@ export default function AlimentiAdminTab({
   setConfirmModal,
   adminSearchQuery, setAdminSearchQuery,
 }) {
+  const [offOpen, setOffOpen] = useState(false);
+
+  const importFromOFF = (newItem, catName) => {
+    const exists = dietData.some(c => c.category === catName);
+    const newDietData = exists
+      ? dietData.map(c => c.category === catName ? { ...c, items: [...c.items, newItem] } : c)
+      : [...dietData, { category: catName, icon: "🍽️", items: [newItem] }];
+    setDietData(newDietData);
+    if (user) {
+      db.collection("users").doc(user.uid).collection("config").doc("foods")
+        .set({ dietData: newDietData })
+        .catch(e => console.error("OFF import save error:", e));
+    }
+    setAdminOpenCats(prev => { const next = new Set(prev); next.add(catName); return next; });
+  };
+
   const [adminEditId, setAdminEditId] = useState(null);
   const [adminEditDraft, setAdminEditDraft] = useState({});
   const [adminNewItem, setAdminNewItem] = useState(null);
@@ -293,6 +310,19 @@ export default function AlimentiAdminTab({
 
   return (
     <div className="admin-tab">
+      <div className="admin-toolbar">
+        <button
+          className="admin-off-btn"
+          onClick={() => setOffOpen(true)}
+          aria-label="Cerca prodotti su OpenFoodFacts"
+        >🌍 Cerca online (OpenFoodFacts)</button>
+      </div>
+      <OpenFoodFactsModal
+        open={offOpen}
+        onClose={() => setOffOpen(false)}
+        dietData={dietData}
+        onImport={importFromOFF}
+      />
       {adminSearchQuery.trim() ? (
         (() => {
           const q = adminSearchQuery.trim().toLowerCase();

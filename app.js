@@ -712,8 +712,131 @@
     }));
   }
 
-  // src/tabs/AlimentiAdminTab.jsx
+  // src/components/OpenFoodFactsModal.jsx
   var { useState: useState2, useEffect: useEffect2, useRef } = React;
+  var OFF_URL = "https://world.openfoodfacts.org/cgi/search.pl";
+  function parseServingG(s) {
+    if (!s || typeof s !== "string") return null;
+    const m = s.match(/(\d+(?:[.,]\d+)?)\s*g/i);
+    if (m) return Math.round(parseFloat(m[1].replace(",", ".")));
+    return null;
+  }
+  function OpenFoodFactsModal({ open, onClose, dietData, onImport }) {
+    const [query, setQuery] = useState2("");
+    const [results, setResults] = useState2([]);
+    const [loading, setLoading] = useState2(false);
+    const [error, setError] = useState2(null);
+    const [selectedCat, setSelectedCat] = useState2({});
+    const debounceRef = useRef(null);
+    const abortRef = useRef(null);
+    useEffect2(() => {
+      if (!open) {
+        setQuery("");
+        setResults([]);
+        setError(null);
+        setSelectedCat({});
+      }
+    }, [open]);
+    useEffect2(() => {
+      if (!open) return;
+      clearTimeout(debounceRef.current);
+      if (!query.trim()) {
+        setResults([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      debounceRef.current = setTimeout(() => {
+        if (abortRef.current) abortRef.current.abort();
+        const ctrl = new AbortController();
+        abortRef.current = ctrl;
+        const params = new URLSearchParams({
+          search_terms: query.trim(),
+          search_simple: "1",
+          action: "process",
+          json: "1",
+          page_size: "20",
+          fields: "code,product_name,product_name_it,brands,nutriments,serving_size,image_thumb_url,image_small_url",
+          lc: "it"
+        });
+        fetch(`${OFF_URL}?${params.toString()}`, { signal: ctrl.signal }).then((r) => r.json()).then((data) => {
+          const items = (data.products || []).map((p) => {
+            const kcal100 = p.nutriments?.["energy-kcal_100g"];
+            if (!kcal100 || kcal100 <= 0) return null;
+            const name = (p.product_name_it || p.product_name || "").trim();
+            if (!name) return null;
+            return {
+              code: p.code,
+              name,
+              brand: (p.brands || "").split(",")[0].trim(),
+              kcalPer100g: Math.round(kcal100),
+              kcalPerG: kcal100 / 100,
+              servingG: parseServingG(p.serving_size),
+              image: p.image_thumb_url || p.image_small_url || null
+            };
+          }).filter(Boolean);
+          setResults(items);
+          setLoading(false);
+        }).catch((e) => {
+          if (e.name === "AbortError") return;
+          setError("Errore di rete");
+          setLoading(false);
+        });
+      }, 400);
+      return () => clearTimeout(debounceRef.current);
+    }, [query, open]);
+    if (!open) return null;
+    const handleImport = (r) => {
+      const catName = selectedCat[r.code];
+      if (!catName) return;
+      const fullName = r.brand ? `${r.name} (${r.brand})` : r.name;
+      const newItem = {
+        id: genId(),
+        name: fullName,
+        portion: "g",
+        kcal: 0,
+        variable: true,
+        kcalPerG: r.kcalPerG
+      };
+      onImport(newItem, catName);
+      setResults((prev) => prev.filter((x) => x.code !== r.code));
+    };
+    return /* @__PURE__ */ React.createElement("div", { className: "modal-overlay off-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "off-title", onClick: onClose }, /* @__PURE__ */ React.createElement("div", { className: "off-modal", onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "off-header" }, /* @__PURE__ */ React.createElement("h2", { id: "off-title", className: "off-title" }, "Cerca su OpenFoodFacts"), /* @__PURE__ */ React.createElement("button", { className: "off-close", onClick: onClose, "aria-label": "Chiudi" }, "\xD7")), /* @__PURE__ */ React.createElement("div", { className: "off-search-row" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        className: "off-search-input",
+        type: "search",
+        autoFocus: true,
+        placeholder: "Es. nutella, biscotti, parmigiano...",
+        value: query,
+        onChange: (e) => setQuery(e.target.value),
+        "aria-label": "Cerca prodotto"
+      }
+    )), /* @__PURE__ */ React.createElement("div", { className: "off-results" }, loading && /* @__PURE__ */ React.createElement("div", { className: "off-status" }, "Ricerca in corso\u2026"), error && /* @__PURE__ */ React.createElement("div", { className: "off-status off-status-error" }, error), !loading && !error && query.trim() && results.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "off-status" }, "Nessun risultato"), !loading && !query.trim() && /* @__PURE__ */ React.createElement("div", { className: "off-status" }, "Digita per cercare. I prodotti vengono dal database libero OpenFoodFacts."), results.map((r) => /* @__PURE__ */ React.createElement("div", { key: r.code, className: "off-result" }, r.image ? /* @__PURE__ */ React.createElement("img", { src: r.image, alt: "", className: "off-result-img" }) : /* @__PURE__ */ React.createElement("div", { className: "off-result-img off-result-img-placeholder" }, "\u{1F37D}\uFE0F"), /* @__PURE__ */ React.createElement("div", { className: "off-result-info" }, /* @__PURE__ */ React.createElement("div", { className: "off-result-name" }, r.name), r.brand && /* @__PURE__ */ React.createElement("div", { className: "off-result-brand" }, r.brand), /* @__PURE__ */ React.createElement("div", { className: "off-result-meta" }, r.kcalPer100g, " kcal/100g", r.servingG ? ` \xB7 porz. ${r.servingG}g` : "")), /* @__PURE__ */ React.createElement("div", { className: "off-result-actions" }, /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        className: "off-cat-select",
+        value: selectedCat[r.code] || "",
+        onChange: (e) => setSelectedCat((prev) => ({ ...prev, [r.code]: e.target.value })),
+        "aria-label": "Categoria di destinazione"
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "" }, "Categoria\u2026"),
+      dietData.map((c) => /* @__PURE__ */ React.createElement("option", { key: c.category, value: c.category }, c.icon, " ", c.category))
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: "off-import-btn",
+        onClick: () => handleImport(r),
+        disabled: !selectedCat[r.code],
+        "aria-label": `Importa ${r.name}`
+      },
+      "Importa"
+    ))))), /* @__PURE__ */ React.createElement("div", { className: "off-footer" }, "Dati da ", /* @__PURE__ */ React.createElement("a", { href: "https://world.openfoodfacts.org", target: "_blank", rel: "noopener noreferrer" }, "OpenFoodFacts"), " (CC-BY-SA)")));
+  }
+
+  // src/tabs/AlimentiAdminTab.jsx
+  var { useState: useState3, useEffect: useEffect3, useRef: useRef2 } = React;
   function AlimentiAdminTab({
     user,
     dietData,
@@ -724,34 +847,48 @@
     adminSearchQuery,
     setAdminSearchQuery
   }) {
-    const [adminEditId, setAdminEditId2] = useState2(null);
-    const [adminEditDraft, setAdminEditDraft] = useState2({});
-    const [adminNewItem, setAdminNewItem2] = useState2(null);
-    const [adminNewCat, setAdminNewCat] = useState2(false);
-    const [adminNewCatDraft, setAdminNewCatDraft] = useState2({ name: "", icon: "" });
-    const [adminEditCat, setAdminEditCat] = useState2(null);
-    const [adminEditCatDraft, setAdminEditCatDraft] = useState2({ name: "", icon: "" });
-    const [adminOpenCats, setAdminOpenCats] = useState2(/* @__PURE__ */ new Set());
-    const sortableCatsRef = useRef(null);
-    const sortableItemRefs = useRef({});
-    const sortableItemInstances = useRef({});
-    const isDraggingRef = useRef(false);
-    const hoverOpenTimerRef = useRef(null);
-    const hoverOpenCatRef = useRef(null);
-    const handleTouchMoveRef = useRef(null);
-    const adminOpenCatsRef = useRef(adminOpenCats);
-    const dietDataRef = useRef(dietData);
-    const userRef = useRef(user);
-    useEffect2(() => {
+    const [offOpen, setOffOpen] = useState3(false);
+    const importFromOFF = (newItem, catName) => {
+      const exists = dietData.some((c) => c.category === catName);
+      const newDietData = exists ? dietData.map((c) => c.category === catName ? { ...c, items: [...c.items, newItem] } : c) : [...dietData, { category: catName, icon: "\u{1F37D}\uFE0F", items: [newItem] }];
+      setDietData(newDietData);
+      if (user) {
+        db.collection("users").doc(user.uid).collection("config").doc("foods").set({ dietData: newDietData }).catch((e) => console.error("OFF import save error:", e));
+      }
+      setAdminOpenCats((prev) => {
+        const next = new Set(prev);
+        next.add(catName);
+        return next;
+      });
+    };
+    const [adminEditId, setAdminEditId2] = useState3(null);
+    const [adminEditDraft, setAdminEditDraft] = useState3({});
+    const [adminNewItem, setAdminNewItem2] = useState3(null);
+    const [adminNewCat, setAdminNewCat] = useState3(false);
+    const [adminNewCatDraft, setAdminNewCatDraft] = useState3({ name: "", icon: "" });
+    const [adminEditCat, setAdminEditCat] = useState3(null);
+    const [adminEditCatDraft, setAdminEditCatDraft] = useState3({ name: "", icon: "" });
+    const [adminOpenCats, setAdminOpenCats] = useState3(/* @__PURE__ */ new Set());
+    const sortableCatsRef = useRef2(null);
+    const sortableItemRefs = useRef2({});
+    const sortableItemInstances = useRef2({});
+    const isDraggingRef = useRef2(false);
+    const hoverOpenTimerRef = useRef2(null);
+    const hoverOpenCatRef = useRef2(null);
+    const handleTouchMoveRef = useRef2(null);
+    const adminOpenCatsRef = useRef2(adminOpenCats);
+    const dietDataRef = useRef2(dietData);
+    const userRef = useRef2(user);
+    useEffect3(() => {
       userRef.current = user;
     }, [user]);
-    useEffect2(() => {
+    useEffect3(() => {
       adminOpenCatsRef.current = adminOpenCats;
     }, [adminOpenCats]);
-    useEffect2(() => {
+    useEffect3(() => {
       dietDataRef.current = dietData;
     }, [dietData]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (typeof Sortable === "undefined") return;
       adminOpenCats.forEach((catName) => {
         const el = sortableItemRefs.current[catName];
@@ -832,7 +969,7 @@
         }
       });
     }, [adminOpenCats, adminSearchQuery]);
-    useEffect2(() => {
+    useEffect3(() => {
       return () => {
         Object.values(sortableItemInstances.current).forEach((s) => {
           try {
@@ -843,7 +980,7 @@
         sortableItemInstances.current = {};
       };
     }, []);
-    useEffect2(() => {
+    useEffect3(() => {
       if (typeof Sortable === "undefined" || !sortableCatsRef.current) return;
       const sortable = Sortable.create(sortableCatsRef.current, {
         animation: 150,
@@ -1009,7 +1146,23 @@
         }
       });
     };
-    return /* @__PURE__ */ React.createElement("div", { className: "admin-tab" }, adminSearchQuery.trim() ? (() => {
+    return /* @__PURE__ */ React.createElement("div", { className: "admin-tab" }, /* @__PURE__ */ React.createElement("div", { className: "admin-toolbar" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: "admin-off-btn",
+        onClick: () => setOffOpen(true),
+        "aria-label": "Cerca prodotti su OpenFoodFacts"
+      },
+      "\u{1F30D} Cerca online (OpenFoodFacts)"
+    )), /* @__PURE__ */ React.createElement(
+      OpenFoodFactsModal,
+      {
+        open: offOpen,
+        onClose: () => setOffOpen(false),
+        dietData,
+        onImport: importFromOFF
+      }
+    ), adminSearchQuery.trim() ? (() => {
       const q = adminSearchQuery.trim().toLowerCase();
       const highlight = (name) => {
         const idx = name.toLowerCase().indexOf(q);
@@ -1446,47 +1599,47 @@
   }
 
   // src/app.jsx
-  var { useState: useState3, useEffect: useEffect3, useRef: useRef2, useMemo } = React;
+  var { useState: useState4, useEffect: useEffect4, useRef: useRef3, useMemo } = React;
   function App() {
-    const [user, setUser] = useState3(void 0);
-    const [notAllowed, setNotAllowed] = useState3(false);
-    const [wizardOpen, setWizardOpen] = useState3(false);
-    const [wizardStep, setWizardStep] = useState3(0);
-    const [settingsOpen, setSettingsOpen] = useState3(false);
-    const [settingsScrollToKcal, setSettingsScrollToKcal] = useState3(false);
-    const [profileMenuOpen, setProfileMenuOpen] = useState3(false);
-    const [settingsDraft, setSettingsDraft] = useState3({ defaultKcal: "2000", schedule: DEFAULT_SCHEDULE });
-    const [defaultKcal, setDefaultKcal] = useState3(2e3);
-    const [counts, setCounts] = useState3(() => loadLocalData().counts);
-    const [extras, setExtras] = useState3(() => loadLocalData().extras);
-    const [varGrams, setVarGrams] = useState3(() => loadLocalData().varGrams);
-    const [log, setLog] = useState3([]);
-    const [searchQuery, setSearchQuery] = useState3("");
-    const [adminSearchQuery, setAdminSearchQuery] = useState3("");
-    const [extraName, setExtraName] = useState3("");
-    const [extraInput, setExtraInput] = useState3("");
-    const [target, setTarget] = useState3(loadTarget);
-    const [openIdx, setOpenIdx] = useState3(null);
-    const [editingDayTarget, setEditingDayTarget] = useState3(null);
-    const [activeTab, setActiveTab] = useState3("oggi");
-    const swipeStart = useRef2(null);
-    const tabRefs = useRef2({});
-    const [indicatorStyle, setIndicatorStyle] = useState3({ left: 0, width: 0 });
-    const [history, setHistory] = useState3([]);
-    const [historyLoading, setHistoryLoading] = useState3(false);
-    const [currentPage, setCurrentPage] = useState3(() => getBimesterOf(ACTIVE_DAY()));
-    const [openWeeks, setOpenWeeks] = useState3(/* @__PURE__ */ new Set());
-    const [dataReady, setDataReady] = useState3(false);
-    const [shakeTarget, setShakeTarget] = useState3(false);
-    const [autoOpenWizard, setAutoOpenWizard] = useState3(false);
-    const [lightTheme, setLightTheme] = useState3(() => localStorage.getItem("kcal_theme") === "light");
-    const [confirmModal, setConfirmModal] = useState3(null);
-    const [installEvent, setInstallEvent] = useState3(null);
-    const [installBanner, setInstallBanner] = useState3(null);
-    const [pwaInteracted, setPwaInteracted] = useState3(() => localStorage.getItem("pwa_dismissed") === "1");
-    const [dietData, setDietData] = useState3(SEED_DIET_DATA);
-    const [schedule, setSchedule] = useState3(DEFAULT_SCHEDULE);
-    const profileMenuRef = useRef2(null);
+    const [user, setUser] = useState4(void 0);
+    const [notAllowed, setNotAllowed] = useState4(false);
+    const [wizardOpen, setWizardOpen] = useState4(false);
+    const [wizardStep, setWizardStep] = useState4(0);
+    const [settingsOpen, setSettingsOpen] = useState4(false);
+    const [settingsScrollToKcal, setSettingsScrollToKcal] = useState4(false);
+    const [profileMenuOpen, setProfileMenuOpen] = useState4(false);
+    const [settingsDraft, setSettingsDraft] = useState4({ defaultKcal: "2000", schedule: DEFAULT_SCHEDULE });
+    const [defaultKcal, setDefaultKcal] = useState4(2e3);
+    const [counts, setCounts] = useState4(() => loadLocalData().counts);
+    const [extras, setExtras] = useState4(() => loadLocalData().extras);
+    const [varGrams, setVarGrams] = useState4(() => loadLocalData().varGrams);
+    const [log, setLog] = useState4([]);
+    const [searchQuery, setSearchQuery] = useState4("");
+    const [adminSearchQuery, setAdminSearchQuery] = useState4("");
+    const [extraName, setExtraName] = useState4("");
+    const [extraInput, setExtraInput] = useState4("");
+    const [target, setTarget] = useState4(loadTarget);
+    const [openIdx, setOpenIdx] = useState4(null);
+    const [editingDayTarget, setEditingDayTarget] = useState4(null);
+    const [activeTab, setActiveTab] = useState4("oggi");
+    const swipeStart = useRef3(null);
+    const tabRefs = useRef3({});
+    const [indicatorStyle, setIndicatorStyle] = useState4({ left: 0, width: 0 });
+    const [history, setHistory] = useState4([]);
+    const [historyLoading, setHistoryLoading] = useState4(false);
+    const [currentPage, setCurrentPage] = useState4(() => getBimesterOf(ACTIVE_DAY()));
+    const [openWeeks, setOpenWeeks] = useState4(/* @__PURE__ */ new Set());
+    const [dataReady, setDataReady] = useState4(false);
+    const [shakeTarget, setShakeTarget] = useState4(false);
+    const [autoOpenWizard, setAutoOpenWizard] = useState4(false);
+    const [lightTheme, setLightTheme] = useState4(() => localStorage.getItem("kcal_theme") === "light");
+    const [confirmModal, setConfirmModal] = useState4(null);
+    const [installEvent, setInstallEvent] = useState4(null);
+    const [installBanner, setInstallBanner] = useState4(null);
+    const [pwaInteracted, setPwaInteracted] = useState4(() => localStorage.getItem("pwa_dismissed") === "1");
+    const [dietData, setDietData] = useState4(SEED_DIET_DATA);
+    const [schedule, setSchedule] = useState4(DEFAULT_SCHEDULE);
+    const profileMenuRef = useRef3(null);
     const itemById = useMemo(() => {
       const m = {};
       dietData.forEach((cat) => cat.items.forEach((item) => {
@@ -1510,11 +1663,11 @@
       next.has(ws) ? next.delete(ws) : next.add(ws);
       return next;
     });
-    useEffect3(() => {
+    useEffect4(() => {
       document.body.classList.toggle("light", lightTheme);
       localStorage.setItem("kcal_theme", lightTheme ? "light" : "dark");
     }, [lightTheme]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (new URLSearchParams(location.search).has("reset-pwa")) localStorage.removeItem("pwa_dismissed");
       const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
       if (isStandalone) return;
@@ -1549,7 +1702,7 @@
         window.removeEventListener("appinstalled", installed);
       };
     }, []);
-    useEffect3(() => {
+    useEffect4(() => {
       document.body.classList.toggle("has-install-banner", !!installBanner);
       return () => document.body.classList.remove("has-install-banner");
     }, [installBanner]);
@@ -1566,9 +1719,9 @@
       localStorage.setItem("pwa_dismissed", "1");
       setPwaInteracted(true);
     };
-    const saveDebounceRef = useRef2(null);
-    const prevOverTarget = useRef2(false);
-    useEffect3(() => {
+    const saveDebounceRef = useRef3(null);
+    const prevOverTarget = useRef3(false);
+    useEffect4(() => {
       return auth.onAuthStateChanged(async (u) => {
         if (!u) {
           setUser(null);
@@ -1678,11 +1831,11 @@
         }
       });
     }, []);
-    useEffect3(() => {
+    useEffect4(() => {
       if (user === void 0 || user) return;
       localStorage.setItem("kcal_data", JSON.stringify({ date: ACTIVE_DAY(), counts, extras, varGrams }));
     }, [counts, extras, varGrams, user]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (!user || !dataReady) return;
       clearTimeout(saveDebounceRef.current);
       saveDebounceRef.current = setTimeout(() => {
@@ -1701,11 +1854,11 @@
         }).catch((e) => console.error("Firestore save error:", e));
       }, 400);
     }, [counts, extras, varGrams, log, target, user, dataReady]);
-    useEffect3(() => {
+    useEffect4(() => {
       localStorage.setItem("kcal_target", String(target));
     }, [target]);
     const totalKcal = computeTotal(counts, extras, varGrams, itemById);
-    useEffect3(() => {
+    useEffect4(() => {
       const over = totalKcal > target;
       if (over && !prevOverTarget.current) {
         setShakeTarget(true);
@@ -1713,14 +1866,14 @@
       }
       prevOverTarget.current = over;
     }, [totalKcal, target]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (activeTab === "menu" && log.length === 0) setActiveTab("oggi");
     }, [log, activeTab]);
-    useEffect3(() => {
+    useEffect4(() => {
       const btn = tabRefs.current[activeTab];
       if (btn) setIndicatorStyle({ left: btn.offsetLeft, width: btn.offsetWidth });
     }, [activeTab, log.length]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (activeTab !== "storico" || !user) return;
       setHistoryLoading(true);
       db.collection("users").doc(user.uid).collection("days").get().then((snap) => {
@@ -1729,18 +1882,18 @@
         setHistoryLoading(false);
       }).catch(() => setHistoryLoading(false));
     }, [activeTab, user]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (activeTab !== "alimenti") setAdminSearchQuery("");
       window.scrollTo(0, 0);
     }, [activeTab]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (dataReady && autoOpenWizard) {
         setWizardStep(0);
         setWizardOpen(true);
         setAutoOpenWizard(false);
       }
     }, [dataReady, autoOpenWizard]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (!wizardOpen) {
         setSettingsOpen(false);
         setProfileMenuOpen(false);
@@ -1756,7 +1909,7 @@
       }
       setProfileMenuOpen(!!step.openProfileMenu);
     }, [wizardOpen, wizardStep]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (!profileMenuOpen) return;
       const handler = (e) => {
         if (wizardOpen) return;
