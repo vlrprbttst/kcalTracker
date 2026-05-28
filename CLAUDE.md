@@ -207,8 +207,7 @@ Sempre `git add .` (mai file singoli).
 - **Drag & drop item** (SortableJS): handle `⠿` per riga, riordina dentro categoria. Mouse + touch.
 - **Drag & drop categorie:** handle `⠿` a sinistra titolo. Save immediato Firestore.
 - Save: immediato a ogni mod (add/edit/delete/reorder) su `config/foods`
-- Prima apertura owner: seminato da `SEED_DIET_DATA`. Altri utenti: lista vuota.
-- **Auto-merge owner login:** se `config/foods` esiste ma mancano item/categorie da `SEED_DIET_DATA`, aggiunti auto. Per categorie SEED mancanti, item filtrati per `firestoreIds` prima di aggiungere → previene duplicazione di item spostati prima dell'elimina categoria originale.
+- Prima apertura owner: seminato da `SEED_DIET_DATA`. Altri utenti: lista vuota. **Nessun auto-merge:** dopo primo login `config/foods` è source-of-truth; modifiche successive a `SEED_DIET_DATA` non si propagano (evita che item eliminati riappaiano).
 - Eliminare item con count attivo oggi: warning, conteggio non modificato
 
 ### Modali di conferma

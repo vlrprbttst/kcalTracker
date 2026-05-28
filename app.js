@@ -1770,32 +1770,6 @@
           let loadedDietData;
           if (foodsSnap.exists && foodsSnap.data().dietData) {
             loadedDietData = foodsSnap.data().dietData;
-            if (u.uid === ALLOWED_UID) {
-              const firestoreIds = new Set(loadedDietData.flatMap((c) => c.items.map((i) => i.id)));
-              let needsMerge = false;
-              const mergedData = loadedDietData.map((cat) => {
-                const seedCat = SEED_DIET_DATA.find((sc) => sc.category === cat.category);
-                if (!seedCat) return cat;
-                const newItems = seedCat.items.filter((si) => !firestoreIds.has(si.id));
-                if (newItems.length === 0) return cat;
-                needsMerge = true;
-                return { ...cat, items: [...cat.items, ...newItems] };
-              });
-              const firestoreCats = new Set(loadedDietData.map((c) => c.category));
-              SEED_DIET_DATA.forEach((seedCat) => {
-                if (!firestoreCats.has(seedCat.category)) {
-                  const newItems = seedCat.items.filter((si) => !firestoreIds.has(si.id));
-                  if (newItems.length > 0) {
-                    mergedData.push({ ...seedCat, items: newItems });
-                    needsMerge = true;
-                  }
-                }
-              });
-              if (needsMerge) {
-                loadedDietData = mergedData;
-                db.collection("users").doc(u.uid).collection("config").doc("foods").set({ dietData: mergedData }).catch((e) => console.error("Merge diet data error:", e));
-              }
-            }
           } else {
             loadedDietData = u.uid === ALLOWED_UID ? SEED_DIET_DATA : [];
             db.collection("users").doc(u.uid).collection("config").doc("foods").set({ dietData: loadedDietData }).catch((e) => console.error("Seed diet data error:", e));

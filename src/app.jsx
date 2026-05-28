@@ -198,37 +198,6 @@ function App() {
           let loadedDietData;
           if (foodsSnap.exists && foodsSnap.data().dietData) {
             loadedDietData = foodsSnap.data().dietData;
-            // Auto-merge new items from SEED_DIET_DATA only for the owner
-            if (u.uid === ALLOWED_UID) {
-              const firestoreIds = new Set(loadedDietData.flatMap(c => c.items.map(i => i.id)));
-              let needsMerge = false;
-              const mergedData = loadedDietData.map(cat => {
-                const seedCat = SEED_DIET_DATA.find(sc => sc.category === cat.category);
-                if (!seedCat) return cat;
-                const newItems = seedCat.items.filter(si => !firestoreIds.has(si.id));
-                if (newItems.length === 0) return cat;
-                needsMerge = true;
-                return { ...cat, items: [...cat.items, ...newItems] };
-              });
-              const firestoreCats = new Set(loadedDietData.map(c => c.category));
-              SEED_DIET_DATA.forEach(seedCat => {
-                if (!firestoreCats.has(seedCat.category)) {
-                  // Only add items whose IDs are not already present in any other category
-                  // (prevents re-adding items that the user moved elsewhere before deleting the category)
-                  const newItems = seedCat.items.filter(si => !firestoreIds.has(si.id));
-                  if (newItems.length > 0) {
-                    mergedData.push({ ...seedCat, items: newItems });
-                    needsMerge = true;
-                  }
-                }
-              });
-              if (needsMerge) {
-                loadedDietData = mergedData;
-                db.collection("users").doc(u.uid).collection("config").doc("foods")
-                  .set({ dietData: mergedData })
-                  .catch(e => console.error("Merge diet data error:", e));
-              }
-            }
           } else {
             // Owner gets SEED_DIET_DATA, new users start with an empty list
             loadedDietData = u.uid === ALLOWED_UID ? SEED_DIET_DATA : [];
